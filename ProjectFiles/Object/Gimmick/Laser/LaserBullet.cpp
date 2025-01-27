@@ -78,7 +78,7 @@ void LaserBullet::OnCollideEnter(MyEngine::Collidable* colider, int selfIndex, i
 
 	auto tag = colider->GetTag();
 	bool isFind = std::find(m_groundTag.begin(), m_groundTag.end(), tag) != m_groundTag.end();
-	if ((isFind || tag == ObjectTag::WALL || tag == ObjectTag::NO_GATE_WALL) && !m_isPreWarp && !m_isWarp)
+	if ((isFind || tag == ObjectTag::WALL || tag == ObjectTag::NO_GATE_WALL || tag == ObjectTag::DOOR_ARCH || tag == ObjectTag::DOOR) && !m_isPreWarp && !m_isWarp)
 	{
 		auto col = dynamic_cast<MyEngine::ColliderBox*>(colider->GetColliderData(sendIndex));
 
@@ -100,6 +100,7 @@ void LaserBullet::OnCollideEnter(MyEngine::Collidable* colider, int selfIndex, i
 
 void LaserBullet::OnCollideStay(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo)
 {
+	// MEMO: 地面に着地したことによる速度0かを防ぐためにオーバーロード
 }
 
 void LaserBullet::OnTriggerEnter(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo)

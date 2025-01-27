@@ -38,6 +38,7 @@ private:
 	{
 		m_currentList[L"."] = 10;
 		m_currentList[L":"] = 11;
+		m_currentList[L"-"] = 12;
 	}
 
 	NumUtility(const NumUtility& mgr) = delete;
@@ -61,6 +62,11 @@ public:
 		auto temp = GetBufferShaderConstantBuffer(m_cBuffH);
 		m_cBuff = static_cast<CBuff*>(temp);
 		assert(m_cBuff != nullptr);
+	}
+
+	void End()
+	{
+		DeleteShaderConstantBuffer(m_cBuffH);
 	}
 
 	/// <summary>
@@ -105,9 +111,11 @@ public:
 	/// <param name="shadowY">影のX位置</param>
 	/// <param name="shadowX">影のY位置</param>
 	/// <param name="shadowColor">影の色(def = 0(黒))</param>
-	void DrawNumberMore(int x, int y, float size, unsigned int color, unsigned int num, int fillNum = 0, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0)
+	void DrawNumberMore(int x, int y, float size, unsigned int color, int num, int fillNum = 0, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0)
 	{
 		std::list<unsigned int> list;
+		const bool isUnder = num < 0;
+		if (isUnder) num *= -1;
 		// 一番桁から数字を取得していく
 		while (true)
 		{
@@ -117,14 +125,22 @@ public:
 			// 数字が0になると終了
 			if (num <= 0) break;
 		}
+		// 0埋め
 		if (static_cast<int>(list.size()) < fillNum) for (int i = static_cast<int>(list.size()); i < fillNum; ++i) list.emplace_front(0);
 
 		int addSize = static_cast<int>(SRC_SIZE_X * size);
+		int count = 1;
 		x = x - static_cast<int>(addSize * list.size() * 0.5f);
 		for (auto& item : list)
 		{
 			DrawNumber(x, y, size, color, item, L"", isShadow, shadowX, shadowY, shadowColor);
 			x += addSize;
+			++count;
+		}
+		if (isUnder)
+		{
+			x -= addSize * count;
+			DrawNumber(x, y, size, color, -1, L"-", isShadow, shadowX, shadowY, shadowColor);
 		}
 	}
 

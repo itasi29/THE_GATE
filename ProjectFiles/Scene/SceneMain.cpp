@@ -20,8 +20,8 @@
 #include "SceneManager.h"
 #include "EffekseerManager.h"
 #include "CameraManager.h"
-#include "TutorialManager.h"
 // その他
+#include "SceneHelp.h"
 #include "SceneStageSelect.h"
 #include "SceneResult.h"
 #include "Collidable.h"
@@ -36,10 +36,8 @@ namespace
 {
 	enum class RTKind
 	{
-		GATE_A_TEX,
-		GATE_B_TEX,
-		TEMP_1,
-		TEMP_2,
+		BEFORE_RESTART,
+		AFTER_RESTART,
 		MAX,
 	};
 	enum class DeathUICurrent : int
@@ -49,87 +47,81 @@ namespace
 		MAX,
 	};
 
-	// ゲートの色
-	constexpr unsigned int COLOR_GATE_BLUE = 0x1376b5;
-	constexpr unsigned int COLOR_GATE_ORANGE = 0xf19149;
-	// タイムの文字の色
-	constexpr unsigned int COLOR_TIME_STR = 0xffffff;
-	// タイムバー描画位置
+	/* タイムUI */
+	constexpr float FILE_SIZE_TIME = 0.5f;				// 画像サイズ
+	constexpr float TIME_SIZE = 0.25f;					// 文字サイズ
+	constexpr unsigned int COLOR_TIME = 0xffffff;		// カラー
+	// バー描画位置
 	constexpr int DRAW_TIME_X = 132;
 	constexpr int DRAW_TIME_Y = 160;
-	// タイムバーの画像サイズ
-	constexpr float FILE_SIZE_TIME = 0.5f;
-	// タイム文字描画位置
+	// 文字描画位置
 	constexpr int DRAW_TIME_STR_X = 80;
 	constexpr int DRAW_TIME_STR_Y = 160;
-	// タイム文字のサイズ
-	constexpr float TIME_SIZE = 0.25f;
-	// タイム文字カラー
-	constexpr unsigned int COLOR_TIME = 0xffffff;
+
 	// サイトの画像サイズ
 	constexpr float FILE_SIZE_SITE = 0.09375f;
-	// 生成ゲートの画像サイズ
-	constexpr float FILE_SIZE_CREATE_GATE = 0.375f;
-	// 生成ゲートの回転具合
-	constexpr float DRAW_CREATE_GATE_ANGLE = 30 * Game::DEG_2_RAD;
-	// 生成ゲートの描画位置(青)
+
+	/* ゲート関連UI */
+	constexpr float FILE_SIZE_CREATE_GATE = 0.375f;					// 画像サイズ
+	constexpr float DRAW_CREATE_GATE_ANGLE = 30 * Game::DEG_2_RAD;	// 画像回転具合
+	constexpr int SHOT_GATE_RADIUS = 6;								// 最後に発射したゲートの半径
+	constexpr int SHOT_GATE_LINE_THICKNESS = 2;						// 最後に発射したゲートの線の太さ
+	constexpr unsigned int COLOR_GATE_BLUE = 0x1376b5;				// 青ゲートの色
+	constexpr unsigned int COLOR_GATE_ORANGE = 0xf19149;			// オレンジゲートの色
+	// 描画位置(青)
 	constexpr int DRAW_CREATE_GATE_BLUE_X = 610;
 	constexpr int DRAW_CREATE_GATE_BLUE_Y = 330;
-	// 生成ゲートの描画位置(オレンジ)
+	// 描画位置(オレンジ)
 	constexpr int DRAW_CREATE_GATE_ORANGE_X = 670;
 	constexpr int DRAW_CREATE_GATE_ORANGE_Y = 390;
-	// 最後に発射したゲートの描画位置(青)
+	// 描画位置(青、最後に発射時)
 	constexpr int DRAW_SHOT_GATE_BLUE_X = 575;
 	constexpr int DRAW_SHOT_GATE_BLUE_Y = 368;
-	// 最後に発射したゲートの描画位置(オレンジ)
+	// 描画位置(オレンジ、最後に発射時)
 	constexpr int DRAW_SHOT_GATE_ORANGE_X = 705;
 	constexpr int DRAW_SHOT_GATE_ORANGE_Y = 352;
-	// 最後に発射したゲートの描画半径
-	constexpr int SHOT_GATE_RADIUS = 6;
-	// 最後に発射したゲートの線の太さ
-	constexpr int SHOT_GATE_LINE_THICKNESS = 2;
 
-	// 死亡ウィンドウ文字
-	const wchar_t* const STR_DEATH_WINDOW = L"ＹＯＵ　ＤＩＥＤ";
-	// 死亡ウィンドウ文字との差
-	constexpr int DRAW_DEATH_WINDOW_STR_SUB_Y = 100;
-	// 「ＹＯＵ　ＤＩＥＤ」フォントサイズ
-	constexpr int FONT_SIZE_DEATH_WINDOW = 48;
-	// 「ＹＯＵ　ＤＩＥＤ」文字カラー
-	constexpr unsigned int COLOR_DEATH_WINDOW = 0xffffff;
-	// 死亡UI文字列
+	/* 死亡UI(文字列) */
+	const wchar_t* const STR_DEATH_WINDOW = L"ＹＯＵ　ＤＩＥＤ";	// 文字列
+	constexpr int DRAW_DEATH_WINDOW_STR_SUB_Y = 100;				// ウィンドウとの差分
+	constexpr int FONT_SIZE_DEATH_WINDOW = 48;						// フォントサイズ
+	constexpr unsigned int COLOR_DEATH_WINDOW = 0xffffff;			// カラー
+	// 選択文字列
 	const std::vector<std::wstring> STR_DEATH =
 	{
 		L"リスタート",
 		L"ステージ選択へ"
 	};
+	/* 死亡UI(画像) */
+	constexpr int DRAW_DEATH_UI_FRAME_X_INTERVL = 300;	// 描画間隔
+	constexpr int DRAW_DEATH_UI_OUT_VAL = 360;			// 画面外位置
+	constexpr float FILE_SIZE_DEATH_UI_WINDOW = 0.5f;	// ウィンドウサイズ
+	constexpr float FILE_SIZE_DEATH_UI = 0.75f;			// フレームサイズ
+	constexpr int FONT_SIZE_DEATH_UI = 32;				// フォントサイズ
+	constexpr unsigned int COLOR_SELECT = 0x000000;		// 選択文字の色
+	constexpr unsigned int COLOR_NOT_SELECT = 0xffffff;	// 未選択文字の色
+	constexpr int WAVE_SIZE_DEATH_UI = 16;				// 文字ウェーブの大きさ
+	constexpr float WAVE_SPEED_DEATH_UI = 2.0f;			// 文字ウェーブのスピード
 	// 死亡UIの描画位置
 	constexpr int DRAW_DEATH_UI_FRAME_X = 490;
 	constexpr int DRAW_DEATH_UI_FRAME_Y = 450;
-	// 死亡UIの描画間隔
-	constexpr int DRAW_DEATH_UI_FRAME_X_INTERVL = 300;
-	// 死亡UIの画面外位置
-	constexpr int DRAW_DEATH_UI_OUT_VAL = 360;
-	// 死亡UIのウィンドウ画像サイズ
-	constexpr float FILE_SIZE_DEATH_UI_WINDOW = 0.5f;
-	// 死亡UIの画像サイズ
-	constexpr float FILE_SIZE_DEATH_UI = 0.75f;
-	// 死亡UIフォントサイズ
-	constexpr int FONT_SIZE_DEATH_UI = 32;
-	// 選択文字カラー
-	constexpr unsigned int COLOR_SELECT = 0x000000;
-	// 未選択文字カラー
-	constexpr unsigned int COLOR_NOT_SELECT = 0xffffff;
-	// 死亡UIのウェーブサイズ
-	constexpr int WAVE_SIZE_DEATH_UI = 16;
-	// 死亡UIのウェーブスピード
-	constexpr float WAVE_SPEED_DEATH_UI = 2.0f;
+
+	/* リスタート用 */
+	constexpr int RESTART_FRAME = 30;						// かかるフレーム
+	constexpr float RESTART_SPEED = 1.0f / RESTART_FRAME;	// フレーム増加スピード
+	// リスタート時のカラーDissolveの色
+	constexpr float COLOR_FIRE_R = 0.09f;
+	constexpr float COLOR_FIRE_G = 0.59f;
+	constexpr float COLOR_FIRE_B = 0.59f;
 }
 
 SceneMain::SceneMain(const wchar_t* const stageName) :
 	SceneBase(SceneKind::MAIN),
 	m_updateFunc(&SceneMain::MainUpdate),
+	m_drawFunc(&SceneMain::DrawMain),
 	m_stageName(stageName),
+	m_cBuff(nullptr),
+	m_cBuffH(-1),
 	m_time(0),
 	m_current(0),
 	m_count(0)
@@ -150,7 +142,9 @@ void SceneMain::AsyncInit()
 	m_files[I_OPTION_WINDOW]			= fileMgr.Load(I_OPTION_WINDOW);
 	m_files[I_COMMON_FRAME]				= fileMgr.Load(I_COMMON_FRAME);
 	m_files[I_COMMON_SELECT_FRAME]		= fileMgr.Load(I_COMMON_SELECT_FRAME);
+	m_files[I_DISSOLVE]					= fileMgr.Load(I_DISSOLVE);
 	m_files[B_MAIN]						= fileMgr.Load(B_MAIN);
+	m_files[PS_DISSOLVE]				= fileMgr.Load(PS_DISSOLVE);
 	auto& effMgr = EffekseerManager::GetInstance();
 	effMgr.LoadFile(E_BULLET);
 	effMgr.LoadFile(E_GATE_BULLET_BLUE);
@@ -159,6 +153,12 @@ void SceneMain::AsyncInit()
 	effMgr.LoadFile(E_MUZZLE_FLASH);
 	effMgr.LoadFile(E_GATE_DELETE);
 	effMgr.LoadFile(E_LASER_BULLET);
+	// 画面生成
+	m_rtTable.resize(static_cast<int>(RTKind::MAX));
+	for (auto& handle : m_rtTable) handle = MakeScreen(Game::WINDOW_W, Game::WINDOW_H, true);
+	// VRAMにメモリを確保
+	m_cBuffH = CreateShaderConstantBuffer(sizeof(CBuff));
+	m_cBuff = static_cast<CBuff*>(GetBufferShaderConstantBuffer(m_cBuffH));
 
 	// マネージャー生成
 	m_stageMgr = std::make_shared<StageManager>(m_stageName);
@@ -174,9 +174,6 @@ void SceneMain::AsyncInit()
 void SceneMain::Init()
 {
 	m_scnMgr.ChangeBgmH(m_files.at(B_MAIN)->GetHandle());
-	// 画面生成
-	m_rtTable.resize(static_cast<int>(RTKind::MAX));
-	for (auto& handle : m_rtTable) handle = MakeScreen(Game::WINDOW_W, Game::WINDOW_H, true);
 	// UI生成
 	m_deathUIWindow = UIMoveData::Make(Game::CENTER_X, -DRAW_DEATH_UI_OUT_VAL);
 	m_deathUIList = UIMoveData::Make(static_cast<int>(DeathUICurrent::MAX), DRAW_DEATH_UI_FRAME_X, -DRAW_DEATH_UI_OUT_VAL, DRAW_DEATH_UI_FRAME_X_INTERVL, 0);
@@ -184,7 +181,10 @@ void SceneMain::Init()
 	m_stageMgr->Init(m_player.get(), m_gateMgr.get());
 	m_gateMgr->Init(m_player);
 	SoundManager::GetInstance().SetSeCenter(m_player);
-	m_player->Init(m_stageMgr->GetCheckPoint(), StageDataManager::GetInstance().IsOneHand(m_stageName));
+	m_player->Init(m_stageMgr->GetCheckPoint(), m_stageMgr->GetCheckPointDir(), StageDataManager::GetInstance().IsOneHand(m_stageName));
+	m_cBuff->fireRed	= COLOR_FIRE_R;
+	m_cBuff->fireGreen	= COLOR_FIRE_G;
+	m_cBuff->fireBlue	= COLOR_FIRE_B;
 }
 
 void SceneMain::End()
@@ -194,6 +194,7 @@ void SceneMain::End()
 	m_cameraMgr->End();
 	m_player->End();
 
+	DeleteShaderConstantBuffer(m_cBuffH);
 	for (auto& handle : m_rtTable) DeleteGraph(handle);
 	EffekseerManager::GetInstance().ReleaseFile();
 	SoundManager::GetInstance().ResetSeCenter();
@@ -201,53 +202,47 @@ void SceneMain::End()
 
 void SceneMain::Update(bool isFade)
 {
-	auto& stageDataMgr = StageDataManager::GetInstance();
-#ifdef _DEBUG
-	printf("StageNo:%d\n", stageDataMgr.GetStageNo(m_stageName));
-#endif
+	// UI更新
 	++m_count;
 	m_deathUIWindow->Update();
 	for (auto& data : m_deathUIList) data->Update();
+	// カメラ更新
+	m_cameraMgr->Update();
 
 	if (isFade) return;
-	// フェードが終了したフレームの場合
-	if (m_scnMgr.IsFadeEndFrame())
-	{
-		// "チュートリアルステージ"かつ"クリアしていない"ならチュートリアルを行う
-		const bool isTutorial = stageDataMgr.IsTutorial(m_stageName);
-		const bool isNotClear = !SaveDataManager::GetInstance().IsClear(m_stageName);
-		if (isTutorial && isNotClear)
-		{
-			TutorialManager::GetInstance().Start(stageDataMgr.GetTutorialId(m_stageName));
-		}
-	}
 	(this->*m_updateFunc)();
 }
 
 void SceneMain::Draw() const
 {
-	// モデル描画：ゲートの生成状況に合わせて変更
-	if (m_gateMgr->IsCreateBothGates()) DrawBlend();
-	else								DrawNormal();
-	// UI描画
-	SetUseZBuffer3D(false);
-	DrawCommonUI();
-	DrawExistUI();
-	m_player->DrawDamageFillter();
-	DrawDeathUI();
-	SetUseZBuffer3D(true);
+	(this->*m_drawFunc)();
 }
 
-void SceneMain::OnRestart() const
+void SceneMain::OnRestart()
 {
+	const auto& help = SceneHelp::GetInstance();
+	// リスタート前の画面を保存
+	int beforeRt = m_rtTable.at(static_cast<int>(RTKind::BEFORE_RESTART));
+	help.DrawModel(m_gateMgr, m_cameraMgr, m_stageMgr, m_player, beforeRt);
 	// 各種リスタート処理
-	m_player->Restart(m_stageMgr->GetCheckPoint());
+	m_player->Restart(m_stageMgr->GetCheckPoint(), m_stageMgr->GetCheckPointDir());
 	m_gateMgr->Restart();
 	m_stageMgr->Restart();
+	// リスタート後の画面を保存
+	int afterRt = m_rtTable.at(static_cast<int>(RTKind::AFTER_RESTART));
+	help.DrawModel(m_gateMgr, m_cameraMgr, m_stageMgr, m_player, afterRt);
+	// 描画先をバックスクリーンに戻す
+	SetDrawScreen(DX_SCREEN_BACK);
+	// 初期化
+	m_cBuff->frame = 0;
+	// 関数先変更
+	m_updateFunc = &SceneMain::RestartUpdate;
+	m_drawFunc = &SceneMain::DrawRestart;
 }
 
 void SceneMain::MainUpdate()
 {
+	auto& saveDataMgr = SaveDataManager::GetInstance();
 	auto& input = Input::GetInstance();
 	if (input.IsTriggerd(Command::BTN_OPTION))
 	{
@@ -258,23 +253,13 @@ void SceneMain::MainUpdate()
 	m_gateMgr->Update();
 	m_stageMgr->Update();
 	m_player->Update();
-	m_cameraMgr->Update();
-	SaveDataManager::GetInstance().UpdateTime(m_stageName);
-	// タイム更新
+	// 時間更新
+	saveDataMgr.UpdateTime(m_stageName);
 	++m_time;
-#ifdef _DEBUG
-	if (input.IsTriggerd(KEY_INPUT_K))
-	{
-		m_player->OnDamage(99999, Vec3());
-	}
-	if (input.IsTriggerd(KEY_INPUT_J))
-	{
-		m_player->OnDamage(10, Vec3());
-	}
-#endif
+	// クリア処理
 	if (m_stageMgr->CheckClear())
 	{
-		SaveDataManager::GetInstance().OnClear(m_stageName, m_time);
+		saveDataMgr.OnClear(m_stageName, m_time);
 		auto next = std::make_shared<SceneResult>(m_stageName, m_time);
 		m_scnMgr.Change(next);
 		return;
@@ -300,7 +285,6 @@ void SceneMain::GameOverUpdate()
 		if (m_current == static_cast<int>(DeathUICurrent::CONTINUE))
 		{
 			OnRestart();
-			m_updateFunc = &SceneMain::MainUpdate;
 			UIMoveData::ChangeVertical(m_deathUIList, -DRAW_DEATH_UI_OUT_VAL);
 			m_deathUIWindow->ChangeVertical(-DRAW_DEATH_UI_OUT_VAL);
 		}
@@ -313,90 +297,54 @@ void SceneMain::GameOverUpdate()
 		{
 			assert(false);
 		}
+		return;
 	}
 
 	// 各種更新(見た目だけ更新)
 	m_gateMgr->Update();
 	m_stageMgr->Update();
 	m_player->Update();
-	m_cameraMgr->Update();
 }
 
-void SceneMain::DrawNormal() const
+void SceneMain::RestartUpdate()
 {
-	// プレイヤーから見た景色をそのまま描画
-	DrawModelBlend(DX_SCREEN_BACK, -1, -1, CameraKind::PLAYER, m_cameraMgr->GetCamera(CameraKind::PLAYER)->IsTps());
-	auto& effMgr = EffekseerManager::GetInstance();
-	effMgr.SyncCamera();
-	effMgr.Draw();
-}
+	m_cBuff->frame += RESTART_SPEED;
 
-void SceneMain::DrawBlend() const
-{
-	auto rtGateA = m_rtTable[static_cast<int>(RTKind::GATE_A_TEX)];
-	auto rtGateB = m_rtTable[static_cast<int>(RTKind::GATE_B_TEX)];
-	
-	// それぞれのゲートから見た景色をゲートに張り付けて描画する
-	DrawGateBlend(rtGateA, CameraKind::GATE_A, CameraKind::GATE_A_FROM_B);
-	DrawGateBlend(rtGateB, CameraKind::GATE_B, CameraKind::GATE_B_FROM_A);
-
-	// ゲート内の景色を張り付けてプレイヤーから見た景色を描画
-	DrawModelBlend(DX_SCREEN_BACK, rtGateA, rtGateB, CameraKind::PLAYER, m_cameraMgr->GetCamera(CameraKind::PLAYER)->IsTps());
-	auto& effMgr = EffekseerManager::GetInstance();
-	effMgr.SyncCamera();
-	effMgr.Draw();
-}
-
-void SceneMain::DrawGateBlend(int rt, CameraKind gate, CameraKind gateFrom) const
-{
-	auto rtTemp1 = m_rtTable[static_cast<int>(RTKind::TEMP_1)];
-	auto rtTemp2 = m_rtTable[static_cast<int>(RTKind::TEMP_2)];
-
-	// ゲートからゲートを見た景色の描画
+	if (m_cBuff->frame > 1.0f)
 	{
-		SetDrawScreen(rtTemp1);
-		ClearDrawScreen();
-		m_cameraMgr->AppInfo(gateFrom);
-
-		m_stageMgr->Draw();
-		m_player->Draw();
-		m_player->DrawGun();
+		// 関数先の変更
+		m_updateFunc = &SceneMain::MainUpdate;
+		m_drawFunc = &SceneMain::DrawMain;
 	}
-	// ゲート内にゲートがある場合の描画を行う
-	// MEMO: 1度では不十分な可能性があるので3回は行っておく
-	for (int i = 0; i < 3; ++i)
-	{
-		SetDrawScreen(rtTemp2);
-		m_cameraMgr->AppInfo(gateFrom);
-		if (i == 0)
-		{
-			ClearDrawScreen();
-			m_gateMgr->DrawGate(rtTemp1, rtTemp1);
-		}
-		else
-		{
-			m_gateMgr->DrawGate(rtTemp2, rtTemp2);
-		}
-
-		m_stageMgr->Draw();
-		m_player->Draw();
-		m_player->DrawGun();
-	}
-	// ゲートからの画面を描画してあげる
-	DrawModelBlend(rt, rtTemp2, rtTemp2, gate, true);
 }
 
-void SceneMain::DrawModelBlend(int rt, int tex1, int tex2, CameraKind camera, bool isPlayerDraw) const
+void SceneMain::DrawMain() const
 {
-	SetDrawScreen(rt);
-	ClearDrawScreen();
-	m_cameraMgr->AppInfo(camera);
+	// ゲートの生成状況に合わせてモデルを描画
+	SceneHelp::GetInstance().DrawModel(m_gateMgr, m_cameraMgr, m_stageMgr, m_player);
+	// UI描画
+	DrawUI();
+}
 
-	m_gateMgr->DrawGate(tex1, tex2);
+void SceneMain::DrawRestart() const
+{
+	int beforeRt = m_rtTable.at(static_cast<int>(RTKind::BEFORE_RESTART));
+	int afterRt = m_rtTable.at(static_cast<int>(RTKind::AFTER_RESTART));
+	int dissolveH = m_files.at(I_DISSOLVE)->GetHandle();
+	int dissolvePS = m_files.at(PS_DISSOLVE)->GetHandle();
 
-	m_stageMgr->Draw();
-	if (isPlayerDraw) m_player->Draw();
-	m_player->DrawGun();
+	UpdateShaderConstantBuffer(m_cBuffH);
+	SetShaderConstantBuffer(m_cBuffH, DX_SHADERTYPE_PIXEL, 4);
+	MyEngine::DrawGraph(0, 0, dissolvePS, beforeRt, afterRt, dissolveH);
+}
+
+void SceneMain::DrawUI() const
+{
+	SetUseZBuffer3D(false);
+	DrawCommonUI();
+	DrawExistUI();
+	DrawDeathUI();
+	SetUseZBuffer3D(true);
 }
 
 void SceneMain::DrawCommonUI() const
@@ -405,26 +353,44 @@ void SceneMain::DrawCommonUI() const
 	DrawRotaGraphFast(DRAW_TIME_X, DRAW_TIME_Y, FILE_SIZE_TIME, 0.0f, m_files.at(I_TIME_BAR)->GetHandle(), true);
 	TimeUtility::DrawTime(DRAW_TIME_STR_X, DRAW_TIME_STR_Y, m_time, TIME_SIZE, COLOR_TIME);
 	// プレイヤー情報描画
-	m_player->DrawUI();
+	m_player->DrawHpUI();
+	m_player->DrawPadUI();
+	m_player->DrawDamageFillter();
 }
 
 void SceneMain::DrawExistUI() const
 {
 	// プレイヤーが死んでいる場合は処理終了
 	if (m_player->IsDeath()) return;
+	auto& stageDataMgr = StageDataManager::GetInstance();
 
 	// サイトの描画
 	DrawRotaGraphFast(Game::CENTER_X, Game::CENTER_Y, FILE_SIZE_SITE, 0.0f, m_files.at(I_LOOK_SITE)->GetHandle(), true);
 
 	int handle;
-	// 青ゲート
-	if (m_gateMgr->IsCreate(GateKind::Blue))	handle = m_files.at(I_CREATE_GATE_BLUE)->GetHandle();
-	else										handle = m_files.at(I_NOT_CREATE_GATE_BLUE)->GetHandle();
-	DrawRotaGraphFast(DRAW_CREATE_GATE_BLUE_X, DRAW_CREATE_GATE_BLUE_Y, FILE_SIZE_CREATE_GATE, DRAW_CREATE_GATE_ANGLE, handle, true);
 	// オレンジゲート
 	if (m_gateMgr->IsCreate(GateKind::Orange))	handle = m_files.at(I_CREATE_GATE_ORANGE)->GetHandle();
 	else										handle = m_files.at(I_NOT_CREATE_GATE_ORANGE)->GetHandle();
 	DrawRotaGraphFast(DRAW_CREATE_GATE_ORANGE_X, DRAW_CREATE_GATE_ORANGE_Y, FILE_SIZE_CREATE_GATE, DRAW_CREATE_GATE_ANGLE, handle, true);
+	// 片手ステージなら
+	if (stageDataMgr.IsOneHand(m_stageName))
+	{
+		constexpr int DRAW_CREATE_GATE_ONE_HAND_X = 610;
+		constexpr int DRAW_CREATE_GATE_ONE_HAND_Y = 330;
+		constexpr float DRAW_CREATE_GATE_ANGLE_ONE_HAND = 210 * Game::DEG_2_RAD;
+		// オレンジゲートを描画
+		if (m_gateMgr->IsCreate(GateKind::Orange))	handle = m_files.at(I_CREATE_GATE_ORANGE)->GetHandle();
+		else										handle = m_files.at(I_NOT_CREATE_GATE_ORANGE)->GetHandle();
+		DrawRotaGraphFast(DRAW_CREATE_GATE_ONE_HAND_X, DRAW_CREATE_GATE_ONE_HAND_Y, FILE_SIZE_CREATE_GATE, DRAW_CREATE_GATE_ANGLE_ONE_HAND, handle, true);
+	}
+	// 両手ステージなら
+	else
+	{
+		// 青ゲートを描画
+		if (m_gateMgr->IsCreate(GateKind::Blue))	handle = m_files.at(I_CREATE_GATE_BLUE)->GetHandle();
+		else										handle = m_files.at(I_NOT_CREATE_GATE_BLUE)->GetHandle();
+		DrawRotaGraphFast(DRAW_CREATE_GATE_BLUE_X, DRAW_CREATE_GATE_BLUE_Y, FILE_SIZE_CREATE_GATE, DRAW_CREATE_GATE_ANGLE, handle, true);
+	}
 
 	int x = DRAW_SHOT_GATE_BLUE_X;
 	int y = DRAW_SHOT_GATE_BLUE_Y;

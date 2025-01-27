@@ -3,12 +3,13 @@
 #include "Input.h"
 #include "CommandList.h"
 #include "Novel.h"
+#include "Files.h"
 #include "FileManager.h"
 #include "Utility/StringUtility.h"
 
 namespace
 {
-	const wchar_t* const PATH = L"Data/Master/NovelData.dat";
+	const wchar_t* const PATH = L"Data/Master/NovelData.csv";
 	enum class FileIndex
 	{
 		NEXT_FLAG,
@@ -22,8 +23,7 @@ NovelManager::NovelManager() :
 	m_novel(std::make_shared<Novel>()),
 	m_nowId(-1),
 	m_isNowStart(false),
-	m_isStop(true),
-	m_isNextMove(false)
+	m_isStop(true)
 {
 }
 
@@ -40,50 +40,42 @@ NovelManager& NovelManager::GetInstance()
 
 void NovelManager::Load()
 {
-	SetUseASyncLoadFlag(false);
-	auto handle = FileRead_open(PATH);
-	if (handle == 0)
+	enum class FileIndex
 	{
-		assert(false && "ファイルのオープンに失敗しました(Novel)");
-		return;
-	}
-
-	int size = 0;
-	FileRead_read(&size, sizeof(int), handle);
-	for (int i = 0; i < size; ++i)
+		IS_NEXT,
+		NEXT_ID,
+		IS_GRAPH,
+		GRAPH_ID,
+		DRAW_INTERVAL,
+		STR,
+	};
+	auto& fileMgr = FileManager::GetInstance();
+	const auto& table = FileManager::GetInstance().LoadCsv(PATH);
+	for (auto& item : table) 
 	{
 		Info info;
-
-		// 連続フラグ
-		int isNext = 0;
-		FileRead_read(&isNext, sizeof(int), handle);
-		info.isNext = static_cast<bool>(isNext);
-		// 連続ID
+		// 連続フラグ取得
+		info.isNext = static_cast<bool>(std::stoi(item.at(static_cast<int>(FileIndex::IS_NEXT))));
 		if (info.isNext)
 		{
-			int nextId = 0;
-			FileRead_read(&nextId, sizeof(int), handle);
-			info.nextId = nextId;
+			// 次のIDを取得
+			info.nextId = std::stoi(item.at(static_cast<int>(FileIndex::NEXT_ID)));
 		}
-		// 描画間隔
-		int interval = 0;
-		FileRead_read(&interval, sizeof(int), handle);
-		info.interval = interval;
-		// 文字列
-		int len;
-		void* buf;
-		FileRead_read(&len, sizeof(int), handle);
-		buf = new char[len * 2];
-		FileRead_read(buf, len * 2, handle);
-		info.str = StringUtility::Utf8ToWString(static_cast<char*>(buf), len);
-		delete[] buf;
+		// 画像フラグ取得
+		info.isGraph = static_cast<bool>(std::stoi(item.at(static_cast<int>(FileIndex::IS_GRAPH))));
+		if (info.isGraph)
+		{
+			info.graphId = std::stoi(item.at(static_cast<int>(FileIndex::GRAPH_ID)));
+			m_files[info.graphId] = fileMgr.Load(info.graphId);
+		}
+		// 描画間隔を取得
+		info.interval = std::stoi(item.at(static_cast<int>(FileIndex::DRAW_INTERVAL)));
+		// 文字列を取得
+		info.str = StringUtility::StringToWString(item.at(static_cast<int>(FileIndex::STR)));
 
 		// 追加
 		m_infoList.push_back(info);
 	}
-
-	FileRead_close(handle);
-	SetUseASyncLoadFlag(true);
 }
 
 void NovelManager::Start(int id)
@@ -96,12 +88,10 @@ void NovelManager::Start(int id)
 
 void NovelManager::Update()
 {
-	m_isNextMove = false;
 	if (m_isStop) return;
 
 	const auto& info = m_infoList.at(m_nowId);
 	m_novel->Update(info.interval);
-
 
 	auto& input = Input::GetInstance();
 	if (input.IsTriggerd(Command::BTN_OK))
@@ -117,7 +107,6 @@ void NovelManager::Update()
 		{
 			// 次の文章を開始する
 			Start(info.nextId);
-			m_isNextMove = true;
 		}
 		// 終了していて、次がない場合
 		else
@@ -142,7 +131,15 @@ void NovelManager::Draw(int spaceWidthNum, int startY, unsigned int color, int f
 	m_novel->Draw(spaceWidthNum, startY, color, fontSize, rateW, rateH);
 }
 
-bool NovelManager::IsEnd() const
+void NovelManager::DrawGraph(int x, int y, float size) const
+{
+	if (m_isStop) return;
+	const auto& info = m_infoList.at(m_nowId);
+	if (!info.isGraph) return;
+	m_novel->DrawGraph(x, y, size, m_files.at(info.graphId)->GetHandle());
+}
+
+bool NovelManager::IsPlay() const
 {
 	// ストップなら終了していることに
 	if (m_isStop) return true;

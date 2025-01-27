@@ -130,9 +130,3 @@ void Object3DBase::CreateColldierCapsule(MyEngine::ColliderBase* base)
 	col->size = capsule->size;
 	col->radius = capsule->radius;
 }
-
-bool Object3DBase::IsInCamera() const
-{
-	return false;
-}
-

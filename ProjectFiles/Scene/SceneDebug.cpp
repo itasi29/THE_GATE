@@ -6,6 +6,7 @@
 #include "SceneTitle.h"
 #include "SceneStageSelect.h"
 #include "SceneMain.h"
+#include "SceneTutorial.h"
 #include "SceneResult.h"
 #include "CursorUtility.h"
 #include "StageDataManager.h"
@@ -17,6 +18,7 @@ namespace
 		L"Title",
 		L"StageSelect",
 		L"Main",
+		L"Tutorial",
 		L"Result",
 		L"Option",
 		L"Debug",
@@ -48,8 +50,8 @@ void SceneDebug::Update(bool isFade)
 	auto& stageDataMgr = StageDataManager::GetInstance();
 	CursorUtility::CursorUp<SceneKind>(m_next, SceneKind::MAX);
 	CursorUtility::CursorDown<SceneKind>(m_next, SceneKind::MAX);
-	CursorUtility::CursorUp(m_stageNo, stageDataMgr.GetStageNum(), Command::BTN_LEFT);
-	CursorUtility::CursorDown(m_stageNo, stageDataMgr.GetStageNum(), Command::BTN_RIGHT);
+	CursorUtility::CursorUp(m_stageNo, stageDataMgr.GetStageNum() - 2, Command::BTN_LEFT);
+	CursorUtility::CursorDown(m_stageNo, stageDataMgr.GetStageNum() - 2, Command::BTN_RIGHT);
 
 	auto& input = Input::GetInstance();
 	if (input.IsTriggerd(KEY_INPUT_RETURN) || input.IsTriggerd(Command::BTN_OK))
@@ -66,8 +68,19 @@ void SceneDebug::Update(bool isFade)
 		}
 		else if (static_cast<SceneKind>(m_next) == SceneKind::MAIN)
 		{
-			auto stageName = stageDataMgr.GetStageName(m_stageNo);
-			next = std::make_shared<SceneMain>(stageName);
+			if (m_stageNo == 0)
+			{
+				next = std::make_shared<SceneTutorial>();
+			}
+			else
+			{
+				auto stageName = stageDataMgr.GetStageName(m_stageNo + 1);
+				next = std::make_shared<SceneMain>(stageName);
+			}
+		}
+		else if (static_cast<SceneKind>(m_next) == SceneKind::TUTORIAL)
+		{
+			next = std::make_shared<SceneTutorial>();
 		}
 		else if (static_cast<SceneKind>(m_next) == SceneKind::CLEAR)
 		{
@@ -102,6 +115,7 @@ void SceneDebug::Draw() const
 		y += 24;
 	}
 
-	DrawFormatString(256, 32, 0x00ffff, L"ステージ番号：%d", m_stageNo);
+	DrawFormatString(256, 32, 0x00ffff, L"ステージ番号：%d", m_stageNo + 1);
+	DrawString(256, 64, StageDataManager::GetInstance().GetStageName(m_stageNo + 1), 0x00ffff);
 }
 #endif

@@ -3,29 +3,66 @@
 
 namespace MyEngine
 {
-	struct CollideHitInfo;
+    struct CollideHitInfo;
 }
 class Player;
 
+/// <summary>
+/// タレット弾を表すクラス
+/// </summary>
 class TurretBullet : public Object3DBase
 {
 public:
-	TurretBullet();
-	~TurretBullet();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    TurretBullet();
 
-	void Init(const Vec3& pos, const Vec3& dir, Player* player);
-	void End() override;
-	void Update() override;
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    ~TurretBullet();
 
-	bool IsExist() const { return m_isExist; }
+    /// <summary>
+    /// 初期化
+    /// </summary>
+    /// <param name="pos">位置</param>
+    /// <param name="dir">方向</param>
+    /// <param name="player">プレイヤー</param>
+    void Init(const Vec3& pos, const Vec3& dir, Player* player);
 
-	void OnTriggerEnter(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
+    /// <summary>
+    /// 終了処理
+    /// </summary>
+    void End() override;
+
+    /// <summary>
+    /// 更新処理
+    /// </summary>
+    void Update() override;
+
+    /// <summary>
+    /// 存在するかどうかを取得する
+    /// </summary>
+    /// <returns>true:存在する / false:存在しない</returns>
+    bool IsExist() const { return m_isExist; }
+
+    /// <summary>
+    /// トリガー侵入時の処理
+    /// </summary>
+    /// <param name="colider">衝突した対象</param>
+    /// <param name="selfIndex">自身の判定インデックス</param>
+    /// <param name="sendIndex">対象の判定インデックス</param>
+    /// <param name="hitInfo">衝突情報</param>
+    void OnTriggerEnter(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
 
 private:
-	Player* m_player;
+    // プレイヤー
+    Player* m_player;  
 
-	int m_playEffH;
+    // エフェクトハンドル
+    int m_playEffH;  
 
-	bool m_isExist;
+    // 存在フラグ
+    bool m_isExist;  
 };
-

@@ -3,12 +3,13 @@
 #include <algorithm>
 #include "StringUtility.h"
 #include "SoundManager.h"
+#include "SaveDataManager.h"
 #include "Collidable.h"
 
 namespace
 {
-	// 最大ボリューム
-	constexpr int VOLUME_MAX = 255;
+	// ボリューム
+	constexpr int VOLUME_VAL = 255;
 
 	// 音量を減少させる距離
 	constexpr float SOUND_DEL_DIS = 50.0f;
@@ -19,8 +20,6 @@ namespace
 }
 
 SoundManager::SoundManager() :
-	m_bgmVolume(VOLUME_MAX),
-	m_seVolume(VOLUME_MAX),
 	m_nowPlayBgm(-1),
 	m_soundHandle(-1),
 	m_soundSavePos(0),
@@ -36,47 +35,6 @@ SoundManager& SoundManager::GetInstance()
 {
 	static SoundManager snd;
 	return snd;
-}
-
-void SoundManager::Load()
-{
-	SetUseASyncLoadFlag(false);
-	auto path = StringUtility::StringToWString(FILE_PATH);
-	int handle = FileRead_open(path.c_str());
-
-	// ファイルが存在しない場合はデフォルトのデータにする
-	if (handle == 0)
-	{
-		m_bgmVolume = VOLUME_MAX;
-		m_seVolume = VOLUME_MAX;
-	}
-	// ファイルが存在する場合はファイルからデータを読み込む
-	else
-	{
-		FileRead_read(&m_bgmVolume, sizeof(int), handle);
-		FileRead_read(&m_seVolume, sizeof(int), handle);
-		FileRead_close(handle);
-	}
-	SetUseASyncLoadFlag(true);
-}
-
-void SoundManager::Save() const
-{
-	// ファイルオープン
-	FILE* fp;
-	auto err = fopen_s(&fp, FILE_PATH, "wb");
-	if (err != 0)
-	{
-		assert(false && "セーブファイルを開くのに失敗しました");
-		return;
-	}
-
-	// 書き込み
-	fwrite(&m_bgmVolume, sizeof(int), 1, fp);
-	fwrite(&m_seVolume, sizeof(int), 1, fp);
-
-	// ファイルクローズ
-	fclose(fp);
 }
 
 void SoundManager::Update()
@@ -97,7 +55,7 @@ void SoundManager::Update()
 
 			const auto& target = info.master.lock()->GetPos();
 			float rate = 1.0f - std::min<float>((target - center).SqLength() / SOUND_DEL_SQ_DIS, 1.0f);
-			ChangePlaySeVol(info.handle, rate);
+			ChangePlayVolume(info.handle, rate, false);
 		}
 	}
 	
@@ -123,10 +81,12 @@ void SoundManager::RestartStopedSe()
 {
 	m_isStop = false;
 
+	auto& saveDataMgr = SaveDataManager::GetInstance();
+	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetSeRate() * 0.01f);
 	for (auto& info : m_saveSeList)
 	{
 		SetSoundCurrentTime(info.savePos, info.handle);
-		ChangeNextPlayVolumeSoundMem(m_seVolume, info.handle);
+		ChangeNextPlayVolumeSoundMem(volume, info.handle);
 		PlaySoundMem(info.handle, DX_PLAYTYPE_BACK, false);
 	}
 }
@@ -141,7 +101,9 @@ void SoundManager::PlayBgm(int soundHandle, bool isLoop, bool isSoundPosSave)
 	if (IsNowPlay(soundHandle)) return;
 
 	// 音量の変更
-	ChangeNextPlayVolumeSoundMem(m_bgmVolume, soundHandle);
+	auto& saveDataMgr = SaveDataManager::GetInstance();
+	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetBgmRate());
+	ChangeNextPlayVolumeSoundMem(volume, soundHandle);
 
 	if (isSoundPosSave)
 	{
@@ -165,12 +127,14 @@ void SoundManager::PlayFadeBgm(int soundHandle, float rate, bool isLoop)
 
 	if (IsNowPlay(soundHandle))
 	{
-		SetBgmVol(rate);
+		ChangePlayVolume(m_nowPlayBgm, 1.0f, true);
 		return;
 	}
 
 	// 音量の変更
-	ChangeNextPlayVolumeSoundMem(static_cast<int>(m_bgmVolume * rate), soundHandle);
+	auto& saveDataMgr = SaveDataManager::GetInstance();
+	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetBgmRate() * rate);
+	ChangeNextPlayVolumeSoundMem(volume, soundHandle);
 
 	// ループがONの場合はBGMが終了次第先頭に戻る
 	PlaySoundMem(soundHandle, DX_PLAYTYPE_BACK, isLoop);
@@ -181,7 +145,9 @@ void SoundManager::PlayFadeBgm(int soundHandle, float rate, bool isLoop)
 void SoundManager::PlaySe(int seHandle, bool isOption)
 {
 	// 音量の変更
-	ChangeNextPlayVolumeSoundMem(m_seVolume, seHandle);
+	auto& saveDataMgr = SaveDataManager::GetInstance();
+	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetBgmRate());
+	ChangeNextPlayVolumeSoundMem(volume, seHandle);
 
 	auto err = PlaySoundMem(seHandle, DX_PLAYTYPE_BACK, true);
 	assert(err != -1);
@@ -196,7 +162,9 @@ void SoundManager::PlaySe(int seHandle, bool isOption)
 void SoundManager::PlaySe3D(int seHandle, const std::weak_ptr<MyEngine::Collidable> master, bool isOption)
 {
 	// 音量の変更
-	ChangeNextPlayVolumeSoundMem(m_seVolume, seHandle);
+	auto& saveDataMgr = SaveDataManager::GetInstance();
+	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetBgmRate());
+	ChangeNextPlayVolumeSoundMem(volume, seHandle);
 
 	auto err = PlaySoundMem(seHandle, DX_PLAYTYPE_BACK, true);
 	assert(err != -1);
@@ -229,27 +197,9 @@ void SoundManager::Stop(int handle)
 	StopSoundMem(handle);
 }
 
-void SoundManager::ChangeBgmVol(int volume, bool isApp)
+void SoundManager::ChangePlayBgmVolume()
 {
-	m_bgmVolume = std::max<int>(std::min<int>(volume, VOLUME_MAX), 0);
-
-	if (m_nowPlayBgm < 0) return;
-	
-	if (isApp) SetBgmVol();
-}
-
-void SoundManager::ChangeSeVol(int volume, bool isApp)
-{
-	m_seVolume = std::max<int>(std::min<int>(volume, VOLUME_MAX), 0);
-
-	if (m_soundHandle < 0) return;
-
-	if (isApp) PlaySe(m_soundHandle);
-}
-
-int SoundManager::GetMaxVol() const
-{
-	return VOLUME_MAX;
+	ChangePlayVolume(m_nowPlayBgm, 1.0f, true);
 }
 
 bool SoundManager::IsNowPlay(int handle) const
@@ -259,47 +209,26 @@ bool SoundManager::IsNowPlay(int handle) const
 	return err;
 }
 
-float SoundManager::GetBgmVolRate() const
-{
-	return static_cast<float>(m_bgmVolume) / static_cast<float>(VOLUME_MAX);
-}
-
-float SoundManager::GetSeVolRate() const
-{
-	return static_cast<float>(m_seVolume) / static_cast<float>(VOLUME_MAX);
-}
-
-void SoundManager::SetBgmVol(float rate)
+void SoundManager::ChangePlayVolume(int handle, float rate, bool isBgm)
 {
 	// 再生中でなければ終了
-	if (!IsNowPlay(m_nowPlayBgm)) return;
+	if (!IsNowPlay(handle)) return;
 
 	// ズレていたらより正確なこっちで GetSoundCurrentTime 
-	LONGLONG soundPosition = GetSoundCurrentPosition(m_nowPlayBgm);
+	LONGLONG soundPosition = GetSoundCurrentPosition(handle);
 
 	// 一度サウンドを止める
-	StopSoundMem(m_nowPlayBgm);
-
-	// 再生位置を設定
-	SetSoundCurrentTime(soundPosition, m_nowPlayBgm);
-
-	// 音量の調整
-	ChangeNextPlayVolumeSoundMem(static_cast<int>(m_bgmVolume * rate), m_nowPlayBgm);
-
-	// 再度再生
-	PlaySoundMem(m_nowPlayBgm, DX_PLAYTYPE_BACK, false);
-}
-
-void SoundManager::ChangePlaySeVol(int handle, float rate)
-{
-	LONGLONG soundPos = GetSoundCurrentPosition(handle);
-
 	StopSoundMem(handle);
 
-	SetSoundCurrentTime(soundPos, handle);
+	// 再生位置を設定
+	SetSoundCurrentTime(soundPosition, handle);
 
 	// 音量の調整
-	ChangeNextPlayVolumeSoundMem(static_cast<int>(m_seVolume * rate), handle);
+	auto& saveDataMgr = SaveDataManager::GetInstance();
+	int volume;
+	if (isBgm)	volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetBgmRate() * rate);
+	else		volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetSeRate() * rate);
+	ChangeNextPlayVolumeSoundMem(volume, handle);
 
 	// 再度再生
 	PlaySoundMem(handle, DX_PLAYTYPE_BACK, false);

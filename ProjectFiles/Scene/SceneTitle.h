@@ -8,6 +8,7 @@ class StageManager;
 class CameraManager;
 class UIMoveData;
 class Player;
+class Camera;
 enum class CameraKind;
 
 class SceneTitle : public SceneBase
@@ -19,7 +20,14 @@ private:
 		RANKING,
 		SELECT_SAVE_DATA,
 		DECIDE_SAVE_DATA,
-		CHECK_DELETE,
+	};
+
+	struct CBuff
+	{
+		float frame;
+		float fireRed;
+		float fireGreen;
+		float fireBlue;
 	};
 
 public:
@@ -42,6 +50,7 @@ private:
 	/// ステージ情報の更新
 	/// </summary>
 	void StageUpdate();
+
 	/// <summary>
 	/// メニュー(セーブデータ・オプション・終了)の選択
 	/// </summary>
@@ -58,10 +67,6 @@ private:
 	/// そのセーブデータで始める・消すの選択
 	/// </summary>
 	void DecideSaveDataUpdate();
-	/// <summary>
-	/// 本当に消すかの選択
-	/// </summary>
-	void CheckDeleteSaveDataUpdate();
 
 	/// <summary>
 	/// メニュー選択
@@ -79,20 +84,7 @@ private:
 	/// セーブデータ決定
 	/// </summary>
 	void OnDecideSaveData();
-	/// <summary>
-	/// 削除確認
-	/// </summary>
-	void OnCheckDeleteSaveData();
 	
-	/// <summary>
-	/// ステージの描画
-	/// </summary>
-	void DrawStage() const;
-	void DrawNormal() const;
-	void DrawBlend() const;
-	void DrawGateBlend(int rt, CameraKind gate, CameraKind from) const;
-	void DrawModelBlend(int rt, int tex1, int tex2, CameraKind camera, bool isPlayerDraw) const;
-
 	/// <summary>
 	/// メニュー選択時の描画
 	/// </summary>
@@ -110,10 +102,6 @@ private:
 	/// </summary>
 	void DrawDecideSaveData() const;
 	/// <summary>
-	/// 削除確認時の描画
-	/// </summary>
-	void DrawCheckDeleteSaveData() const;
-	/// <summary>
 	/// セーブデータ情報描画
 	/// </summary>
 	void DrawSaveInfo(int saveNo) const;
@@ -123,22 +111,9 @@ private:
 	void DrawPadUI() const;
 
 	/// <summary>
-	/// カーソルの更新
-	/// </summary>
-	/// <param name="current">カーソル</param>
-	/// <param name="list">UI移動データ</param>
-	/// <param name="start">スタート位置</param>
-	/// <param name="interval">動かす大きさ</param>
-	/// <param name="upCmd">コマンド(ー方向)</param>
-	/// <param name="downCmd">コマンド(＋方向)</param>
-	bool CurrentUpdate(int& current, const std::vector<std::shared_ptr<UIMoveData>>& list, int start, int interval, const char* const upCmd, const char* const downCmd);
-
-	/// <summary>
 	/// ゲームの開始
 	/// </summary>
 	void OnStart();
-
-	void ArmWindowDraw(const std::shared_ptr<UIMoveData>& data, int subArmFrameX, int subArmFrameY, int subArmX, int subArmY, int windowFileName, int armFrameFileName, int armFileName) const;
 
 private:
 	using UpdateFunc_t = void(SceneTitle::*)();
@@ -146,39 +121,47 @@ private:
 	using DrawFunc_t = void(SceneTitle::*)() const;
 	DrawFunc_t m_drawFunc;
 
-	std::shared_ptr<StageManager> m_stageMgr;
+	std::vector<std::shared_ptr<StageManager>> m_stageMgrs;
 	std::shared_ptr<CameraManager> m_cameraMgr;
-	std::shared_ptr<GateManager> m_gateMgr;
-	std::shared_ptr<Player> m_player;
+	std::shared_ptr<Camera> m_nowCamera;
+	std::shared_ptr<Camera> m_nextCamera;
 
 	State m_state;
 
-	std::vector<std::shared_ptr<UIMoveData>> m_menuUIList;
-	std::vector<std::shared_ptr<UIMoveData>> m_saveUIList;
-	std::vector<std::shared_ptr<UIMoveData>> m_decideUIList;
-	std::vector<std::shared_ptr<UIMoveData>> m_checkUIList;
+	std::shared_ptr<UIMoveData> m_mainUI;
+	std::shared_ptr<UIMoveData> m_saveUI;
 	std::shared_ptr<UIMoveData> m_saveInfoUI;
-	std::shared_ptr<UIMoveData> m_saveArmWindowUI;
-	std::shared_ptr<UIMoveData> m_decideArmWindowUI;
-	std::shared_ptr<UIMoveData> m_alertUI;
+	std::shared_ptr<UIMoveData> m_decideUI;
 	std::shared_ptr<UIMoveData> m_rankingUI;
 
-	std::vector<int> m_rtTable;
+	CBuff* m_cBuff;
 
-	int m_waitShotFrame;
-	int m_menuCurrent;
-	int m_saveDataNo;
-	int m_decideCurrent;
-	int m_checkCurrent;
-	int m_rankingCurrent;
-	int m_preSaveDataNo;
-	int m_fadeFrame;
-	int m_waveCount;
+	// 定数バッファハンドル
+	int m_cBuffH;
+	// カメラ描画先RT
+	int m_cameraRt1;
+	int m_cameraRt2;
+	// 選択カーソル
+	int m_menuCurrent;		// メニュー
+	int m_saveDataNo;		// セーブデータ番号
+	int m_decideCurrent;	// 続きから・初めから
+	int m_rankingCurrent;	// ランキング番号
+	// フレーム系
+	int m_fadeSaveInfoFrame;	// セーブ情報関係のフェードフレーム
+	int m_fadeSaveNoFrame;		// セーブデータ番号変更フェード
+	int m_uiCount;
+	// ステージ系
+	int m_cameraFrame;
+	int m_stageChangeFrame;
+	int m_stageIndex;
 
-	bool m_isShot;
-	bool m_isFade;
-	bool m_isFadeTime;
-	bool m_isDrawMenu;
-	bool m_isDrawSelectSave;
+	float m_stageFade;			// ステージ変更
+
+	// フェードフラグ
+	bool m_isFadeSaveNo;		// セーブデータ番号変更
+	// 描画フラグ
+	bool m_isNowSelectMenu;		// 現在選択がメニュー
+	bool m_isNowSelectSaveData;	// 現在選択がセーブデータ番号選択
+	bool m_isStageChangeFade;	// ステージ変更フェード
 };
 

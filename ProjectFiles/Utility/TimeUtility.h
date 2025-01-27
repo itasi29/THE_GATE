@@ -73,16 +73,16 @@ public:
 	/// </summary>
 	/// <param name="x">X座標</param>
 	/// <param name="y">Y座標</param>
-	/// <param name="color">文字カラー</param>
-	/// <param name="size">フォントサイズ</param>
 	/// <param name="frame">時間</param>
+	/// <param name="size">フォントサイズ</param>
+	/// <param name="color">文字カラー</param>
 	/// <param name="startStr">最初に追加する文字列</param>
 	/// <param name="endStr">最後に追加する文字列</param>
 	/// <param name="isShadow">true: 影有り /false:影無し</param>
 	/// <param name="shadowY">影のX位置</param>
 	/// <param name="shadowX">影のY位置</param>
 	/// <param name="shadowColor">影の色(def = 0(黒))</param>
-	static void DrawTime(int x, int y, unsigned int color, int size, int frame, const wchar_t* const startStr = nullptr, const wchar_t* const endStr = nullptr, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0)
+	static void DrawTimeLeft(int x, int y, int frame, int size, unsigned int color, const wchar_t* const startStr = nullptr, const wchar_t* const endStr = nullptr, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0)
 	{
 		auto time = FrameToTime(frame);
 		auto fontH = FontManager::GetInstance().GetHandle(size);

@@ -17,10 +17,23 @@ ColliderBase::ColliderBase(ColKind kind) :
 	m_fixFunc[ColKind::CAPSULE] = &ColliderBase::FixToCapsule;
 }
 
-CollideHitInfo ColliderBase::IsCollide(const Vec3& pos, ColliderBase* colliderCol, const Vec3& colliderPos, const PreHitInfo& preInfo)
+MyEngine::ColliderBase::ColliderBase(ColKind kind, const Vec3& center, bool isTrigger) :
+	isTrigger(isTrigger),
+	center(center),
+	m_kind(kind)
+{
+	m_collideFunc[ColKind::SPHERE] = &ColliderBase::IsCollideSphere;
+	m_collideFunc[ColKind::CAPSULE] = &ColliderBase::IsCollideCapsule;
+	m_collideFunc[ColKind::BOX] = &ColliderBase::IsCollideBox;
+
+	m_fixFunc[ColKind::SPHERE] = &ColliderBase::FixToSphere;
+	m_fixFunc[ColKind::CAPSULE] = &ColliderBase::FixToCapsule;
+}
+
+CollideHitInfo ColliderBase::IsCollide(const Vec3& pos, const Rigidbody& rigid, ColliderBase* colliderCol, const Vec3& colliderPos, const Rigidbody& colliderRigid, const PreHitInfo& preInfo)
 {
 	auto kind = colliderCol->GetKind();
-	return (this->*m_collideFunc.at(kind))(pos, colliderCol, colliderPos, preInfo);
+	return (this->*m_collideFunc.at(kind))(pos, rigid, colliderCol, colliderPos, colliderRigid, preInfo);
 }
 
 const Vec3& MyEngine::ColliderBase::FixNextPos(const Vec3& pos, ColliderBase* colliderCol, const Vec3& colliderPos, const CollideHitInfo& hitInfo)
@@ -29,19 +42,19 @@ const Vec3& MyEngine::ColliderBase::FixNextPos(const Vec3& pos, ColliderBase* co
 	return (this->*m_fixFunc.at(kind))(pos, colliderCol, colliderPos, hitInfo);
 }
 
-CollideHitInfo ColliderBase::IsCollideSphere(const Vec3& pos, ColliderBase* colliderCol, const Vec3& colliderPos, const PreHitInfo& preInfo)
+CollideHitInfo ColliderBase::IsCollideSphere(const Vec3& pos, const Rigidbody& rigid, ColliderBase* colliderCol, const Vec3& colliderPos, const Rigidbody& colliderRigid, const PreHitInfo& preInfo)
 {
 	assert(false && "実装されていない判定です");
 	return CollideHitInfo{false};
 }
 
-CollideHitInfo ColliderBase::IsCollideCapsule(const Vec3& pos, ColliderBase* colliderCol, const Vec3& colliderPos, const PreHitInfo& preInfo)
+CollideHitInfo ColliderBase::IsCollideCapsule(const Vec3& pos, const Rigidbody& rigid, ColliderBase* colliderCol, const Vec3& colliderPos, const Rigidbody& colliderRigid, const PreHitInfo& preInfo)
 {
 	assert(false && "実装されていない判定です");
 	return CollideHitInfo{ false };
 }
 
-CollideHitInfo ColliderBase::IsCollideBox(const Vec3& pos, ColliderBase* colliderCol, const Vec3& colliderPos, const PreHitInfo& preInfo)
+CollideHitInfo ColliderBase::IsCollideBox(const Vec3& pos, const Rigidbody& rigid, ColliderBase* colliderCol, const Vec3& colliderPos, const Rigidbody& colliderRigid, const PreHitInfo& preInfo)
 {
 	assert(false && "実装されていない判定です");
 	return CollideHitInfo{ false };

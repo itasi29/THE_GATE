@@ -3,6 +3,7 @@
 #include <cassert>
 #include "StringUtility.h"
 #include "StageDataManager.h"
+#include "SoundManager.h"
 
 namespace
 {
@@ -11,10 +12,17 @@ namespace
 
 	// セーブデータのパス
 	const char* const FILE_PATH = "Data/SaveData/SaveData.dat";
+
+	
+	constexpr int MAX_BGM_RATE = 100;	// 最大BGM割合
+	constexpr int MAX_SE_RATE = 100;	// 最大SE割合
+	constexpr int MAX_CAMERA_SENS = 100;	// 最大カメラ感度
 }
 
 SaveDataManager::SaveDataManager() :
-	m_useSaveNo(0)
+	m_useSaveNo(0),
+	m_bgmVolume(MAX_BGM_RATE),
+	m_seVolume(MAX_SE_RATE)
 {
 }
 
@@ -37,6 +45,7 @@ void SaveDataManager::Load()
 		for (int i = 0; i < SAVE_DATA_NUM; ++i)
 		{
 			Initialized(i);
+			m_dataTable.at(i).cameraSens = static_cast<int>(MAX_CAMERA_SENS * 0.5f);
 		}
 	}
 	// ファイルが存在する場合はファイルからデータを読み込む
@@ -60,11 +69,16 @@ void SaveDataManager::Save() const
 		return;
 	}
 
-	// 書き込み
+	// BGMの音量を書き込み
+	fwrite(&m_bgmVolume, sizeof(int), 1, fp);
+	// SEの音量を書き込み
+	fwrite(&m_seVolume, sizeof(int), 1, fp);
 	auto& stageDataMgr = StageDataManager::GetInstance();
 	const auto& stageNum = stageDataMgr.GetStageNum();
 	for (const auto& data : m_dataTable)
 	{
+		// カメラの感度を書き込み
+		fwrite(&data.cameraSens, sizeof(int), 1, fp);
 		// 存在フラグの書き込み
 		fwrite(&data.isExist, sizeof(bool), 1, fp);
 		// 総プレイ時間の書き込み
@@ -75,10 +89,6 @@ void SaveDataManager::Save() const
 			const auto& name = stageDataMgr.GetStageName(i);
 			// クリア情報の書き込み
 			fwrite(&data.isClear.at(name), sizeof(bool), 1, fp);
-			// チェックポイント番号を書き込み
-			fwrite(&data.cpNo.at(name), sizeof(int), 1, fp);
-			// ステージタイムを書き込み
-			fwrite(&data.playTime.at(name), sizeof(int), 1, fp);
 			// ステージクリアタイムを書き込み
 			fwrite(&data.clearTime.at(name), sizeof(int), 1, fp);
 		}
@@ -104,8 +114,6 @@ void SaveDataManager::Initialized(int no)
 		const auto& name = stageDataMgr.GetStageName(i);
 		// クリア情報の初期化
 		data.isClear[name] = false;
-		data.cpNo[name] = 0;
-		data.playTime[name] = 0;
 		data.clearTime[name] = 99 * 3600 + 59 * 60 + 59;
 	}
 }
@@ -117,22 +125,22 @@ void SaveDataManager::UpdateTime(const wchar_t* const stageName)
 	data.isExist = true;
 	// トータルタイムの更新
 	++data.totalTime;
-	// ステージタイムの更新
-	++data.playTime.at(stageName);
 }
 
-bool SaveDataManager::UpdateCheckPoint(const wchar_t* const stageName, int checkNo)
+void SaveDataManager::ChangeBgmRate(int changeSize)
 {
-	auto& data = m_dataTable.at(m_useSaveNo);
-	auto& now = data.cpNo.at(stageName);
+	m_bgmVolume = std::min<int>(std::max<int>(m_bgmVolume + changeSize, 0), MAX_BGM_RATE);
+	SoundManager::GetInstance().ChangePlayBgmVolume();
+}
 
-	// 現在のチェックポイントの方が先に進んでいたら更新しない
-	if (now > checkNo) return false;
-	// データが存在することに
-	data.isExist = true;
-	// チェックポイントの更新
-	now = checkNo;
-	return true;
+void SaveDataManager::ChangeSeRate(int changeSize)
+{
+	m_seVolume = std::min<int>(std::max<int>(m_seVolume + changeSize, 0), MAX_SE_RATE);
+}
+
+void SaveDataManager::ChangeCameraSens(int changeSize)
+{
+	m_dataTable.at(m_useSaveNo).cameraSens = std::min<int>(std::max<int>(m_dataTable.at(m_useSaveNo).cameraSens + changeSize, 0), 100);
 }
 
 void SaveDataManager::OnClear(const wchar_t* const stageName, int clearTime)
@@ -141,10 +149,6 @@ void SaveDataManager::OnClear(const wchar_t* const stageName, int clearTime)
 
 	// クリア時間が保存されているプレイ時間を超えている場合は更新
 	if (data.clearTime.at(stageName) > clearTime) data.clearTime.at(stageName) = clearTime;
-	// プレイ時間初期化
-	data.playTime.at(stageName) = 0;
-	// チェックポイント初期化
-	data.cpNo.at(stageName) = 0;
 	// クリアしたことに
 	data.isClear.at(stageName) = true;
 }
@@ -190,11 +194,18 @@ void SaveDataManager::LoadFile(int handle)
 {
 	auto& stageDataMgr = StageDataManager::GetInstance();
 
+	// BGMの音量を読み込み
+	FileRead_read(&m_bgmVolume, sizeof(int), handle);
+	// SEの音量を読み込み
+	FileRead_read(&m_seVolume, sizeof(int), handle);
+
 	// ステージ数取得
 	const auto& stageNum = stageDataMgr.GetStageNum();
 	for (int i = 0; i < SAVE_DATA_NUM; ++i)
 	{
 		SaveData data;
+		// カメラの感度を読み込み
+		FileRead_read(&data.cameraSens, sizeof(int), handle);
 		// 存在フラグを読み込み
 		FileRead_read(&data.isExist, sizeof(bool), handle);
 		// プレイ時間の読み込み
@@ -207,10 +218,6 @@ void SaveDataManager::LoadFile(int handle)
 			bool isClear;
 			FileRead_read(&isClear, sizeof(bool), handle);
 			data.isClear[name] = isClear;
-			// チェックポイント読み込み
-			FileRead_read(&data.cpNo[name], sizeof(int), handle);
-			// ステージタイム読み込み
-			FileRead_read(&data.playTime[name], sizeof(int), handle);
 			// ステージクリアタイム読み込み
 			FileRead_read(&data.clearTime[name], sizeof(int), handle);
 		}

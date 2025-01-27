@@ -201,12 +201,6 @@
     <ClCompile Include="Object\Glass.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Tutorial\TutorialManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Tutorial\TutorialUI.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Common\Novel.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -214,6 +208,12 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Object\Gate\GateDelete.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\SceneTutorial.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\SceneHelp.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -467,12 +467,6 @@
     <ClInclude Include="File\FileId.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Tutorial\TutorialManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Tutorial\TutorialUI.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Common\Novel.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -482,13 +476,19 @@
     <ClInclude Include="Common\Novels.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Tutorial\Tutorial.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Object\Gate\GateDelete.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Common\NovelId.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\SceneTutorial.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\SceneHelp.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="DataManager\FontId.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -497,5 +497,7 @@
     <FxCompile Include="Shader\NormalPS.hlsl" />
     <FxCompile Include="Shader\SkinMeshVS.hlsl" />
     <FxCompile Include="Shader\NormalVS.hlsl" />
+    <FxCompile Include="Shader\NumPS.hlsl" />
+    <FxCompile Include="Shader\DissolvePS.hlsl" />
   </ItemGroup>
 </Project>

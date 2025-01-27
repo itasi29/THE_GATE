@@ -18,9 +18,9 @@ namespace
 
 	// アニメーションデータパス
 	const wchar_t* const ANIM_INFO_PATH = L"Data/Master/AnimTurret.csv";
-	// 死亡アニメーションフレーム
-	constexpr int DEATH_ANIM_FRAME = 120;
-	constexpr float DEATH_ROT_ANGLE = 90.0f / DEATH_ANIM_FRAME;
+	// 死亡後処理フレーム
+	constexpr int DEATH_FRAME = 30;
+	constexpr float DEATH_ROT_ANGLE = 90.0f / DEATH_FRAME;
 
 	const Vec3 MODEL_SCALE = Vec3(0.0325f);
 	const Vec3 MODEL_PIVOT = Vec3(0, -0.5f, 0);
@@ -32,13 +32,16 @@ namespace
 	constexpr float DISCOVERY_RANGE = 1.0f - DISCORVERY_ANGLE / 180.0f;
 	// 見つける距離
 	constexpr float DISCOVERY_LEN = 50.0f;
-	// 
+	// 見るまでのスピード
 	constexpr float LOOK_SPEED = 1.5f;
 
 	// 攻撃範囲
 	constexpr float ATTACK_RANGE = 1.0f - 10.0f / 180.0f;
 	// 攻撃間隔
 	constexpr float ATTACK_INTERVAL = 10;
+
+	// 軸がない時の代わりの軸
+	const Vec3 PROXY_ROT_AXIS = Vec3(1.0f, 0.0f, -1.0f).GetNormalized();
 }
 
 Turret::Turret() :
@@ -47,10 +50,12 @@ Turret::Turret() :
 	m_player(nullptr),
 	m_state(State::OPEN),
 	m_attackFrame(0),
+	m_deathFrame(0),
 	m_deathEffPlayH(-1),
 	m_rightWingH(-1),
 	m_leftWingH(-1),
-	m_isCreateLeft(true)
+	m_isCreateLeft(true),
+	m_isDeath(false)
 {
 }
 
@@ -69,7 +74,9 @@ void Turret::Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std
 	m_leftWingH = MV1SearchFrame(m_modelHandle, FRAME_LEFT_WING);
 
 	m_anim = std::make_shared<AnimController>();
-	m_anim->Init(ANIM_INFO_PATH, m_modelHandle, ANIM_OPEN);
+	m_anim->Init(ANIM_INFO_PATH, m_modelHandle, ANIM_CLOSED);
+
+	OnSearch();
 }
 
 void Turret::Init(const Vec3& dir, Player* player)
@@ -78,8 +85,6 @@ void Turret::Init(const Vec3& dir, Player* player)
 	m_lookDir = dir;
 
 	m_player = player;
-
-	OnSearch();
 }
 
 void Turret::End()
@@ -110,7 +115,7 @@ void Turret::Update()
 
 void Turret::Draw() const
 {
-	Object3DBase::Draw();
+	if (m_deathFrame < DEATH_FRAME) Object3DBase::Draw();
 	for (auto& item : m_bulletList) item->Draw();
 
 #ifdef _DEBUG
@@ -124,6 +129,8 @@ void Turret::Draw() const
 
 void Turret::OnDamage(const Vec3& dir)
 {
+	if (m_isDeath) return;
+
 	m_updateFunc = &Turret::DeathUpdate;
 	m_state = State::DEATH;
 	m_anim->Change(ANIM_ROTATION, true, false, true, false);
@@ -132,9 +139,13 @@ void Turret::OnDamage(const Vec3& dir)
 	effMgr.SetInfo(m_deathEffPlayH, m_rigid.GetPos(), m_rotation);
 
 	m_nextDir = m_lookDir;
-	
-	const auto& rot = Quaternion::GetQuaternion(Vec3::Up(), dir);
+
+	const auto& xzDir = Vec3(dir.x, 0, dir.z);
+	const auto& rot = Quaternion::GetQuaternion(Vec3::Up(), xzDir, PROXY_ROT_AXIS);
 	m_fallRot = Quaternion::AngleAxis(DEATH_ROT_ANGLE, rot.GetAxis());
+
+	m_isDeath = true;
+	m_deathFrame = 0;
 }
 
 void Turret::AnimUpdate()
@@ -187,7 +198,7 @@ void Turret::AttackUpdate()
 	{
 		m_attackFrame = 0;
 		// 弾生成
-		Shot();
+		OnShot();
 	}
 }
 
@@ -209,12 +220,15 @@ void Turret::DeathUpdate()
 		return;
 	}
 
+	++m_deathFrame;
+	if (m_deathFrame > DEATH_FRAME) return;
+
 	// 回転処理
 	m_rotation = m_fallRot * m_rotation;
 	m_baseDir = m_fallRot * m_baseDir;
 	m_lookDir = Easing::AngleRotation(m_lookDir, m_nextDir, LOOK_SPEED);
 
-	// エフェクトが終了するまで最後のあがきをする
+	// モデルが終了するまで最後のあがきをする
 	++m_attackFrame;
 	if (m_attackFrame > ATTACK_INTERVAL)
 	{
@@ -223,12 +237,14 @@ void Turret::DeathUpdate()
 
 		m_attackFrame = 0;
 		// 弾生成
-		Shot();
+		OnShot();
 	}
 }
 
 bool Turret::IsSearch() const
 {
+	if (!m_player) return false;
+
 	// プレイヤーまでの距離が遠ければ見つけていない
 	const auto& toPlayer = m_player->GetPos() - (m_rigid.GetPos() + m_collider.at(0)->center);
 	if (toPlayer.SqLength() > DISCOVERY_LEN * DISCOVERY_LEN) return false;
@@ -237,7 +253,7 @@ bool Turret::IsSearch() const
 	return dot > DISCOVERY_RANGE;
 }
 
-void Turret::Shot()
+void Turret::OnShot()
 {
 	int wingIndex;
 	float bit = 1;
@@ -270,6 +286,7 @@ void Turret::OnSearch()
 {
 	m_updateFunc = &Turret::SearchUpdate;
 	m_state = State::SEARCH;
+	m_anim->Change(ANIM_CLOSED);
 }
 
 void Turret::OnOpen()

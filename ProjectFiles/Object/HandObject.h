@@ -7,54 +7,132 @@ class Player;
 class GateManager;
 class Gate;
 
+/// <summary>
+/// ハンドオブジェクトを表すクラス
+/// </summary>
 class HandObject : public Object3DBase
 {
 private:
-	// MEMO: もしfriendを使わずに済むならそちらの処理に変更する
-	friend Player;
+    // MEMO: もしfriendを使わずに済むならそちらの処理に変更する
+    friend Player;
 
 public:
-	HandObject(GateManager& gateMgr);
-	~HandObject();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    /// <param name="gateMgr">ゲートマネージャー</param>
+    HandObject(GateManager& gateMgr);
 
-	void Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std::list<Tuple<MyEngine::ColKind, MyEngine::ColliderBase*>> list, bool isGravity) override;
-	void Update() override;
-	void Restart() override;
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    ~HandObject();
 
-	void OnCollideEnter(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
-	void OnTriggerEnter(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
-	void OnTriggerStay(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
-	void OnTriggerExit(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
+    /// <summary>
+    /// 初期化
+    /// </summary>
+    /// <param name="pos">位置</param>
+    /// <param name="scale">スケール</param>
+    /// <param name="rot">回転</param>
+    /// <param name="list">コライダーリスト</param>
+    /// <param name="isGravity">重力を使用するかどうか</param>
+    void Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std::list<Tuple<MyEngine::ColKind, MyEngine::ColliderBase*>> list, bool isGravity) override;
+
+    /// <summary>
+    /// 更新処理
+    /// </summary>
+    void Update() override;
+
+    /// <summary>
+    /// リスタート処理
+    /// </summary>
+    void Restart() override;
+
+    /// <summary>
+    /// 衝突時の処理
+    /// </summary>
+    /// <param name="colider">衝突した対象</param>
+    /// <param name="selfIndex">自身の判定インデックス</param>
+    /// <param name="sendIndex">対象の判定インデックス</param>
+    /// <param name="hitInfo">衝突情報</param>
+    void OnCollideEnter(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
+
+    /// <summary>
+    /// トリガー侵入時の処理
+    /// </summary>
+    /// <param name="colider">衝突した対象</param>
+    /// <param name="selfIndex">自身の判定インデックス</param>
+    /// <param name="sendIndex">対象の判定インデックス</param>
+    /// <param name="hitInfo">衝突情報</param>
+    void OnTriggerEnter(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
+
+    /// <summary>
+    /// トリガー中の処理
+    /// </summary>
+    /// <param name="colider">衝突した対象</param>
+    /// <param name="selfIndex">自身の判定インデックス</param>
+    /// <param name="sendIndex">対象の判定インデックス</param>
+    /// <param name="hitInfo">衝突情報</param>
+    void OnTriggerStay(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
+
+    /// <summary>
+    /// トリガー退出時の処理
+    /// </summary>
+    /// <param name="colider">衝突した対象</param>
+    /// <param name="selfIndex">自身の判定インデックス</param>
+    /// <param name="sendIndex">対象の判定インデックス</param>
+    /// <param name="hitInfo">衝突情報</param>
+    void OnTriggerExit(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
 
 private:
-	void AppModelInfo() const override;
+    /// <summary>
+    /// モデル情報を適用する
+    /// </summary>
+    void AppModelInfo() const override;
 
-	void OnHnad();
-	void EndHand();
+    /// <summary>
+    /// ハンド処理
+    /// </summary>
+    void OnHand();
 
-	void SetPos(const Vec3& pos);
-	void OnPlayerWarp();
+    /// <summary>
+    /// ハンド終了処理
+    /// </summary>
+    void EndHand();
+
+    /// <summary>
+    /// 位置を設定する
+    /// </summary>
+    /// <param name="pos">位置</param>
+    void SetPos(const Vec3& pos);
+
+    /// <summary>
+    /// プレイヤーワープ処理
+    /// </summary>
+    void OnPlayerWarp();
 
 private:
-	GateManager& m_gateMgr;
-	Gate* m_gate;
+    // ゲートマネージャー
+    GateManager& m_gateMgr;  
+    // ゲート
+    Gate* m_gate;  
 
-	// 初期位置
-	Vec3 m_initPos;
-	// 移動前の位置
-	Vec3 m_prePos;
-	// ワープ時の位置
-	Vec3 m_warpPos;
+    // 初期位置
+    Vec3 m_initPos;  
+    // 移動前の位置
+    Vec3 m_prePos;  
+    // ワープ時の位置
+    Vec3 m_warpPos;  
 
-	// 判定サイズ
-	float m_colSize;
+    // 判定サイズ
+    float m_colSize;  
 
-	// 
-	std::unordered_map<MyEngine::Collidable*, bool> m_isAddTag;
-	// 
-	bool m_isOneHand;
-	// 
-	bool m_isWarp;
-	// 
-	bool m_isCanWarp;
+    // ワンハンドフラグ
+    bool m_isOneHand;  
+    // ワープフラグ
+    bool m_isWarp;  
+    // ワープ可能フラグ
+    bool m_isCanWarp;  
+    // タグ追加フラグ
+    std::unordered_map<MyEngine::Collidable*, bool> m_isAddTag;  
 };

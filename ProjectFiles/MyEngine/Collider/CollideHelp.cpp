@@ -61,7 +61,7 @@ bool IsPreParallelAndNowNotParallel(const Vec3& axis, const Vec3& pre, const Vec
 /// </summary>
 /// <param name="info">情報</param>
 /// <param name="preInfo">前回情報</param>
-void CheckState(CollideHitInfo& info, const PreHitInfo& preInfo)
+void CheckState(CollideHitInfo& info, const PreHitInfo& preInfo, const Rigidbody& rigid)
 {
     uint8_t state = 0;
     if (preInfo.isCreate)
@@ -69,6 +69,7 @@ void CheckState(CollideHitInfo& info, const PreHitInfo& preInfo)
         const auto preState = preInfo.info.state;
         state = preState & 0b00000111;
     }
+    const auto& velDir = rigid.GetDir();
     // 壁判定
     if (-WALL_POLYGON_RADAR < info.fixDir.y && info.fixDir.y < WALL_POLYGON_RADAR)
     {
@@ -80,7 +81,7 @@ void CheckState(CollideHitInfo& info, const PreHitInfo& preInfo)
         state = state | CollideHitInfo::STATE_WALL_FLAG;
     }
     // 天井判定
-    else if (info.fixDir.y < 0)
+    else if (velDir.y > 0)
     {
         if ((state & CollideHitInfo::STATE_ROOF_FLAG) == 0)
         {
@@ -127,7 +128,7 @@ CollideHitInfo MyEngine::IsCollideSphereAndCapsule(const Vec3& posSphere, const 
     return IsCollideSphereAndSphere(spherePos, nearPt, colliderCapsule->radius, colliderSphere->radius);
 }
 
-CollideHitInfo MyEngine::IsCollideSphereAndBox(const Vec3& posSphere, const Vec3& posBox, ColliderSphere* colliderSphere, ColliderBox* colliderBox, const PreHitInfo& preInfo)
+CollideHitInfo MyEngine::IsCollideSphereAndBox(const Vec3& posSphere, const Vec3& posBox, ColliderSphere* colliderSphere, ColliderBox* colliderBox, const Rigidbody& rigidSphere, const PreHitInfo& preInfo)
 {
     auto spherePos = posSphere + colliderSphere->center;
     auto boxPos = posBox + colliderBox->center;
@@ -154,7 +155,7 @@ CollideHitInfo MyEngine::IsCollideSphereAndBox(const Vec3& posSphere, const Vec3
         info.isHit = true;
         info.hitPos = nearPos;
         info.fixDir = nearToSphere.GetNormalized();
-        CheckState(info, preInfo);
+        CheckState(info, preInfo, rigidSphere);
 
         return info;
     }
@@ -164,7 +165,7 @@ CollideHitInfo MyEngine::IsCollideSphereAndBox(const Vec3& posSphere, const Vec3
     }
 }
 
-CollideHitInfo MyEngine::IsCollideCapsuleAndBox(const Vec3& posCapsule, const Vec3& posBox, ColliderCapsule* colliderCapsule, ColliderBox* colliderBox, const PreHitInfo& preInfo)
+CollideHitInfo MyEngine::IsCollideCapsuleAndBox(const Vec3& posCapsule, const Vec3& posBox, ColliderCapsule* colliderCapsule, ColliderBox* colliderBox, const Rigidbody& rigidCapsule, const PreHitInfo& preInfo)
 {
     auto capsulePos = posCapsule + colliderCapsule->center;
     auto boxPos = posBox + colliderBox->center;
@@ -198,7 +199,7 @@ CollideHitInfo MyEngine::IsCollideCapsuleAndBox(const Vec3& posCapsule, const Ve
         if (IsPreParallelAndNowNotParallel(Vec3::Front(), preInfo.info.fixDir, info.fixDir)) return CollideHitInfo{ false };
     }
 
-    CheckState(info, preInfo);
+    CheckState(info, preInfo, rigidCapsule);
 
     return info;
 }
@@ -298,7 +299,7 @@ Vec3 MyEngine::FixBoxToSphere(const Vec3& primaryPos, const Vec3& secondaryPos, 
     Vec3 fixPos;
     if (hitInfo.state & CollideHitInfo::STATE_FIRST_FLAG)
     {
-        fixPos = hitInfo.hitPos + hitInfo.fixDir * (secondaryCollider->radius + 0.0001f);
+        fixPos = hitInfo.hitPos + hitInfo.fixDir * (secondaryCollider->radius + 0.0001f) - secondaryCollider->center;
     }
     else
     {

@@ -121,8 +121,12 @@ public:
 		auto norm1 = v1.GetNormalized();
 		auto norm2 = v2.GetNormalized();
 		float dot = Vec3::Dot(norm1, norm2);
+		// 2ベクトルが平行の場合、回転しないクオータニオンを返す
+		if (dot > 0.9999f) return Quaternion();
+		// 角度と軸を取得
 		float angle = std::acosf(dot) * Game::RAD_2_DEG;
 		auto axis = Vec3::Cross(norm1, norm2);
+
 		if (axis.SqLength() < 0.0001f)
 		{
 			axis = axisWhenParallel;

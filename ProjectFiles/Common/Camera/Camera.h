@@ -2,6 +2,9 @@
 #include "Vec3.h"
 #include "Quaternion.h"
 
+/// <summary>
+/// カメラ情報を格納する構造体
+/// </summary>
 struct CameraInfo
 {
 	// Tpsフラグ
@@ -18,7 +21,7 @@ struct CameraInfo
 	// 右方向
 	Vec3 right;
 	// 縦方向の回転具合
-	float vertexAngle;
+	float vertexAngle = 0.0f;
 	Quaternion vertexRot;
 	// 見ている方向
 	Vec3 look;
@@ -34,65 +37,83 @@ namespace MyEngine
 struct Quaternion;
 class GateManager;
 
+/// <summary>
+/// カメラを管理するクラス
+/// </summary>
 class Camera
 {
 public:
+	/// <summary>
+	/// コンストラクタ
+	/// </summary>
 	Camera();
+	/// <summary>
+	/// デストラクタ
+	/// </summary>
 	virtual ~Camera();
 
+	/// <summary>
+	/// カメラ情報を更新する
+	/// </summary>
 	void Update();
 	/// <summary>
-	/// 情報の取得
+	/// カメラ情報を取得する
 	/// </summary>
-	/// <returns>情報群</returns>
+	/// <returns>カメラ情報</returns>
 	const CameraInfo& GetInfo() const { return m_info; }
-	
+
 	/// <summary>
-	/// near,farを設定
+	/// near, farを設定する
 	/// </summary>
-	/// <param name="n">near</param>
-	/// <param name="f">far</param>
+	/// <param name="n">near(-値ならデフォルトの値になる)</param>
+	/// <param name="f">far(-値ならデフォルトの値になる)</param>
 	void SetNearFar(float n, float f);
 	/// <summary>
-	/// 視野角の設定
+	/// 視野角を設定する
 	/// </summary>
-	/// <param name="angle">角度</param>
+	/// <param name="angle">角度(deg)(-値ならデフォルトの値になる)</param>
 	void SetFov(float angle);
 	/// <summary>
-	/// 正面方向の設定
+	/// 正面方向を設定する
 	/// </summary>
+	/// <param name="front">正面方向のベクトル</param>
+	/// <param name="vertexAngle">縦方向の回転角度</param>
 	void SetFront(const Vec3& front, float vertexAngle);
 	/// <summary>
-	/// 初期位置の設定
+	/// 初期位置を設定する
 	/// </summary>
 	/// <param name="targetPos">カメラの注視点</param>
 	void SetTargetPos(const Vec3& targetPos);
+	/// <summary>
+	/// TPS/FPSを設定する
+	/// </summary>
+	/// <param name="isTps">true:TPS /false: FPS</param>
+	void SetTps(bool isTps);
 
 	/// <summary>
-	/// カメラの有効化
+	/// カメラを有効化する
 	/// </summary>
 	void AppInfo();
 
 	/// <summary>
-	/// カメラの場所を取得
+	/// カメラの位置を取得する
 	/// </summary>
-	/// <returns>pos</returns>
+	/// <returns>カメラの位置</returns>
 	const Vec3& GetPos() const;
 	/// <summary>
-	/// TPSかFPSか
+	/// TPSかFPSかを判定する
 	/// </summary>
 	/// <returns>true:TPS /false: FPS</returns>
 	bool IsTps() const { return m_info.isTps; }
 
 protected:
 	/// <summary>
-	/// カメラの距離を取得
+	/// カメラの距離を取得する
 	/// </summary>
-	/// <returns></returns>
+	/// <returns>カメラの距離</returns>
 	float GetDistance() const;
 
 protected:
-	// 情報
-	CameraInfo m_info;
+	// カメラ情報
+	CameraInfo m_info;	
 };
-

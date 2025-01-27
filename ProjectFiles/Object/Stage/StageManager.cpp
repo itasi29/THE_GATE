@@ -56,6 +56,9 @@ namespace
 		{ "CatwalkFence", ObjectTag::CATWALK_FENCE },
 		{ "CatwalkFenceShort", ObjectTag::CATWALK_FENCE },
 		{ "CatwalkPillar", ObjectTag::CATWALK_PILLAR },
+		{ "Bed" , ObjectTag::NONE },
+		{ "Chair" , ObjectTag::NONE },
+		{ "Torpedo" , ObjectTag::NONE },
 	};
 	const std::unordered_map<std::string, int> MODEL_ID =
 	{
@@ -84,11 +87,16 @@ namespace
 		{ "LaserCatcher", M_LASER_CATHCER },
 		{ "Piston", M_PISTON },
 		{ "Glass", M_GLASS },
+		{ "Bed" , M_BED },
+		{ "Chair" , M_CHAIR },
+		{ "Torpedo" , M_TORPEDO },
+		{ "FloorMove" , M_FLOOR },
 	};
 }
 
 StageManager::StageManager(const wchar_t* const stageName) :
 	m_stageName(stageName),
+	m_nowCp(0),
 	m_isClear(false)
 {
 	m_createFunc[MyEngine::ColKind::BOX] = &StageManager::LoadBoxColInfo;
@@ -135,8 +143,8 @@ void StageManager::AsyncInit()
 		tag.resize(tagSize);
 		FileRead_read(tag.data(), sizeof(char) * tagSize, handle);
 
-		// FloorMoveはスキップする
-		if (tag == "FloorMove" || tag == "GateDelete") continue;
+		// GateDeleteはスキップする
+		if (tag == "GateDelete") continue;
 		loadList.emplace_back(MODEL_ID.at(tag));
 	}
 	SetUseASyncLoadFlag(true);
@@ -185,29 +193,40 @@ void StageManager::End()
 	for (auto& cp : m_checkPoints)	cp->End();
 }
 
+void StageManager::UpdateCheckPoint(int checkNo)
+{
+	if (m_isClear) return;
+
+	// 現在のチェックポイントの方が先に進んでいたら更新しない
+	if (m_nowCp > checkNo) return;
+	// チェックポイントの更新
+	m_nowCp = checkNo;
+}
+
 void StageManager::Restart()
 {
 	for (auto& obj : m_objs)	obj->Restart();
 }
 
-void StageManager::UpdateCheckPoint(int checkNo)
+bool StageManager::CheckClear()
 {
-	if (m_isClear) return;
+	m_isClear = m_nowCp + 1 >= m_checkPoints.size();
+	return m_isClear;
+}
 
-	SaveDataManager::GetInstance().UpdateCheckPoint(m_stageName, checkNo);
+void StageManager::AddObject(std::shared_ptr<Object3DBase> object)
+{
+	m_objs.emplace_back(object);
 }
 
 const Vec3& StageManager::GetCheckPoint() const
 {
-	auto cp = SaveDataManager::GetInstance().GetCpNo(m_stageName);
-	return m_checkPoints.at(cp)->GetPos();
+	return m_checkPoints.at(m_nowCp)->GetPos();
 }
 
-bool StageManager::CheckClear()
+const Vec3& StageManager::GetCheckPointDir() const
 {
-	auto cp = SaveDataManager::GetInstance().GetCpNo(m_stageName);
-	m_isClear = cp + 1 >= m_checkPoints.size();
-	return m_isClear;
+	return m_checkPoints.at(m_nowCp)->GetDir();
 }
 
 void StageManager::LoadAndCreateObject(Player* player, GateManager* gateMgr)
@@ -235,7 +254,7 @@ void StageManager::LoadAndCreateObject(Player* player, GateManager* gateMgr)
 		for (int i = 0; i < colSize; ++i)
 		{
 			MyEngine::ColKind kind;
-			file->Read(&kind, sizeof(ColKind));
+			file->Read(&kind, sizeof(MyEngine::ColKind));
 			const auto& func = m_createFunc.at(kind);
 			auto res = (this->*func)(file, data);
 			list.emplace_back(Tuple<MyEngine::ColKind, MyEngine::ColliderBase*>{ kind, res });
@@ -247,36 +266,44 @@ void StageManager::LoadAndCreateObject(Player* player, GateManager* gateMgr)
 		bool isLoadModel = true;
 		if (tag == "Turret")
 		{
+			// 向いている方向を取得
 			Vec3 dir;
 			file->Read(&dir, sizeof(Vec3));
+			// 適用
 			auto turret = std::make_shared<Turret>();
 			turret->Init(dir, player);
 			obj = turret;
+			// 重力使用
 			isGravity = true;
 		}
 		else if (tag == "LaserLaunchPad")
 		{
+			// 発射方向、反射回数取得
 			Vec3 dir;
 			int reflectNum = 0;
 			file->Read(&dir, sizeof(Vec3));
 			file->Read(&reflectNum, sizeof(int));
+			// 適用
 			auto launchPad = std::make_shared<LaserLaunchPad>(gateMgr, reflectNum);
 			launchPad->Init(dir);
 			obj = launchPad;
 		}
-		else if (tag == "GateDelete")
-		{
-			obj = std::make_shared<GateDelete>(*gateMgr);
-			isLoadModel = false;
-		}
 		else if (tag == "HandObj")
 		{
 			obj = std::make_shared<HandObject>(*gateMgr);
+			// 重力使用
 			isGravity = true;
+		}
+		else if (tag == "GateDelete")
+		{
+			obj = std::make_shared<GateDelete>(*gateMgr);
+			// モデル不使用
+			isLoadModel = false;
 		}
 		else if (tag == "FloorMove")
 		{
 			obj = std::make_shared<MoveFloorManager>();
+			// モデル不使用
 			isLoadModel = false;
 		}
 		else if (tag == "LaserCatcher") obj = std::make_shared<LaserCatcher>();
@@ -286,8 +313,11 @@ void StageManager::LoadAndCreateObject(Player* player, GateManager* gateMgr)
 		else if (tag == "Glass")		obj = std::make_shared<Glass>();
 		else							obj = std::make_shared<Object3DBase>(MyEngine::Collidable::Priority::STATIC, OBJECT_TAG.at(tag));
 
+		// モデル適用
 		if (isLoadModel) obj->LoadModel(MODEL_ID.at(tag));
+		// 初期化
 		obj->Init(data.pos, data.scale * 0.01f, data.rot, list, isGravity);
+		// 追加
 		m_objs.emplace_back(obj);
 	}
 }
@@ -306,9 +336,9 @@ void StageManager::LoadGimmickLinkInfo()
 		int linkNo;
 		file->Read(&linkNo, sizeof(int));
 
+		// ギミックをリンクさせる
 		auto gimmick = std::dynamic_pointer_cast<GimmickSendObject>(m_objs.at(gimmickNo));
 		auto link = std::dynamic_pointer_cast<GimmickLinkObject>(m_objs.at(linkNo));
-
 		gimmick->SetLinkObject(link.get());
 	}
 }
@@ -359,17 +389,18 @@ void StageManager::LoadCheckPoint()
 	{
 		// データ読み込み
 		Vec3 pos;
-		Quaternion rot;
+		Vec3 dir;
 		float size;
 		float radius;
-
+		Vec3 respawnDir;
 		file->Read(&pos, sizeof(Vec3));
-		file->Read(&rot, sizeof(Quaternion));
+		file->Read(&dir, sizeof(Vec3));
 		file->Read(&size, sizeof(float));
 		file->Read(&radius, sizeof(float));
+		file->Read(&respawnDir, sizeof(Vec3));
 
 		auto obj = std::make_shared<CheckPoint>(*this, i);
-		obj->Init(pos, rot, size, radius);
+		obj->Init(pos, dir, size, radius, respawnDir);
 
 		bool isLink;
 		file->Read(&isLink, sizeof(bool));

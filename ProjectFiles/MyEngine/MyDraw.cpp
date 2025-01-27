@@ -1,6 +1,7 @@
 ﻿#include "MyDraw.h"
 #include <DxLib.h>
 #include <array>
+#include <cassert>
 
 void StartCommonProcess(std::array<VERTEX2DSHADER, 4>& vertices, int& w, int& h, int firstH)
 {
@@ -32,6 +33,8 @@ void EndCommonProcess(const std::array<VERTEX2DSHADER, 4> vertices, int psH, int
 	auto err = DrawPrimitive2DToShader(vertices.data(), // アドレス
 		static_cast<int>(vertices.size()), // 頂点数
 		static_cast<int>(DX_PRIMTYPE_TRIANGLESTRIP));	// トポロジー：どういう風に繋げて描画するか
+
+	assert(err != -1 && "描画に失敗(シェーダ付き)");
 
 	// アルファの解除
 	if (isTrans) SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);

@@ -2,6 +2,7 @@
 #include <EffekseerForDXLib.h>
 #include <algorithm>
 #include "Geometry.h"
+#include "SceneManager.h"
 #include "FileManager.h"
 #include "FileBase.h"
 
@@ -60,6 +61,9 @@ void EffekseerManager::ReleaseFile()
 
 void EffekseerManager::Update()
 {
+	// オプションを開いていたら更新しない
+	if (SceneManager::GetInstance().IsOpenOption()) return;
+
 	// 更新
 	UpdateEffekseer3D();
 	// 再生終了したものを消す

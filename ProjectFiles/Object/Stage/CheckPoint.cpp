@@ -17,16 +17,18 @@ CheckPoint::~CheckPoint()
 {
 }
 
-void CheckPoint::Init(const Vec3& pos, const Quaternion& rot, float size, float radius)
+void CheckPoint::Init(const Vec3& pos, const Vec3& dir, float size, float radius, const Vec3& respawnDir)
 {
     OnEntryPhysics();
     m_rigid.SetPos(pos);
     m_rigid.SetGravity(false);
 
+	m_respawnDir = respawnDir;
+
     const auto& sphere = std::dynamic_pointer_cast<MyEngine::ColliderCapsule>(CreateCollider(MyEngine::ColKind::CAPSULE));
     sphere->center = Vec3();
     sphere->isTrigger = true;
-    sphere->dir = rot * Vec3::Up();
+    sphere->dir = dir;
     sphere->size = size;
     sphere->radius = radius;
 }

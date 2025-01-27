@@ -6,6 +6,11 @@
 #include "Object/Gate/GateManager.h"
 #include "Gimmick/Turret/Turret.h"
 
+namespace
+{
+	const Vec3 PIVOT = Vec3(0.0f, -1.5f, 0.0f);
+}
+
 HandObject::HandObject(GateManager& gateMgr) :
 	Object3DBase(Priority::MIDDLE, ObjectTag::HAND_OBJ),
 	m_gateMgr(gateMgr),
@@ -25,6 +30,7 @@ void HandObject::Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot,
 {
 	Object3DBase::Init(pos, scale, rot, list, isGravity);
 	m_initPos = pos;
+	m_pivot = PIVOT;
 	m_colSize = std::dynamic_pointer_cast<MyEngine::ColliderSphere>(m_collider.at(0))->radius;
 }
 
@@ -199,7 +205,7 @@ void HandObject::AppModelInfo() const
 	MV1SetMatrix(m_modelHandle, mat.GetMATRIX());
 }
 
-void HandObject::OnHnad()
+void HandObject::OnHand()
 {
 	m_isOneHand = true;
 	m_rigid.SetGravity(false);

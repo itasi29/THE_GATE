@@ -1,6 +1,7 @@
 ﻿#include "AnimController.h"
 #include <DxLib.h>
 #include <cassert>
+#include "StringUtility.h"
 #include "FileManager.h"
 
 namespace
@@ -98,7 +99,7 @@ void AnimController::LoadIdTable(const wchar_t* const path)
 	{
 		// 登録
 		Info info;
-		info.name = item.at(static_cast<int>(FileIndex::NAME));
+		info.name = StringUtility::StringToWString(item.at(static_cast<int>(FileIndex::NAME)));
 		info.speed = std::stof(item.at(static_cast<int>(FileIndex::SPEED)));
 		m_idTable.push_back(info);
 	}

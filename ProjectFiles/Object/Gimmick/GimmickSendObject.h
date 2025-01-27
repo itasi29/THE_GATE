@@ -3,15 +3,31 @@
 
 class GimmickLinkObject;
 
+/// <summary>
+/// ギミック送信オブジェクトを表すクラス
+/// </summary>
 class GimmickSendObject : public Object3DBase
 {
 public:
-	GimmickSendObject(Priority priority, ObjectTag tag);
-	virtual ~GimmickSendObject();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    /// <param name="priority">優先度</param>
+    /// <param name="tag">オブジェクトタグ</param>
+    GimmickSendObject(Priority priority, ObjectTag tag);
 
-	void SetLinkObject(GimmickLinkObject* linkObj) { m_linkObj = linkObj; }
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    virtual ~GimmickSendObject();
+
+    /// <summary>
+    /// リンクオブジェクトを設定する
+    /// </summary>
+    /// <param name="linkObj">リンクオブジェクト</param>
+    void SetLinkObject(GimmickLinkObject* linkObj) { m_linkObj = linkObj; }
 
 protected:
-	GimmickLinkObject* m_linkObj;
+    // リンクオブジェクト
+    GimmickLinkObject* m_linkObj;  
 };
-

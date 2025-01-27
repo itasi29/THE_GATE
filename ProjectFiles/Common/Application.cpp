@@ -12,8 +12,8 @@
 #include "SaveDataManager.h"
 #include "RankingDataManager.h"
 #include "NovelManager.h"
-#include "TutorialManager.h"
 #include "SceneManager.h"
+#include "SceneHelp.h"
 #include "Game.h"
 #include "Input.h"
 #include "MyEngine/MyEngine.h"
@@ -28,6 +28,7 @@ namespace
         { SceneKind::TITLE,         "タイトル" },
         { SceneKind::STAGE_SELECT,  "ステージ選択" },
         { SceneKind::MAIN,          "メイン" },
+        { SceneKind::TUTORIAL,      "チュートリアル" },
         { SceneKind::CLEAR,         "クリア" },
         { SceneKind::OPTION,        "オプション" },
         { SceneKind::DEBUG,         "デバッグ" },
@@ -90,6 +91,7 @@ bool Application::Init()
     InitManager();
     NumUtility::GetInstance().Init();
     Random::GetInstance().Init();
+    SceneHelp::GetInstance().Init();
 
     return true;
 }
@@ -99,7 +101,6 @@ void Application::Run()
     auto& scnMgr = SceneManager::GetInstance();
     auto& sndMgr = SoundManager::GetInstance();
     auto& effMgr = EffekseerManager::GetInstance();
-    auto& tutorialMgr = TutorialManager::GetInstance();
     auto& physics = MyEngine::Physics::GetInstance();
     auto& input = Input::GetInstance();
 #ifdef _DEBUG
@@ -157,24 +158,14 @@ void Application::Run()
             debug.Clear();
             updateTime = GetNowHiPerformanceCount();
 #endif
-            if (tutorialMgr.IsNowPlay())
-            {
-                tutorialMgr.Update();
+            scnMgr.Update();
 #ifdef _DEBUG
-                physicsTime = 0;
+            physicsTime = GetNowHiPerformanceCount();
 #endif
-            }
-            else
-            {
-                scnMgr.Update();
+            physics.Update();
 #ifdef _DEBUG
-                physicsTime = GetNowHiPerformanceCount();
+            physicsTime = GetNowHiPerformanceCount() - physicsTime;
 #endif
-                physics.Update();
-#ifdef _DEBUG
-                physicsTime = GetNowHiPerformanceCount() - physicsTime;
-#endif
-            }
             sndMgr.Update();
             effMgr.Update();
 #ifdef _DEBUG
@@ -184,26 +175,19 @@ void Application::Run()
 #endif
 
         scnMgr.Draw();
-        tutorialMgr.Draw();
 
 #ifdef _DEBUG
-#if true
-        if (isStep)
-        {
-            DrawString(16, 620, L"動作：ステップ中", 0x00ff00);
-        }
-        else
-        {
-            DrawString(16, 620, L"動作：通常中", 0x00ff00);
-        }
+//        debug.Draw();
+#if false
+        if (isStep) DrawString(16, 620, L"動作：ステップ中", 0x00ff00);
+        else        DrawString(16, 620, L"動作：通常中", 0x00ff00);
+        
         if (isUpdate)
         {
             drawTime = GetNowHiPerformanceCount() - drawTime;
             isUpdate = false;
             fps = GetFPS();
         }
-//        debug.Draw();
-        
         DrawFormatString(16, 636, 0x00ff00, L"FPS  : %.2f", fps);
         // 物理更新時間
         int pW = static_cast<int>(Game::WINDOW_W * (physicsTime / 16666.6f));
@@ -235,6 +219,8 @@ void Application::Run()
 
 void Application::Terminate()
 {
+    NumUtility::GetInstance().End();
+    SceneHelp::GetInstance().End();
     EndManager();
     DxLib_End();
 #ifdef _DEBUG
@@ -250,36 +236,29 @@ void Application::InitManager()
     auto& fileMgr = FileManager::GetInstance();
     auto& scnMgr = SceneManager::GetInstance();
     auto& fontMgr = FontManager::GetInstance();
-    auto& sndMgr = SoundManager::GetInstance();
     auto& stageDataMgr = StageDataManager::GetInstance();
     auto& saveDataMgr = SaveDataManager::GetInstance();
     auto& rankMgr = RankingDataManager::GetInstance();
     auto& novelMgr = NovelManager::GetInstance();
-    auto& tutorialMgr = TutorialManager::GetInstance();
 
     fileMgr.Init();
     fontMgr.Init();
-    sndMgr.Load();
-    tutorialMgr.Init();
     stageDataMgr.Load();
     saveDataMgr.Load();
     rankMgr.Load();
     novelMgr.Load();
-    tutorialMgr.Load();
     scnMgr.Init();
 }
 
 void Application::EndManager()
 {
     auto& scnMgr = SceneManager::GetInstance();
-    auto& sndMgr = SoundManager::GetInstance();
     auto& saveDataMgr = SaveDataManager::GetInstance();
     auto& rankMgr = RankingDataManager::GetInstance();
     auto& effMgr = EffekseerManager::GetInstance();
     auto& fileMgr = FileManager::GetInstance();
     auto& fontMgr = FontManager::GetInstance();
 
-    sndMgr.Save();
     saveDataMgr.Save();
     rankMgr.Save();
     scnMgr.End();

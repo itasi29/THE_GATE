@@ -3,21 +3,47 @@
 
 namespace MyEngine
 {
-	struct CollideHitInfo;
+    struct CollideHitInfo;
 }
 class GimmickLinkObject;
 class FileBase;
 
+/// <summary>
+/// レーザーキャッチャーを表すクラス
+/// </summary>
 class LaserCatcher : public GimmickSendObject
 {
 public:
-	LaserCatcher();
-	virtual ~LaserCatcher();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    LaserCatcher();
 
-	void Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std::list<Tuple<MyEngine::ColKind, MyEngine::ColliderBase*>> list, bool isGravity) override;
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    virtual ~LaserCatcher();
 
-	virtual void OnTriggerEnter(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
+    /// <summary>
+    /// 初期化
+    /// </summary>
+    /// <param name="pos">位置</param>
+    /// <param name="scale">スケール</param>
+    /// <param name="rot">回転</param>
+    /// <param name="list">コライダーリスト</param>
+    /// <param name="isGravity">重力を使用するかどうか</param>
+    void Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std::list<Tuple<MyEngine::ColKind, MyEngine::ColliderBase*>> list, bool isGravity) override;
+
+    /// <summary>
+    /// トリガー侵入時の処理
+    /// </summary>
+    /// <param name="colider">衝突した対象</param>
+    /// <param name="selfIndex">自身の判定インデックス</param>
+    /// <param name="sendIndex">対象の判定インデックス</param>
+    /// <param name="hitInfo">衝突情報</param>
+    virtual void OnTriggerEnter(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
 
 private:
-	std::shared_ptr<FileBase> m_catchSe;
+    // キャッチサウンドエフェクト
+    std::shared_ptr<FileBase> m_catchSe;  
 };

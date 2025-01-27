@@ -1,26 +1,56 @@
 ﻿#pragma once
 #include "GimmickLinkObject.h"
 
+/// <summary>
+/// ピストンを表すクラス
+/// </summary>
 class Piston : public GimmickLinkObject
 {
 public:
-	Piston();
-	~Piston();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    Piston();
 
-	void SetMoveRange(const Vec3& start, const Vec3& end) { m_start = start; m_end = end; }
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    ~Piston();
+
+    /// <summary>
+    /// 移動範囲を設定する
+    /// </summary>
+    /// <param name="start">開始位置</param>
+    /// <param name="end">終了位置</param>
+    void SetMoveRange(const Vec3& start, const Vec3& end) { m_start = start; m_end = end; }
 
 private:
-	void GimmickOnUpdate() override;
-	void GimmickOffUpdate() override;
+    /// <summary>
+    /// ギミックオンの更新処理
+    /// </summary>
+    void GimmickOnUpdate() override;
+    /// <summary>
+    /// ギミックオフの更新処理
+    /// </summary>
+    void GimmickOffUpdate() override;
 
-	void ProcessGimmickOn() override;
-	void ProcessGimmickOff() override;
+    /// <summary>
+    /// ギミックオンの処理
+    /// </summary>
+    void ProcessGimmickOn() override;
+    /// <summary>
+    /// ギミックオフの処理
+    /// </summary>
+    void ProcessGimmickOff() override;
 
 private:
-	Vec3 m_start;
-	Vec3 m_end;
+    // 開始位置
+    Vec3 m_start;  
+    // 終了位置
+    Vec3 m_end;  
 
-	bool m_isExpand;
-	bool m_isShrink;
+    // 拡張フラグ
+    bool m_isExpand;  
+    // 収縮フラグ
+    bool m_isShrink;  
 };
-

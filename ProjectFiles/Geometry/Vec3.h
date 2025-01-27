@@ -280,7 +280,8 @@ public:
 		auto dirN2 = dir2.GetNormalized();
 
 		float dot = Dot(dirN1, dirN2);
+		float aDot = std::acosf(dot);
 
-		return std::acosf(dot) < angle * Game::DEG_2_RAD;
+		return aDot < angle * Game::DEG_2_RAD;
 	}
 };

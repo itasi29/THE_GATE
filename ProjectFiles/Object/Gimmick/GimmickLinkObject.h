@@ -2,38 +2,81 @@
 #include "Object/Object3DBase.h"
 #include "StateMachine.h"
 
+/// <summary>
+/// ギミックリンクオブジェクトを表すクラス
+/// </summary>
 class GimmickLinkObject : public Object3DBase
 {
 protected:
-	enum class State
-	{
-		GIMMICK_ON,
-		GIMMICK_OFF,
-	};
+    /// <summary>
+    /// ギミックの状態を表す列挙型
+    /// </summary>
+    enum class State
+    {
+        GIMMICK_ON,  // ギミックオン状態
+        GIMMICK_OFF  // ギミックオフ状態
+    };
 
 public:
-	GimmickLinkObject(Priority priority, ObjectTag tag);
-	virtual ~GimmickLinkObject();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    /// <param name="priority">優先度</param>
+    /// <param name="tag">オブジェクトタグ</param>
+    GimmickLinkObject(Priority priority, ObjectTag tag);
 
-	virtual void Restart() override;
-	virtual void Update() override;
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    virtual ~GimmickLinkObject();
 
-	virtual void OnGimmick();
-	virtual void StopGimmick();
+    /// <summary>
+    /// リスタート処理
+    /// </summary>
+    virtual void Restart() override;
+
+    /// <summary>
+    /// 更新処理
+    /// </summary>
+    virtual void Update() override;
+
+    /// <summary>
+    /// ギミックをオンにする
+    /// </summary>
+    virtual void OnGimmick();
+    /// <summary>
+    /// ギミックをオフにする
+    /// </summary>
+    virtual void StopGimmick();
 
 protected:
-	virtual void GimmickOnUpdate() abstract;
-	virtual void GimmickOffUpdate() abstract;
+    /// <summary>
+    /// ギミックオンの更新処理
+    /// </summary>
+    virtual void GimmickOnUpdate() = 0;
+    /// <summary>
+    /// ギミックオフの更新処理
+    /// </summary>
+    virtual void GimmickOffUpdate() = 0;
 
-	virtual void ProcessGimmickOn() {}
-	virtual void ProcessGimmickOff() {}
+    /// <summary>
+    /// ギミックオンの処理
+    /// </summary>
+    virtual void ProcessGimmickOn() {}
+    /// <summary>
+    /// ギミックオフの処理
+    /// </summary>
+    virtual void ProcessGimmickOff() {}
 
 protected:
-	StateMachine<State> m_stateMachine;
+    // ステートマシン
+    StateMachine<State> m_stateMachine;
 
 private:
-	bool m_isOn;
-	bool m_isRelease;
-	int m_count;
+    // ギミックオンフラグ
+    bool m_isOn;  
+    // ギミックリリースフラグ
+    bool m_isRelease;  
+    // カウント
+    int m_count;  
 };
-

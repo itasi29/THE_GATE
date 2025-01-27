@@ -43,8 +43,8 @@ public:
 	/// オプションを開く
 	/// </summary>
 	/// <param name="openScene">開いたシーンの種類</param>
-	/// <param name="sceneMain">リスタート用のメインシーンを渡す用</param>
-	void OpenOption(SceneKind openScene, const SceneMain* sceneMain = nullptr);
+	/// <param name="scene">シーン内で必要な処理がある場合に渡す用</param>
+	void OpenOption(SceneKind openScene, SceneBase* scene = nullptr);
 	/// <summary>
 	/// オプションorポーズを閉じる
 	/// </summary>

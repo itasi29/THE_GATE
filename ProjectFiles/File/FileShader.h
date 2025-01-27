@@ -1,6 +1,9 @@
-#pragma once
+﻿#pragma once
 #include "FileBase.h"
 
+/// <summary>
+/// シェーダーファイルを管理するクラス
+/// </summary>
 class FileShader : public FileBase
 {
 public:
@@ -8,6 +11,9 @@ public:
 	virtual ~FileShader();
 
 private:
+	/// <summary>
+	/// ハンドルを削除
+	/// </summary>
 	void Delete() override;
 };
 

@@ -208,6 +208,8 @@
     <ClCompile Include="Object\Player.cpp" />
     <ClCompile Include="Object\Stage\CheckPoint.cpp" />
     <ClCompile Include="Object\Stage\StageManager.cpp" />
+    <ClCompile Include="Scene\SceneHelp.cpp" />
+    <ClCompile Include="Scene\SceneTutorial.cpp" />
     <ClCompile Include="Scene\SceneBase.cpp" />
     <ClCompile Include="Scene\SceneResult.cpp" />
     <ClCompile Include="Scene\SceneDebug.cpp" />
@@ -216,8 +218,6 @@
     <ClCompile Include="Scene\SceneOption.cpp" />
     <ClCompile Include="Scene\SceneStageSelect.cpp" />
     <ClCompile Include="Scene\SceneTitle.cpp" />
-    <ClCompile Include="Tutorial\TutorialManager.cpp" />
-    <ClCompile Include="Tutorial\TutorialUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\AnimController.h" />
@@ -235,6 +235,7 @@
     <ClInclude Include="Common\Novels.h" />
     <ClInclude Include="Common\ObjectTag.h" />
     <ClInclude Include="DataManager\EffekseerManager.h" />
+    <ClInclude Include="DataManager\FontId.h" />
     <ClInclude Include="DataManager\FontManager.h" />
     <ClInclude Include="DataManager\RankingDataManager.h" />
     <ClInclude Include="DataManager\SaveDataManager.h" />
@@ -271,9 +272,8 @@
     <ClInclude Include="MyEngine\MyEngine.h" />
     <ClInclude Include="MyEngine\Physics.h" />
     <ClInclude Include="MyEngine\Rigidbody.h" />
-    <ClInclude Include="Tutorial\Tutorial.h" />
-    <ClInclude Include="Tutorial\TutorialManager.h" />
-    <ClInclude Include="Tutorial\TutorialUI.h" />
+    <ClInclude Include="Scene\SceneHelp.h" />
+    <ClInclude Include="Scene\SceneTutorial.h" />
     <ClInclude Include="Utility\NumUtility.h" />
     <ClInclude Include="Object\Gate\Gate.h" />
     <ClInclude Include="Object\Gate\GateBullet.h" />
@@ -313,6 +313,16 @@
     <ClInclude Include="Utility\Utility.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Shader\DissolvePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)Data/Shader/%(Filename).pso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)Data/Shader/%(Filename).pso</ObjectFileOutput>
+    </FxCompile>
     <FxCompile Include="Shader\GatePosPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>

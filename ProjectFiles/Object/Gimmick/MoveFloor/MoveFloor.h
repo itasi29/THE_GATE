@@ -3,40 +3,89 @@
 
 class MoveFloorManager;
 
+/// <summary>
+/// 移動床を表すクラス
+/// </summary>
 class MoveFloor : public Object3DBase
 {
 public:
-	MoveFloor(MoveFloorManager& mgr);
-	~MoveFloor();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    /// <param name="mgr">移動床マネージャー</param>
+    MoveFloor(MoveFloorManager& mgr);
 
-	void InitDir(const Vec3& dir);
-	void Update() override;
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    ~MoveFloor();
 
-	void SetFunc(bool isLoop);
+    /// <summary>
+    /// 方向を初期化する
+    /// </summary>
+    /// <param name="dir">方向</param>
+    void InitDir(const Vec3& dir);
 
-	bool IsEnd() const { return m_isEnd; }
+    /// <summary>
+    /// 更新処理
+    /// </summary>
+    void Update() override;
 
-	void StopMove();
-	void ReStartMove();
+    /// <summary>
+    /// 関数を設定する
+    /// </summary>
+    /// <param name="isLoop">ループするかどうか</param>
+    void SetFunc(bool isLoop);
+
+    /// <summary>
+    /// 終了したかどうかを取得する
+    /// </summary>
+    /// <returns>true:終了 / false:終了していない</returns>
+    bool IsEnd() const { return m_isEnd; }
+
+    /// <summary>
+    /// 移動を停止する
+    /// </summary>
+    void StopMove();
+
+    /// <summary>
+    /// 移動を再開する
+    /// </summary>
+    void ReStartMove();
 
 private:
-	void LoopModeUpdate();
-	void NoLoopModeUpdate();
+    /// <summary>
+    /// ループモードの更新処理
+    /// </summary>
+    void LoopModeUpdate();
+
+    /// <summary>
+    /// ノーループモードの更新処理
+    /// </summary>
+    void NoLoopModeUpdate();
 
 private:
-	using UpdateFunc_t = void(MoveFloor::*)();
-	UpdateFunc_t m_updateFunc;
+    // 更新関数
+    using UpdateFunc_t = void(MoveFloor::*)();
+    UpdateFunc_t m_updateFunc;  
 
-	MoveFloorManager& m_mgr;
+    // 移動床マネージャー
+    MoveFloorManager& m_mgr;  
 
-	Vec3 m_saveVel;
+    // 保存された速度
+    Vec3 m_saveVel;  
 
-	int m_nowCheckPt;
-	int m_nextCheckPt;
-	int m_count;
+    // 現在のチェックポイント
+    int m_nowCheckPt;  
+    // 次のチェックポイント
+    int m_nextCheckPt;  
+    // カウント
+    int m_count;  
 
-	bool m_isEnd;
-	bool m_isStop;
-	bool m_isArrival;
+    // 終了フラグ
+    bool m_isEnd;  
+    // 停止フラグ
+    bool m_isStop;  
+    // 到着フラグ
+    bool m_isArrival;  
 };
-

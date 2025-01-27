@@ -239,11 +239,13 @@ public:
 	/// <returns>回転</returns>
 	Quaternion GetRot() const
 	{
+		// 行列の各要素からクオータニオンの成分を計算
 		float px = m[0][0] - m[1][1] - m[2][2] + 1.0f;
 		float py = -m[0][0] + m[1][1] - m[2][2] + 1.0f;
 		float pz = -m[0][0] - m[1][1] + m[2][2] + 1.0f;
 		float pw = m[0][0] + m[1][1] + m[2][2] + 1.0f;
 
+		// 最大の成分を選択するための列挙型
 		enum Select
 		{
 			PX,
@@ -271,6 +273,7 @@ public:
 
 		Quaternion res;
 
+		// 最大の成分に基づいてクオータニオンを計算
 		if (select == Select::PX)
 		{
 			float x = std::sqrtf(px) * 0.5f;
@@ -308,7 +311,9 @@ public:
 			res.x = w;
 		}
 
+		// 計算したクオータニオンを返す
 		return res;
+
 	}
 	/// <summary>
 	/// DxLib用の行列を返す
@@ -392,6 +397,7 @@ public:
 	{
 		Matrix4x4 mat;
 
+		// クオータニオンの各成分を使って行列の要素を計算
 		auto xy2 = q.x * q.y * 2;
 		auto xz2 = q.x * q.z * 2;
 		auto xw2 = q.x * q.w * 2;
@@ -400,6 +406,7 @@ public:
 		auto zw2 = q.z * q.w * 2;
 		auto ww2 = q.w * q.w * 2;
 
+		// 行列の各要素を計算
 		auto r00 = ww2 + 2 * q.x * q.x - 1;
 		auto r01 = xy2 + zw2;
 		auto r02 = xz2 - yw2;
@@ -412,6 +419,7 @@ public:
 		auto r21 = yz2 - xw2;
 		auto r22 = ww2 + 2 * q.z * q.z - 1;
 
+		// 計算した要素を行列に設定
 		mat.m[0][0] = r00;
 		mat.m[0][1] = r01;
 		mat.m[0][2] = r02;
@@ -422,7 +430,9 @@ public:
 		mat.m[2][1] = r21;
 		mat.m[2][2] = r22;
 
+		// 作成した行列を返す
 		return mat;
+
 	}
 };
 

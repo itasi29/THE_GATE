@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include <Windows.h>
 #include <string>
+#include <sstream>
+#include <iomanip>
 #include <vector>
 #include <cassert>
 #include "Vec3.h"
@@ -48,19 +50,6 @@ public:
 			ret.data(), // 変換後文字列のアドレス
 			static_cast<int>(ret.size()));// 変換後の文字列数
 
-		return ret;
-	}
-
-	/// <summary>
-	/// UTF_8からワイド文字列への変換
-	/// </summary>
-	/// <param name="buf">変換元のUTF_8(マルチバイト文字列)</param>
-	/// <returns>返還後のワイド文字列</returns>
-	static std::wstring Utf8ToWString(const char* const buf, const int size)
-	{
-		std::wstring ret;
-		ret.resize(size);
-		MultiByteToWideChar(CP_ACP, 0, buf, -1, ret.data(), size);
 		return ret;
 	}
 
@@ -137,7 +126,7 @@ public:
 	/// </summary>
 	/// <param name="str">文字列</param>
 	/// <returns>Vec3</returns>
-	static Vec3 CsvToVec3(const std::wstring& str)
+	static Vec3 CsvToVec3(const std::string& str)
 	{
 		Vec3 res;
 
@@ -163,7 +152,7 @@ public:
 	/// </summary>
 	/// <param name="str">文字列</param>
 	/// <returns>m * 3600 + s * 60 + d * 0.01 * 60</returns>
-	static int CsvToTime(const std::wstring& str)
+	static int CsvToTime(const std::string& str)
 	{
 		int res = 0;
 
@@ -180,6 +169,44 @@ public:
 		res += static_cast<int>(std::stof(str.substr(first)) * 0.01f * 60.0f);
 
 		return res;
+	}
+
+	/// <summary>
+	/// 数字を文字列に変換
+	/// </summary>
+	/// <param name="num">数字</param>
+	/// <param name="fillNum">0で埋める桁数</param>
+	/// <returns>文字列</returns>
+	static std::wstring NumToString(int num, int fillNum = 0)
+	{
+		std::wstringstream ss;
+		ss << std::setw(fillNum) << std::setfill(L'0') << num;
+		return ss.str();
+	}
+
+	/// <summary>
+	/// 数字を文字列に変換
+	/// </summary>
+	/// <param name="num">数字</param>
+	/// <param name="fillNum">0で埋める桁数</param>
+	/// <param name="isFloatingPoint">true: 浮動小数点切り捨て /false: 少数部分切り捨てなし</param>
+	/// <param name="raoundDownNum">切り捨て桁数</param>
+	/// <returns>文字列</returns>
+	static std::wstring NumToString(float num, int fillNum = 0, bool isRoundDown = false, int raoundDownNum = 0)
+	{
+		std::wstringstream ss;
+		float floorNum = std::floor(num);
+		ss << std::setw(fillNum) << std::setfill(L'0') << static_cast<int>(floorNum);
+		if (isRoundDown)
+		{
+			int decNum = static_cast<int>((num - floorNum) * std::pow(10, raoundDownNum));
+			ss << L"." << std::setw(raoundDownNum) << std::setfill(L'0') << decNum;
+		}
+		else
+		{
+			ss << L"." << static_cast<int>(num - floorNum);
+		}
+		return ss.str();
 	}
 };
 

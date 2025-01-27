@@ -12,19 +12,17 @@ namespace
 		TIME_S,
 		TIME_A,
 		TIME_B,
-		IS_TUTORIAL,
-		TUTORIAL_ID,
 		IS_ONE_HAND,
 		GATE_POS,
 		GATE_NORM,
 		GATE_DIR,
 		GATE_TAG
 	};
-	const std::unordered_map<std::wstring, ObjectTag> GATE_TAG_TABLE =
+	const std::unordered_map<std::string, ObjectTag> GATE_TAG_TABLE =
 	{
-		{ L"SystemWall", ObjectTag::WALL },
-		{ L"Floor", ObjectTag::FLOOR },
-		{ L"Roof", ObjectTag::ROOF },
+		{ "SystemWall", ObjectTag::WALL },
+		{ "Floor", ObjectTag::FLOOR },
+		{ "Roof", ObjectTag::ROOF },
 	};
 	const std::vector<RankKind> ORDER =
 	{
@@ -52,17 +50,13 @@ void StageDataManager::Load()
 	for (auto& info : table)
 	{
 		auto& name = info[StageDataCsv::NAME];
-		m_nameTable.push_back(name);
+		const auto& wName = StringUtility::StringToWString(name);
+		m_nameTable.push_back(wName);
 
-		auto& data = m_dataTable[name];
+		auto& data = m_dataTable[wName];
 		data.rankTime[RankKind::S] = StringUtility::CsvToTime(info[StageDataCsv::TIME_S]);
 		data.rankTime[RankKind::A] = StringUtility::CsvToTime(info[StageDataCsv::TIME_A]);
 		data.rankTime[RankKind::B] = StringUtility::CsvToTime(info[StageDataCsv::TIME_B]);
-		data.isTutorial = static_cast<bool>(std::stoi(info[StageDataCsv::IS_TUTORIAL]));
-		if (data.isTutorial)
-		{
-			data.tutorialId = std::stoi(info[StageDataCsv::TUTORIAL_ID]);
-		}
 		data.isOneHnad = static_cast<bool>(std::stoi(info[StageDataCsv::IS_ONE_HAND]));
 		if (data.isOneHnad)
 		{

@@ -35,7 +35,7 @@ namespace
 	constexpr float MODEL_COL_RADIUS = 1.0f;	// モデルカプセル半径
 	constexpr float MODEL_COL_SIZE = 3.5f;		// モデルカプセルサイズ
 	constexpr float CENTER_COL_RADIUS = 0.5f;	// 中心カプセル半径
-	constexpr float CENTER_COL_SIZE = 0.6f;		// 中心カプセルサイズ
+	constexpr float CENTER_COL_SIZE = 0.7f;		// 中心カプセルサイズ
 	constexpr float CENTER_COL_SIZE_UP = 8.0f;	// 増加中心カプセルサイズ
 	constexpr float HAND_RADIUS = 2.0f;	// 物を持てる範囲
 	constexpr float HAND_DIS = 4.0f;	// 物を持つ当たり判定の中心との距離
@@ -63,13 +63,19 @@ namespace
 	const Quaternion GUN_ROT = Quaternion::AngleAxis(-10.0f, Vec3::Up());	// 銃ベース回転
 	// 銃モデルサイズ
 	constexpr float GUN_SIZE_TPS = 0.0025f;
-	constexpr float GUN_SIZE_FPS = 0.00025f;
-	// 銃モデルの前後左右描画位置
+	constexpr float GUN_SIZE_FPS_NEAR = 0.00025f;
+	constexpr float GUN_SIZE_FPS_NORMAL = 0.00175f;
+	// 銃モデルの前後左右描画位置(TPS)
 	constexpr float GUN_FRONT_RATE_TPS = 0.75f;
 	constexpr float GUN_UP_RATE_TPS = 0.4f;
-	constexpr float GUN_FRONT_RATE_FPS = 0.08f;
-	constexpr float GUN_UP_RATE_FPS = 0.05f;
-	constexpr float GUN_RIGHT_RATE_FPS = 0.14f;
+	// 銃モデルの前後左右描画位置(FPS通常)
+	constexpr float GUN_RIGHT_RATE_FPS_NORMAL = 1.0f;
+	constexpr float GUN_FRONT_RATE_FPS_NORMAL = 0.58f;
+	constexpr float GUN_UP_RATE_FPS_NORMAL = 0.35f;
+	// 銃モデルの前後左右描画位置(TPSゲート近く)
+	constexpr float GUN_FRONT_RATE_FPS_NEAR = 0.08f;
+	constexpr float GUN_UP_RATE_FPS_NEAR = 0.05f;
+	constexpr float GUN_RIGHT_RATE_FPS_NEAR = 0.14f;
 
 	/* HPUI系 */
 	constexpr float FILE_SIZE = 0.35f;		// 画像サイズ
@@ -91,6 +97,13 @@ namespace
 	constexpr int PAD_STR_SHADOW_POS = 2;	// 影描画位置
 	constexpr unsigned int COLOR_ACTIVE = 0xffffff;		// 有効文字カラー
 	constexpr unsigned int COLOR_NOT_ACTIVE = 0x888888;	// 無効文字カラー
+
+	/* その他 */
+	constexpr float RUN_FOV_ANGLE = 61.0f;	// 走る際のカメラの角度
+	constexpr int ANIM_IDLE_NORMAL_RATE = 16;	// ノーマルアイドルアニメーション確率
+	constexpr int ANIM_IDLE_RELAX_1_RATE = 2;	// リラックス１アイドルアニメーション確率
+	constexpr int ANIM_IDLE_RELAX_2_RATE = 2;	// リラックス２アイドルアニメーション確率
+	constexpr int ANIM_IDLE_RAND_RATE = ANIM_IDLE_NORMAL_RATE + ANIM_IDLE_RELAX_1_RATE + ANIM_IDLE_RELAX_2_RATE;	// 確率の合計
 }
 
 Player::Player(const std::shared_ptr<PlayerCamera>& camera, const std::shared_ptr<GateManager>& gateMgr) :
@@ -99,7 +112,7 @@ Player::Player(const std::shared_ptr<PlayerCamera>& camera, const std::shared_pt
 	m_camera(camera),
 	m_gateMgr(gateMgr),
 	m_handObj(nullptr),
-	m_nowState(State::IDLE),
+	m_nowState(PlayerState::IDLE),
 	m_gunPS(-1),
 	m_gunVS(-1),
 	m_hp(MAX_HP),
@@ -116,7 +129,8 @@ Player::Player(const std::shared_ptr<PlayerCamera>& camera, const std::shared_pt
 	m_isCanCatch(false),
 	m_isCatch(false),
 	m_isCanWarp(false),
-	m_isWarp(false)
+	m_isWarp(false),
+	m_isChangeNear(false)
 {
 }
 
@@ -151,22 +165,13 @@ void Player::AsyncInit()
 	m_gunPS = fileMgr.GetPS(M_GUN);
 }
 
-void Player::Init(const Vec3& pos, const Vec3& dir)
-{
-	m_rigid.SetPos(pos);
-	m_camera->SetTargetPos(pos);
-	m_camera->SetFront(dir, 0.0f);
-}
-
-void Player::Init(const Vec3& pos, bool isOneHand)
+void Player::Init(const Vec3& pos, const Vec3& dir, bool isOneHand)
 {
 	m_anim = std::make_shared<AnimController>();
 	m_anim->Init(ANIM_INFO_PATH, m_modelHandle, ANIM_IDLE);
 
 	OnEntryPhysics();
-	m_rigid.SetPos(pos + Vec3(0, 1, 0));
 	m_rigid.SetGravity(true);
-	m_updateFunc = &Player::IdleUpdate;
 	m_pivot = MODEL_PIVOT;
 	m_scale *= MODEL_SIZE_SCALE;
 
@@ -186,19 +191,21 @@ void Player::Init(const Vec3& pos, bool isOneHand)
 
 	m_isOneHand = isOneHand;
 
-	m_hp = MAX_HP;
-	m_preHp = MAX_HP;
-
-	m_shakeHpBarFrame = -1;
+	Restart(pos, dir);
 }
 
-void Player::Restart(const Vec3& pos)
+void Player::Restart(const Vec3& pos, const Vec3& dir)
 {
 	// アニメーション初期化
 	m_anim->Change(ANIM_IDLE, true, false, false);
 
 	// 位置変更
 	m_rigid.SetPos(pos);
+	// 回転初期化
+	auto front = Vec3::Back();
+	if (m_camera) front = m_camera->GetInfo().front;
+	m_nextRot = Quaternion::GetQuaternion(front, dir);
+	m_rotation = m_nextRot;
 	// 速度初期化
 	m_rigid.SetVelocity(Vec3());
 
@@ -215,6 +222,14 @@ void Player::Restart(const Vec3& pos)
 	m_preHp = MAX_HP;
 	m_shakeHpBarFrame = -1;
 
+	if (m_camera)
+	{
+		// カメラ初期化
+		m_camera->SetFront(dir, 0.0f);
+		m_camera->SetTargetPos(pos);
+
+	}
+
 	// 更新先変更
 	m_updateFunc = &Player::IdleUpdate;
 	// 死亡していないことに
@@ -230,33 +245,34 @@ void Player::Update()
 	(this->*m_updateFunc)();
 	RotationUpdate();
 	AnimUpdate();
+	CameraUpdate();
 
 	m_centerCol->size = m_rigid.GetVelocity().y * CENTER_COL_SIZE_UP + CENTER_COL_SIZE;
-
-	m_camera->Update(m_rigid.GetPos() + LOOK_PIVOT);
 }
 
 void Player::DrawGun() const
 {
 	if (m_isDeath) return;
 
-	auto& cInfo = m_camera->GetInfo();
-	// 三人称モードでなければモデル情報を適用化
-	if (!cInfo.isTps) AppModelInfo();
-
+	bool isTps = true;
+	if (m_camera)
+	{
+		auto& cInfo = m_camera->GetInfo();
+		isTps = cInfo.isTps;
+	}
+	
+	// シェーダ適用
 	SetUseVertexShader(m_gunVS);
 	SetUsePixelShader(m_gunPS);
 
+	// フレームインデックス取得
 	auto index = MV1SearchFrame(m_modelHandle, RIGHT_HAND_FRAME);
-
-
-
+	// 回転・座標・スケール取得
 	auto rot = m_rotation * GUN_ROT;
 	Vec3 pos;
 	Vec3 scale;
-
 	// 三人称モード
-	if (cInfo.isTps)
+	if (isTps)
 	{
 		const auto& back = rot * Vec3::Back();
 		pos = Vec3(MV1GetFramePosition(m_modelHandle, index)) + back * GUN_FRONT_RATE_TPS + Vec3::Up() * GUN_UP_RATE_TPS;
@@ -265,15 +281,43 @@ void Player::DrawGun() const
 	// 一人称モード
 	else
 	{
+		constexpr float GUN_FRONT_FIX_RATE_RUN = 0.98f;
+		constexpr float GUN_RIGHT_FIX_RATE_RUN = 1.01f;
+		
+		auto& cInfo = m_camera->GetInfo();
+
+		float rightRate = GUN_RIGHT_RATE_FPS_NORMAL;
+		float frontRate = GUN_FRONT_RATE_FPS_NORMAL;
+		float upRate = GUN_UP_RATE_FPS_NORMAL;
+		float size = GUN_SIZE_FPS_NORMAL;
+		// Nearを変更している際
+		if (m_isChangeNear)
+		{
+			rightRate = GUN_RIGHT_RATE_FPS_NEAR;
+			frontRate = GUN_FRONT_RATE_FPS_NEAR;
+			upRate = GUN_UP_RATE_FPS_NEAR;
+			size = GUN_SIZE_FPS_NEAR;
+		}
+		float fixFrontRate = 1.0f;
+		float fixRightRate = 1.0f;
+		// 現在走っている際
+		if (m_nowState == PlayerState::RUN)
+		{
+			fixFrontRate = GUN_FRONT_FIX_RATE_RUN;
+			fixRightRate = GUN_RIGHT_FIX_RATE_RUN;
+		}
+		// ずらす大きさ
 		rot = cInfo.vertexRot * rot;
-		auto vec = cInfo.right * GUN_RIGHT_RATE_FPS + cInfo.front * GUN_FRONT_RATE_FPS - Vec3::Up() * GUN_UP_RATE_FPS;
+		auto vec = cInfo.right * rightRate * fixRightRate + cInfo.front * frontRate * fixFrontRate - Vec3::Up() * upRate;
+		// 銃に撃った時の反動をつける
 		if (m_shotInteval > (SHOT_INTERVAL - SHOT_RECOIL_FRAME))
 		{
 			float rate = (m_shotInteval - (SHOT_INTERVAL - SHOT_RECOIL_FRAME)) / SHOT_RECOIL_FRAME;
-			vec -= cInfo.front * GUN_FRONT_RATE_FPS * 0.5f * rate;
+			vec -= cInfo.front * frontRate * 0.5f * rate;
 		}
+		// 適用
 		pos = cInfo.targetPos + cInfo.vertexRot * vec;
-		scale = Vec3(GUN_SIZE_FPS);
+		scale = Vec3(size);
 	}
 
 	auto mat = Matrix4x4::Scale(scale) * Matrix4x4::Rot(rot) * Matrix4x4::Pos(pos);
@@ -283,10 +327,68 @@ void Player::DrawGun() const
 	MV1DrawModel(handle);
 }
 
-void Player::DrawUI() const
+
+void Player::DrawHpUI() const
 {
-	DrawHpUI();
-	DrawPadUI();
+	// 画像サイズ取得
+	int w, h;
+	GetGraphSize(m_files.at(I_BASE_HP_BAR)->GetHandle(), &w, &h);
+	// 大きさ変更
+	w = static_cast<int>(w * FILE_SIZE);
+	h = static_cast<int>(h * FILE_SIZE);
+
+	int shakeX = 0;
+	int shakeY = 0;
+	// バーを揺らす場合
+	if (m_shakeHpBarFrame > 0)
+	{
+		// サイズ調整
+		int size = static_cast<int>((static_cast<float>(m_shakeHpBarFrame) / SHKE_HP_BAR_FRAME) * SHAKE_SIZE);
+		// 揺らす範囲をランダムで取得
+		auto& rand = Random::GetInstance();
+		shakeX = rand.GetRand(0, size);
+		shakeY = rand.GetRand(0, size);
+	}
+
+	// フレームの描画
+	DrawRotaGraphFast(DRAW_HP_FRME_X + shakeX, DRAW_HP_FRME_Y + shakeY, FILE_SIZE, 0.0f, m_files.at(I_HP_FRAME)->GetHandle(), true);
+	// ベースとなるHPバーを描画
+	DrawRotaGraphFast(DRAW_HP_BAR_X + shakeX, DRAW_HP_BAR_Y + shakeY, FILE_SIZE, 0.0f, m_files.at(I_BASE_HP_BAR)->GetHandle(), true);
+	// 下二つのバーの描画位置を取得
+	int x = DRAW_HP_BAR_X - static_cast<int>(w * 0.5f) + shakeX;
+	int y = DRAW_HP_BAR_Y - static_cast<int>(h * 0.5f) + shakeY;
+	// 減少HPの割合を取得
+	float rate = m_preHp / static_cast<float>(MAX_HP);
+	// 減少HPバーを割合を考慮して描画
+	DrawExtendGraph(x, y, x + static_cast<int>(w * rate), y + h, m_files.at(I_HIT_HP_BAR)->GetHandle(), true);
+	// 現在HPの割合を取得
+	rate = m_hp / static_cast<float>(MAX_HP);
+	// 現在HPバーを割合を考慮して描画
+	DrawExtendGraph(x, y, x + static_cast<int>(w * rate), y + h, m_files.at(I_NOW_HP_BAR)->GetHandle(), true);
+}
+
+void Player::DrawPadUI() const
+{
+	// ダッシュ
+	int y = DRAW_PAD_Y;
+	DrawPadUI(y, m_isGround, I_PAD_X, L"ダッシュ");
+	// ジャンプ
+	y -= DRAW_PAD_Y_INTERVAL;
+	DrawPadUI(y, m_isGround, I_PAD_A, L"ジャンプ");
+	// 物持つ
+	y -= DRAW_PAD_Y_INTERVAL;
+	if (m_isCatch)	DrawPadUI(y, m_isCanCatch, I_PAD_B, L"離す");
+	else			DrawPadUI(y, m_isCanCatch, I_PAD_B, L"掴む");
+	// 左ゲート
+	const bool isShot = m_shotInteval <= 0;
+	y -= DRAW_PAD_Y_INTERVAL;
+	DrawPadUI(y, isShot, I_PAD_RT, L"：オレンジ");
+	// 右ゲート
+	y -= DRAW_PAD_Y_INTERVAL;
+	if (!m_isOneHand)	DrawPadUI(y, isShot, I_PAD_LT, L"：ブルー");
+	else				DrawPadUI(y, isShot, I_PAD_LT, L"：オレンジ");
+	y -= DRAW_PAD_Y_INTERVAL;
+	DrawPadUI(y, isShot, -1, L"ポータルをセット");
 }
 
 void Player::DrawDamageFillter() const
@@ -326,6 +428,16 @@ void Player::OnDamage(int damage, const Vec3& hitDir)
 	m_rigid.SetVelocity(vel);
 
 	OnHit();
+}
+
+void Player::OnStop()
+{
+	m_rigid.SetVelocity(Vec3());
+}
+
+void Player::OnWarpPos(const Vec3& pos)
+{
+	m_rigid.SetPos(pos);
 }
 
 std::shared_ptr<Camera> Player::GetCamera() const
@@ -403,6 +515,8 @@ void Player::OnTriggerStay(MyEngine::Collidable* colider, int selfIndex, int sen
 				auto gate = dynamic_cast<Gate*>(colider);
 				m_throughTag.emplace_back(gate->GetHitObjectTag());
 				m_isAddTag[colider] = true;
+				m_isWarp = true;
+				m_gatePos = colider->GetPos();
 			}
 		}
 		// モデルの判定の場合
@@ -423,6 +537,7 @@ void Player::OnTriggerStay(MyEngine::Collidable* colider, int selfIndex, int sen
 				m_isAddTag[colider] = false;
 				m_throughTag.push_back(pairGate->GetHitObjectTag());
 				m_isAddTag[pairGate.get()] = true;
+				m_gatePos = pairGate->GetPos();
 			}
 		}
 	}
@@ -449,6 +564,12 @@ void Player::OnTriggerExit(MyEngine::Collidable* colider, int selfIndex, int sen
 				}
 			}
 			m_isAddTag[colider] = false;
+
+			for (auto& isAdd : m_isAddTag)
+			{
+				if (isAdd.second) return;
+			}
+			m_isWarp = false;
 		}
 	}
 }
@@ -456,13 +577,14 @@ void Player::OnTriggerExit(MyEngine::Collidable* colider, int selfIndex, int sen
 void Player::HandUpdate()
 {
 	if (m_isDeath) return;
+	if (!m_camera) return;
 
 	// 持つ位置に持てるオブジェクトがいるか調べる
 	m_handCol->center = m_camera->GetInfo().look * HAND_DIS + LOOK_PIVOT;
 	auto& phsyics = MyEngine::Physics::GetInstance();
 	auto pos = m_rigid.GetPos();
 	int count = 0;
-	auto res = phsyics.CheckObject(pos, m_handCol.get(), count, 1, false, {}, { ObjectTag::HAND_OBJ });
+	auto res = phsyics.CheckObject(pos, m_rigid, m_handCol.get(), count, 1, false, {}, { ObjectTag::HAND_OBJ });
 	// 持てるオブジェクトがある場合
 	m_isCanCatch = !res.empty();
 	if (m_isCanCatch)
@@ -490,6 +612,8 @@ void Player::HandUpdate()
 
 void Player::GunUpdate()
 {
+	if (!m_camera) return;
+
 	--m_shotInteval;
 	// トリガーが入力されたら発射
 	const auto& trigger = Input::GetInstance().GetTriggerData();
@@ -543,6 +667,7 @@ void Player::HpBarUpdate()
 
 void Player::RotationUpdate()
 {
+	if (!m_camera) return;
 	const auto& cInfo = m_camera->GetInfo();
 	if (cInfo.isTps)
 	{
@@ -557,7 +682,7 @@ void Player::RotationUpdate()
 
 void Player::AnimUpdate()
 {
-	if (m_nowState == State::WALK)
+	if (m_nowState == PlayerState::WALK)
 	{
 		auto sqSpeed = m_rigid.GetVelocity().SqLength();
 		auto rate = (sqSpeed / (WALK_SPEED * WALK_SPEED)) * 0.7f + 0.3f;
@@ -569,8 +694,49 @@ void Player::AnimUpdate()
 	}
 }
 
+void Player::CameraUpdate()
+{
+	if (!m_camera) return;
+
+	const auto& cInfo = m_camera->GetInfo();
+	const auto& cameraPos = m_rigid.GetPos() + LOOK_PIVOT;// -cInfo.front * 1.125f;
+	m_camera->Update(cameraPos);
+
+	m_isChangeNear = false;
+	float n = -1.0f;
+	// ワープ可能範囲にいる場合
+	if (m_isWarp)
+	{
+		// ゲートとの距離が近くなった時Nearを変更する
+		auto vec = m_gatePos - m_rigid.GetPos();
+		m_isChangeNear = vec.SqLength() < 6.25f;
+		if (m_isChangeNear) n = 0.1f;
+	}
+	m_camera->SetNearFar(n, -1.0f);
+}
+
 void Player::IdleUpdate()
 {
+	// 1ループしたら
+	if (m_anim->IsLoop())
+	{
+		// アイドルアニメーションをランダムで変更
+		auto rand = Random::GetInstance().GetRand(0, ANIM_IDLE_RAND_RATE);
+		if (rand < ANIM_IDLE_NORMAL_RATE)
+		{
+			m_anim->Change(ANIM_IDLE);
+		}
+		else if (rand < ANIM_IDLE_RELAX_1_RATE + ANIM_IDLE_NORMAL_RATE)
+		{
+			m_anim->Change(ANIM_RELAX_1);
+		}
+		else
+		{
+			m_anim->Change(ANIM_RELAX_2);
+		}
+	}
+	if (!m_camera) return;
+
 	auto& input = Input::GetInstance();
 	const auto& trigger = input.GetTriggerData();
 	// 左スティックが入力されたら移動状態に遷移
@@ -598,7 +764,7 @@ void Player::WalkUpdate()
 		return;
 	}
 	// 走りに遷移
-	if (input.IsTriggerd(Command::BTN_RUN))
+	if (input.IsPress(Command::BTN_RUN))
 	{
 		OnRun();
 		SoundManager::GetInstance().Stop(m_files.at(S_WALK)->GetHandle());
@@ -619,6 +785,7 @@ void Player::RunUpdate()
 	if (input.IsTriggerd(Command::BTN_JUMP))
 	{
 		OnJump();
+		m_camera->SetFov(-1);
 		//		SoundManager::GetInstance().Stop(m_files.at(S_WALK)->GetHandle());
 		return;
 	}
@@ -626,6 +793,7 @@ void Player::RunUpdate()
 	if (input.IsReleased(Command::BTN_RUN))
 	{
 		OnWalk();
+		m_camera->SetFov(-1);
 		return;
 	}
 	// 左スティックが入力されている間は移動
@@ -633,6 +801,7 @@ void Player::RunUpdate()
 
 	// 入力されていなかったらアイドル状態に遷移
 	OnIdle();
+	m_camera->SetFov(-1);
 	//	SoundManager::GetInstance().Stop(m_files.at(S_WALK)->GetHandle());
 }
 
@@ -726,6 +895,8 @@ void Player::AerialMove()
 
 	constexpr float AERIAL_MOVE_POWER = 0.008f;
 
+	if (!m_camera) return;
+
 	// カメラの向いている方向に合わせて移動ベクトルを作成
 	auto& cInfo = m_camera->GetInfo();
 	Vec3 dir = cInfo.front * trigger.LStick.y + cInfo.right * trigger.LStick.x;
@@ -760,7 +931,7 @@ void Player::OnIdle()
 	m_rigid.SetVelocity(Vec3());
 	m_anim->Change(ANIM_IDLE);
 	m_updateFunc = &Player::IdleUpdate;
-	m_nowState = State::IDLE;
+	m_nowState = PlayerState::IDLE;
 }
 
 void Player::OnWalk()
@@ -768,15 +939,16 @@ void Player::OnWalk()
 	SoundManager::GetInstance().PlaySe3D(m_files.at(S_WALK)->GetHandle(), shared_from_this());
 	m_anim->Change(ANIM_WALK);
 	m_updateFunc = &Player::WalkUpdate;
-	m_nowState = State::WALK;
+	m_nowState = PlayerState::WALK;
 }
 
 void Player::OnRun()
 {
 	//	SoundManager::GetInstance().PlaySe3D(m_files.at(S_WALK)->GetHandle(), shared_from_this());
+	m_camera->SetFov(RUN_FOV_ANGLE);
 	m_anim->Change(ANIM_RUN);
 	m_updateFunc = &Player::RunUpdate;
-	m_nowState = State::RUN;
+	m_nowState = PlayerState::RUN;
 }
 
 void Player::OnJump()
@@ -790,7 +962,7 @@ void Player::OnJump()
 	m_isGround = false;
 	m_anim->Change(ANIM_JUMP, true, true);
 	m_updateFunc = &Player::JumpUpdate;
-	m_nowState = State::JUMP;
+	m_nowState = PlayerState::JUMP;
 }
 
 void Player::OnAerial()
@@ -798,7 +970,7 @@ void Player::OnAerial()
 	m_isGround = false;
 	m_anim->Change(ANIM_AERIAL);
 	m_updateFunc = &Player::AerialUpdate;
-	m_nowState = State::AERIAL;
+	m_nowState = PlayerState::AERIAL;
 }
 
 void Player::OnLanding()
@@ -814,7 +986,7 @@ void Player::OnLanding()
 	}
 	m_anim->Change(ANIM_LANDING, true, true);
 	m_updateFunc = &Player::LandingUpdate;
-	m_nowState = State::LANDING;
+	m_nowState = PlayerState::LANDING;
 }
 
 void Player::OnHit()
@@ -825,7 +997,7 @@ void Player::OnHit()
 	SoundManager::GetInstance().PlaySe3D(m_files.at(S_DAMAGE)->GetHandle(), shared_from_this());
 	m_anim->Change(ANIM_HIT, true, true, false);
 	m_updateFunc = &Player::HitUpdate;
-	m_nowState = State::HIT;
+	m_nowState = PlayerState::HIT;
 }
 
 void Player::OnDeath()
@@ -836,7 +1008,7 @@ void Player::OnDeath()
 	m_rigid.SetVelocity(Vec3());
 	m_anim->Change(ANIM_DEATH, true, true);
 	m_updateFunc = &Player::DeathUpdate;
-	m_nowState = State::DEATH;
+	m_nowState = PlayerState::DEATH;
 }
 
 void Player::OnShot()
@@ -854,11 +1026,13 @@ void Player::OnShot()
 		isCreate = true;
 		kind = GateKind::Orange;
 	}
-	// 片手ステージではないかつ左トリガーが押されていたらブルーゲートを撃つ
-	else if (!m_isOneHand && trigger.LT > 0.0f)
+	// 左トリガーが押されていたらブルーゲートを撃つ
+	else if (trigger.LT > 0.0f)
 	{
 		isCreate = true;
-		kind = GateKind::Blue;
+		// 片手ステージの場合はオレンジのゲートを撃つ
+		if (m_isOneHand)	kind = GateKind::Orange;
+		else				kind = GateKind::Blue;
 	}
 	// 弾の生成
 	if (isCreate)
@@ -885,70 +1059,10 @@ void Player::OnHand(MyEngine::Collidable* obj)
 	else
 	{
 		m_handObj = dynamic_cast<HandObject*>(obj);
-		m_handObj->OnHnad();
+		m_handObj->OnHand();
 	}
 
 	m_isCatch = !m_isCatch;
-}
-
-void Player::DrawHpUI() const
-{
-	// 画像サイズ取得
-	int w, h;
-	GetGraphSize(m_files.at(I_BASE_HP_BAR)->GetHandle(), &w, &h);
-	// 大きさ変更
-	w = static_cast<int>(w * FILE_SIZE);
-	h = static_cast<int>(h * FILE_SIZE);
-
-	int shakeX = 0;
-	int shakeY = 0;
-	// バーを揺らす場合
-	if (m_shakeHpBarFrame > 0)
-	{
-		// サイズ調整
-		int size = static_cast<int>((static_cast<float>(m_shakeHpBarFrame) / SHKE_HP_BAR_FRAME) * SHAKE_SIZE);
-		// 揺らす範囲をランダムで取得
-		auto& rand = Random::GetInstance();
-		shakeX = rand.GetRand(0, size);
-		shakeY = rand.GetRand(0, size);
-	}
-
-	// フレームの描画
-	DrawRotaGraphFast(DRAW_HP_FRME_X + shakeX, DRAW_HP_FRME_Y + shakeY, FILE_SIZE, 0.0f, m_files.at(I_HP_FRAME)->GetHandle(), true);
-	// ベースとなるHPバーを描画
-	DrawRotaGraphFast(DRAW_HP_BAR_X + shakeX, DRAW_HP_BAR_Y + shakeY, FILE_SIZE, 0.0f, m_files.at(I_BASE_HP_BAR)->GetHandle(), true);
-	// 下二つのバーの描画位置を取得
-	int x = DRAW_HP_BAR_X - static_cast<int>(w * 0.5f) + shakeX;
-	int y = DRAW_HP_BAR_Y - static_cast<int>(h * 0.5f) + shakeY;
-	// 減少HPの割合を取得
-	float rate = m_preHp / static_cast<float>(MAX_HP);
-	// 減少HPバーを割合を考慮して描画
-	DrawExtendGraph(x, y, x + static_cast<int>(w * rate), y + h, m_files.at(I_HIT_HP_BAR)->GetHandle(), true);
-	// 現在HPの割合を取得
-	rate = m_hp / static_cast<float>(MAX_HP);
-	// 現在HPバーを割合を考慮して描画
-	DrawExtendGraph(x, y, x + static_cast<int>(w * rate), y + h, m_files.at(I_NOW_HP_BAR)->GetHandle(), true);
-}
-
-void Player::DrawPadUI() const
-{
-	// ダッシュ
-	int y = DRAW_PAD_Y;
-	DrawPadUI(y, true, I_PAD_X, L"ダッシュ");
-	// ジャンプ
-	y -= DRAW_PAD_Y_INTERVAL;
-	DrawPadUI(y, m_isGround, I_PAD_A, L"ジャンプ");
-	// 物持つ
-	y -= DRAW_PAD_Y_INTERVAL;
-	if (m_isCatch)	DrawPadUI(y, m_isCanCatch, I_PAD_B, L"離す");
-	else			DrawPadUI(y, m_isCanCatch, I_PAD_B, L"掴む");
-	// 左ゲート
-	const bool isShot = m_shotInteval <= 0;
-	y -= DRAW_PAD_Y_INTERVAL;
-	DrawPadUI(y, isShot, I_PAD_RT, L"弾発射(オレンジ)");
-	// 右ゲート
-	y -= DRAW_PAD_Y_INTERVAL;
-	DrawPadUI(y, isShot && !m_isOneHand, I_PAD_LT, L"弾発射(ブルー)");
 }
 
 void Player::DrawPadUI(int y, bool isActive, int imageId, const wchar_t* const str) const
@@ -958,8 +1072,11 @@ void Player::DrawPadUI(int y, bool isActive, int imageId, const wchar_t* const s
 	if (isActive)	color = COLOR_ACTIVE;
 	else			color = COLOR_NOT_ACTIVE;
 
-	// 画像
-	DrawRotaGraphFast(DRAW_PAD_X, y, FILE_SIZE_PAD, 0.0f, m_files.at(imageId)->GetHandle(), true);
+	if (imageId > 0)
+	{
+		// 画像
+		DrawRotaGraphFast(DRAW_PAD_X, y, FILE_SIZE_PAD, 0.0f, m_files.at(imageId)->GetHandle(), true);
+	}
 	// 文字列
 	UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X, y, PAD_STR_SHADOW_POS, PAD_STR_SHADOW_POS, color, str, FONT_SIZE_PAD, 0x000000);
 }

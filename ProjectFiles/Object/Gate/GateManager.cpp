@@ -47,7 +47,7 @@ GateManager::GateManager(const std::shared_ptr<CameraManager>& cameraMgr, const 
 	m_gateOrange(nullptr),
 	m_gateBlue(nullptr),
 	m_stageName(stageName),
-	m_lastShotKind(GateKind::Blue)
+	m_lastShotKind(GateKind::Orange)
 {
 	m_isCreate[GateKind::Orange] = false;
 	m_isCreate[GateKind::Blue] = false;
@@ -134,7 +134,7 @@ void GateManager::AddBullet(std::shared_ptr<GateBullet> bullet)
 	m_bulletList.emplace_back(bullet);
 }
 
-void GateManager::CreateGate(GateKind kind, MyEngine::Collidable* collider, const MyEngine::CollideHitInfo& hitInfo, const Vec3& dir)
+void GateManager::CreateGate(GateKind kind, MyEngine::Collidable* collider, const MyEngine::CollideHitInfo& hitInfo, const Vec3& norm, const Vec3& dir)
 {
 	Vec3 pos = hitInfo.hitPos;
 	auto col = new MyEngine::ColliderCapsule();
@@ -163,8 +163,9 @@ void GateManager::CreateGate(GateKind kind, MyEngine::Collidable* collider, cons
 	info[collider->GetTag()].isCreate = true;
 	info[collider->GetTag()].isCheckPallel = true;
 	std::list<MyEngine::Collidable*> through{ collider, gate.get() };
+	MyEngine::Rigidbody rigid;
 
-	MyEngine::Physics::GetInstance().CheckObject(pos, col, checkCount, CHECK_NUM, true, info, CHECK_TAG_LIST, through);
+	MyEngine::Physics::GetInstance().CheckObject(pos, rigid, col, checkCount, CHECK_NUM, true, info, CHECK_TAG_LIST, through);
 	delete col;
 
 	// 生成できる場合
@@ -172,11 +173,11 @@ void GateManager::CreateGate(GateKind kind, MyEngine::Collidable* collider, cons
 	{
 		if (kind == GateKind::Orange)
 		{
-			CreateGate(m_gateOrange, kind, collider->GetTag(), pos, hitInfo.fixDir, dir);
+			CreateGate(m_gateOrange, kind, collider->GetTag(), pos, norm, dir);
 		}
 		else if (kind == GateKind::Blue)
 		{
-			CreateGate(m_gateBlue, kind, collider->GetTag(), pos, hitInfo.fixDir, dir);
+			CreateGate(m_gateBlue, kind, collider->GetTag(), pos, norm, dir);
 		}
 	}
 	// 生成できない場合
@@ -225,6 +226,7 @@ void GateManager::CreateGate(std::shared_ptr<Gate>& gate, GateKind kind, ObjectT
 	{
 		gate->ChangePos(hitTag, pos, norm, dir);
 		gate->SetCameraInfo();
+		if (pairGate) pairGate->SetCameraInfo();
 	}
 	// ゲートをまだ作成していない場合
 	else

@@ -4,17 +4,23 @@
 #include <list>
 #include <memory>
 
-struct Vec3;
 class GateManager;
 class StageManager;
 class CameraManager;
-class TutorialManager;
 class Player;
 class UIMoveData;
-enum class CameraKind;
 
 class SceneMain final : public SceneBase
 {
+private:
+	struct CBuff
+	{
+		float frame;
+		float fireRed;
+		float fireGreen;
+		float fireBlue;
+	};
+
 public:
 	SceneMain(const wchar_t* const stageName);
 	~SceneMain() {}
@@ -33,24 +39,26 @@ public:
 	/// <summary>
 	/// 再スタート
 	/// </summary>
-	void OnRestart() const;
+	void OnRestart();
 
 private:
 	void MainUpdate();
 	void GameOverUpdate();
+	void RestartUpdate();
 
-	void DrawNormal() const;
-	void DrawBlend() const;
-	void DrawGateBlend(int rt, CameraKind gate, CameraKind from) const;
-	void DrawModelBlend(int rt, int tex1, int tex2, CameraKind camera, bool isPlayerDraw) const;
+	void DrawMain() const;
+	void DrawRestart() const;
 
+	void DrawUI() const;
 	void DrawCommonUI() const;
 	void DrawExistUI() const;
 	void DrawDeathUI() const;
 
 private:
 	using UpdateFunc_t = void(SceneMain::*)();
+	using DrawFunc_t = void(SceneMain::*)() const;
 	UpdateFunc_t m_updateFunc;
+	DrawFunc_t m_drawFunc;
 
 	std::shared_ptr<GateManager> m_gateMgr;
 	std::shared_ptr<StageManager> m_stageMgr;
@@ -65,6 +73,9 @@ private:
 
 	const wchar_t* const m_stageName;
 
+	CBuff* m_cBuff;
+
+	int m_cBuffH;
 	int m_time;
 	int m_current;
 	int m_count;

@@ -9,6 +9,7 @@
 #include "SoundManager.h"
 #ifdef _DEBUG
 #include "SceneDebug.h"
+#include "CommandList.h"
 #endif
 
 namespace
@@ -27,8 +28,8 @@ namespace
 	const wchar_t* const FILE_LOADING_FADE = L"I_LoadingFade";
 	const wchar_t* const FILE_LOADING_UNDER = L"I_LoadingUnder";
 
-	constexpr int FADE_FRAME = 30;
-	constexpr float FADE_SPEED = 1.0f / FADE_FRAME;
+	constexpr int FADE_FRAME_SAVE_NO = 30;
+	constexpr float FADE_SPEED = 1.0f / FADE_FRAME_SAVE_NO;
 
 	constexpr float NOW_LOADING_SPEED = 0.01f;
 	constexpr float NOW_LOADING_ANGLE_SPEED = 0.05f;
@@ -66,6 +67,7 @@ void SceneManager::Init()
 	m_scene = std::make_shared<SceneTitle>();
 #endif
 
+	// 常駐リソース読み込み
 	auto& fileMgr = FileManager::GetInstance();
 	fileMgr.Load(I_PAD_A, true);
 	fileMgr.Load(I_PAD_B, true);
@@ -75,9 +77,10 @@ void SceneManager::Init()
 	fileMgr.Load(I_PAD_RT, true);
 	fileMgr.Load(I_PAD_RB, true);
 	fileMgr.Load(I_OPTION_WINDOW, true);
+	fileMgr.Load(I_FRAME, true);
 	fileMgr.Load(I_COMMON_FRAME, true);
 	fileMgr.Load(I_COMMON_SELECT_FRAME, true);
-	fileMgr.Load(I_MAIN_SOUND_BAR, true);
+	fileMgr.Load(I_MAIN_BAR, true);
 	fileMgr.Load(I_VOLUME_POINT, true);
 	fileMgr.Load(S_CANCEL, true);
 	fileMgr.Load(S_DECIDE, true);
@@ -136,16 +139,16 @@ void SceneManager::ChangeBgmH(int handle)
 	m_bgmH = handle;
 }
 
-void SceneManager::OpenOption(SceneKind openScene, const SceneMain* sceneMain)
+void SceneManager::OpenOption(SceneKind openScene, SceneBase* scene)
 {
 	// 開いていれば終了
 	if (m_option) return;
 
-	auto scene = std::make_shared<SceneOption>();
-	scene->Init();
-	if (sceneMain) scene->Init(sceneMain);
-	scene->CheckOpenScene(openScene);
-	m_option = scene;
+	auto next = std::make_shared<SceneOption>();
+	next->Init();
+	if (scene) next->Init(scene);
+	next->CheckOpenScene(openScene);
+	m_option = next;
 }
 
 void SceneManager::CloseOption()
@@ -163,6 +166,15 @@ SceneKind SceneManager::GetNowSceneKind() const
 
 void SceneManager::NormalUpdate()
 {
+#ifdef _DEBUG
+	auto& input = Input::GetInstance();
+	if (input.IsTriggerd(KEY_INPUT_D))
+	{
+		auto next = std::make_shared<SceneDebug>();
+		Change(next);
+		return;
+	}
+#endif
 	m_scene->Update(false);
 	m_isFadeEndFrame = false;
 }
@@ -256,7 +268,6 @@ void SceneManager::DrawFade() const
 
 void SceneManager::FileLoadingDraw() const
 {
-	
 	int alpha = static_cast<int>(std::abs(Game::ALPHA_VAL * std::cosf(m_count * 2 - 1)));
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
 	DrawRotaGraphFast(Game::CENTER_X, Game::CENTER_Y, 1.0f, 0.0f, m_files.at(I_LOADING_UNDER)->GetHandle(), true);

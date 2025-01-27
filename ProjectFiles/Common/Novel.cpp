@@ -89,12 +89,40 @@ void Novel::Draw(int spaceWidthNum, int startY, unsigned int color, int fontSize
 	// 空白サイズ
 	const int space = intervalX * spaceWidthNum;
 
+	int x = space;
+	int y = startY;
+	int count = 0;
 	// 1文字ずつ描画
 	for (int i = 0; i < m_current; ++i)
 	{
-		const auto& c = m_str.at(i);
-		const int x = (i % num) * intervalX + space;
-		const int y = (i / num) * intervalY + startY;
-		DrawFormatStringToHandle(x, y, color, fontH, L"%c", c);
+		const auto& indent = m_str.substr(i, 2);
+		// 改行
+		if (indent == L"\\n")
+		{
+			x = space;
+			y += intervalY;
+			count = 0;
+			++i;
+			continue;
+		}
+		else
+		{
+			const auto& c = m_str.at(i);
+			DrawFormatStringToHandle(x, y, color, fontH, L"%c", c);
+			x += intervalX;
+			++count;
+			// 行末に達したら改行
+			if (count >= num)
+			{
+				x = space;
+				y += intervalY;
+				count = 0;
+			}
+		}
 	}
+}
+
+void Novel::DrawGraph(int x, int y, float size, int handle)
+{
+	DrawRotaGraph(x, y, size, 0.0f, handle, true);
 }

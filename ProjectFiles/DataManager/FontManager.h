@@ -8,37 +8,49 @@
 class FontManager
 {
 private:
-	FontManager();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    FontManager();
 
-	FontManager(const FontManager& font) = delete;
-	void operator= (const FontManager& font) = delete;
+	FontManager(const FontManager&) = delete;
+	FontManager(const FontManager&&) = delete;
+	FontManager& operator= (const FontManager&) = delete;
+	FontManager& operator= (const FontManager&&) = delete;
 
 public:
-	~FontManager();
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    ~FontManager();
 
-	static FontManager& GetInstance();
+    /// <summary>
+    /// インスタンスを取得する
+    /// </summary>
+    /// <returns>FontManagerのインスタンス</returns>
+    static FontManager& GetInstance();
 
-	/// <summary>
-	/// フォントデータの作成
-	/// </summary>
-	void Init();
-	/// <summary>
-	/// フォントデータの削除
-	/// </summary>
-	void End();
+    /// <summary>
+    /// フォントデータの作成
+    /// </summary>
+    void Init();
+    /// <summary>
+    /// フォントデータの削除
+    /// </summary>
+    void End();
 
-	/// <summary>
-	/// サイズに対応したハンドルを取得
-	/// </summary>
-	/// <param name="size">フォントのサイズ</param>
-	/// <returns>ハンドル</returns>
-	int GetHandle(int size) const;
+    /// <summary>
+    /// サイズに対応したハンドルを取得
+    /// </summary>
+    /// <param name="size">フォントのサイズ</param>
+    /// <returns>ハンドル</returns>
+    int GetHandle(int size) const;
 
 private:
-	LPCWSTR m_fontPath;
+    // フォントのパス
+    LPCWSTR m_fontPath;  
 
-	// フォントのハンドル
-	// Key:フォントのサイズ　Value:フォントハンドル
-	std::unordered_map<int, int> m_handle;
+    // フォントのハンドル
+    // Key:フォントのサイズ　Value:フォントハンドル
+    std::unordered_map<int, int> m_handle;
 };
-

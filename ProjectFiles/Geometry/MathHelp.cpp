@@ -6,6 +6,23 @@
 #include "RandomUtility.h"
 #include "DebugDraw.h"
 
+float GetPitchAngle(const Vec3& vecA, const Vec3& vecB)
+{
+	// ベクトルaからベクトルbへの方向ベクトルを計算
+	const auto& dir = vecB - vecA;
+
+	// 水平方向の長さを計算
+	float horizontalLength = std::sqrt(dir.x * dir.x + dir.z * dir.z);
+
+	// ピッチ角を計算（ラジアン）
+	float pitch = std::atan2(dir.y, horizontalLength);
+
+	// ピッチ角を度に変換
+	float pitchDegree = pitch * Game::RAD_2_DEG;
+
+	return pitchDegree;
+}
+
 bool IsParallelOnLine(const Vec3& startA, const Vec3& endA, const Vec3& startB, const Vec3& endB)
 {
 	auto vA = endA - startA;

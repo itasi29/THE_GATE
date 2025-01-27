@@ -10,7 +10,9 @@
 #include "Application.h"
 #include "FontManager.h"
 #include "SceneManager.h"
+#include "SceneHelp.h"
 #include "SceneStageSelect.h"
+#include "SceneTutorial.h"
 #include "SaveDataManager.h"
 #include "StageDataManager.h"
 #include "RankingDataManager.h"
@@ -22,9 +24,12 @@
 #include "Object/Gate/GateManager.h"
 #include "Object/Stage/StageManager.h"
 #include "Object/Gate/GateBullet.h"
+#include "Object/Gimmick/Turret/Turret.h"
+#include "Collider/ColliderCapsule.h"
 
 namespace
 {
+	/* 列挙型 */
 	// メニュー選択
 	enum class MenuCurrent : int
 	{
@@ -41,36 +46,20 @@ namespace
 		DELETE_DATA,
 		MAX
 	};
-	// 削除確認
-	enum class CheckCurrent : int
-	{
-		CANCEL,
-		OK,
-		MAX
-	};
 
-	// ファイルID
-	const wchar_t* const FILE_COMMON_FRAME			= L"I_CommonFrame";
-	const wchar_t* const FILE_COMMON_SELECT_FRAME	= L"I_CommonSelectFrame";
-	const wchar_t* const FILE_SAVE_ARM				= L"I_SaveArm";
-	const wchar_t* const FILE_SAVE_ARM_FRAME		= L"I_SaveArmFrame";
-	const wchar_t* const FILE_SAVE_WINDOW			= L"I_SaveWindow";
-	const wchar_t* const FILE_DECIDE_ARM			= L"I_DecideArm";
-	const wchar_t* const FILE_DECIDE_ARM_FRAME		= L"I_DecideArmFrame";
-	const wchar_t* const FILE_DECIDE_WINDOW			= L"I_DecideWindow";
-	const wchar_t* const FILE_ALERT_WINDOW			= L"I_OptionWindow";
-	const wchar_t* const FILE_RANKING_WINDOW		= L"I_RankingWindow";
-	const wchar_t* const FILE_RANKING_ARROW			= L"I_RankingArrow";
-	const wchar_t* const FILE_RANK_S				= L"I_RankS";
-	const wchar_t* const FILE_RANK_A				= L"I_RankA";
-	const wchar_t* const FILE_RANK_B				= L"I_RankB";
-	const wchar_t* const FILE_RANK_C				= L"I_RankC";
-	const wchar_t* const FILE_CANCEL				= L"S_Cancel";
-	const wchar_t* const FILE_DECIDE				= L"S_Decide";
-	const wchar_t* const FILE_MOVE					= L"S_CursorMove";
-	const wchar_t* const FILE_BGM					= L"B_Title";
+	/* ロゴ */
+	constexpr int DRAW_LOGO_X = 160;		// 描画位置(x)
+	constexpr int DRAW_LOGO_Y = 300;				// 描画位置(y)
+	constexpr float FILE_SIZE_LOGO = 1.0f;			// 画像サイズ
 
 	/* メニュー */
+	// 描画位置
+	constexpr int DRAW_MENU_STR_X = 80;				// 文字描画位置(x)
+	constexpr int DRAW_MENU_FRAME_X = 180;			// フレーム描画位置(y)
+	constexpr int DRAW_MENU_Y = 450;				// 描画位置(x)
+	constexpr int DRAW_MENU_Y_INTERVAL = 64;		// 描画間隔(y)
+	constexpr float FILE_SIZE_MENU_FRAME = 1.0f;	// フレーム描画サイズ
+	constexpr int FONT_SIZE_MENU = 36;				// 文字フォントサイズ
 	// 文字列
 	const std::vector<std::wstring> STR_MENU =
 	{
@@ -79,15 +68,6 @@ namespace
 		L"オプション",
 		L"エンド",
 	};
-	// 描画位置
-	constexpr int DRAW_MENU_X = static_cast<int>(Game::WINDOW_W * 0.5f);
-	constexpr int DRAW_MENU_Y = 340;
-	// 描画間隔
-	constexpr int DRAW_MENU_X_INTERVAL_1 = 48;
-	constexpr int DRAW_MENU_X_INTERVAL_2 = 256;
-	constexpr int DRAW_MENU_Y_INTERVAL = 96;
-	// フォントサイズ
-	constexpr int FONT_SIZE_MENU = 48;
 
 	/* セーブデータ選択 */
 	// 文字列
@@ -97,32 +77,37 @@ namespace
 		L"セーブデータ2",
 		L"セーブデータ3",
 	};
-	// 描画位置
-	constexpr int DRAW_SAVE_X = 755;
-	constexpr int DRAW_SAVE_Y = 340;
-	// 描画間隔
-	constexpr int DRAW_SAVE_X_INTERVAL = 40;
-	constexpr int DRAW_SAVE_Y_INTERVAL = 90;
-	// フォントサイズ
-	constexpr int FONT_SIZE_SAVE = 36;
-	// ファイルサイズ
-	constexpr float FILE_SIZE_SAVE = 0.75f;
-	// ウィンドウ位置
-	constexpr int DRAW_SAVE_WINDOW_X = 735;
-	constexpr int DRAW_SAVE_WINDOW_Y = 430;
-	// アームの位置との差
-	constexpr int DRAW_SAVE_SUB_ARM_FRAME_X = 145;
-	constexpr int DRAW_SAVE_SUB_ARM_FRAME_Y = 0;
-	// アームフレームの位置との差
-	constexpr int DRAW_SAVE_SUB_ARM_X = 222;
-	constexpr int DRAW_SAVE_SUB_ARM_Y = 90;
-	// セーブデータ情報描画位置
-	constexpr int DRAW_SAVE_INFO_X = 1000;
-	constexpr int DRAW_SAVE_INFO_Y = 300;
-	constexpr int DRAW_SAVE_INFO_AND_DECIDE_OUT_VAL = 100;
-	// セーブデータ情報描画間隔
-	constexpr int DRAW_SAVE_INFO_TIME_Y = 32;
-	constexpr int DRAW_SAVE_INFO_CLEAR_NUM_Y = 64;
+	constexpr int DRAW_SAVE_X = 450;	// 基準描画位置(x)
+	constexpr int DRAW_SAVE_Y = 530;	// 基準描画位置(y)
+	constexpr int DRAW_SAVE_FRAME_X = 450;	// フレーム描画位置
+	constexpr int DRAW_SAVE_FRAME_Y = 466;	// フレーム描画位置
+	constexpr int DRAW_SAVE_Y_INTERVAL = 64;	// 描画間隔(y)
+	constexpr int DRAW_SUB_SAVE_ARM_X = -142;
+	constexpr int DRAW_SUB_SAVE_ARM_Y = -80;
+	constexpr int DRAW_SUB_SAVE_ARM_FRAME_X = -100;
+	constexpr int DRAW_SUB_SAVE_STR_X = -92;
+	constexpr int DRAW_SUB_SAVE_STR_Y = -64;
+	constexpr int FONT_SIZE_SAVE = 32;					// 文字フォントサイズ
+	constexpr float FILE_SIZE_SAVE_ARM = 0.875f;
+	constexpr float FILE_SIZE_SAVE_ARM_FRAME = 0.875f;
+	constexpr float FILE_SIZE_SAVE_WINDOW = 0.875f;
+	constexpr float FILE_SIZE_SAVE_FRAME = 0.875f;
+	constexpr int FADE_FRAME_SAVE_INFO = 10;
+
+	/* セーブデータ情報 */
+	constexpr int DRAW_SAVE_INFO_X = 718;	// 基準描画位置
+	constexpr int DRAW_SAVE_INFO_Y = 498;	// 基準描画位置 
+	constexpr int DRAW_SAVE_INFO_Y_INTERVAL = DRAW_SAVE_Y_INTERVAL;	// 描画間隔
+	constexpr int DRAW_SAVE_INFO_TIME_Y = -32;		// 時間情報描画間隔
+	constexpr int DRAW_SAVE_INFO_CLEAR_NUM_Y = 24;	// クリア数情報描画間隔
+	constexpr int DRAW_SUB_SAVE_INFO_ARM_X = -152;
+	constexpr int DRAW_SUB_SAVE_INFO_ARM_Y = -32;
+	constexpr int DRAW_SUB_SAVE_INFO_ARM_FRAME_X = -102;
+	constexpr int DRAW_SUB_SAVE_INFO_STR_X = -110;
+	constexpr float FILE_SIZE_SAVE_INFO_ARM = 1.0f;
+	constexpr float FILE_SIZE_SAVE_INFO_ARM_FRAME = 1.0f;
+	constexpr float FILE_SIZE_SAVE_INFO_WINDOW = 1.0f;
+	constexpr int FONT_SIZE_SAVE_INFO = 28;		// 文字フォントサイズ
 
 	/* データ決定 */
 	// 文字列
@@ -131,102 +116,35 @@ namespace
 		L"続きから",
 		L"初めから",
 	};
-	// 描画位置
-	constexpr int DRAW_DECIDE_X = 1130;
-	constexpr int DRAW_DECIDE_Y = 312;
-	// 描画間隔
-	constexpr int DRAW_DECIDE_X_INTERVAL = 48;
-	constexpr int DRAW_DECIDE_Y_INTERVAL = 54;
-	// フォントサイズ
-	constexpr int FONT_SIZE_DECIDE = 32;
-	// ファイルサイズ
-	constexpr int FONT_SIZE_SAVE_INFO = 24;
-	constexpr float FILE_SIZE_DECIDE = 0.5f;
-	// ウィンドウ位置
-	constexpr int DRAW_DECIDE_WINDOW_X = 1095;
-	constexpr int DRAW_DECIDE_WINDOW_Y = DRAW_SAVE_Y;
-	// アームの位置との差
-	constexpr int DRAW_DECIDE_SUB_ARM_FRAME_X = 115;
-	constexpr int DRAW_DECIDE_SUB_ARM_FRAME_Y = 0;
-	// アームフレームの位置との差
-	constexpr int DRAW_DECIDE_SUB_ARM_X = 185;
-	constexpr int DRAW_DECIDE_SUB_ARM_Y = 0;
-	// アーム描画間隔
-	constexpr int DRAW_DECIDE_WINDOW_INTERVAL_Y = DRAW_SAVE_Y_INTERVAL;
-
-	/* 削除確認 */
-	// 文字列
-	std::vector<std::wstring> STR_CHECK =
-	{
-		L"キャンセル",
-		L"削除する",
-	};
-	const std::wstring STR_ALERT = L"削除して始めますか？";
-	// 描画位置
-	constexpr int DRAW_CHECK_X = 490;
-	constexpr int DRAW_CHECK_Y = 450;
-	// 描画間隔
-	constexpr int DRAW_CHECK_X_INTERVAL = 300;
-	// フォントサイズ
-	constexpr float FILE_SIZE_CHECK = 0.75f;
-	constexpr int FONT_SIZE_CHECK = 32;
-	// 画面外まで動かす量
-	constexpr int DRAW_ALERT_OUT_VAL = 700;
-
-	/* 警告関係 */
-	// 文字カラー
-	constexpr unsigned int COLOR_ALERT = 0xffffff;
-	// 描画位置
-	constexpr int DRAW_ALERT_X = Game::CENTER_X;
-	constexpr int DRAW_ALERT_Y = Game::CENTER_Y;
-	// 警告文字との差
-	constexpr int DRAW_ALERT_STR_SUB_Y = 100;
-	// フォントサイズ
-	constexpr int FONT_SIZE_ALERT = 48;
-	// 揺らす大きさ
-	constexpr int SHAKE_SIZE_ALERT = 2;
-	// 画像サイズ
-	constexpr float FILE_SIZE_ALERT = 0.75f;
+	constexpr int DRAW_DECIDE_X = 718;	// 基準描画位置(x)
+	constexpr int DRAW_DECIDE_Y = 482;	// 基準描画位置(y)
+	constexpr int DRAW_DECIDE_Y_INTERVAL = 40;	// 描画間隔(y)
+	constexpr int DRAW_SUB_DECIDE_STR_X = -80;	// 文字列差分描画位置(x)
+	constexpr int DRAW_SUB_DECIDE_STR_Y = 0;	// 文字列差分描画位置(y)
+	constexpr float FILE_SIZE_DECIDE_FRAME = 0.875f;	// フレーム画像サイズ
+	constexpr int FONT_SIZE_DECIDE = 28;	// 決定フォントサイズ
 
 	/* ランキング */
-	// 矢印描画位置
-	constexpr int DRAW_RANKING_ARROW_SUB_X = 500;
-	constexpr int DRAW_RANKING_ARROW_SUB_Y = 275;
-	// 矢印スワイプの大きさ
-	constexpr int DRAW_RANKING_ARROW_X_SWIPE_SIZE = 32;
-	// 矢印スワイプスピード
-	constexpr float SWIPE_SPEED_ARROW = 1.3f;
-	// ステージ名描画
-	constexpr unsigned int COLOR_RANKING = 0xffffff;
-	// ステージ名描画位置
-	constexpr int DRAW_RANKING_STAGE_NAME_SUB_X = 0;
-	constexpr int DRAW_RANKING_STAGE_NAME_SUB_Y = 275;
-	// ステージ名フォントサイズ
-	constexpr int FONT_SIZE_RANKING_STAGE_NAME = 64;
-	// ステージ名ウェーブの大きさ
-	constexpr int DRAW_RANKING_STAGE_NAME_WAVE_SIZE = 16;
-	// ステージ名ウェーブスピード
-	constexpr float WAVE_SPEED_STAGE_NAME = 2.0f;
-	// 文字描画位置
-	constexpr int DRAW_RANKING_STR_SUB_X = 580;
-	constexpr int DRAW_RANKING_STR_SUB_Y = 168;
-	// 文字描画間隔
-	constexpr int DRAW_RANKING_STR_X_INTERVAL = 600;
-	constexpr int DRAW_RANKING_STR_Y_INTERVAL = 110;
-	// 「記録なし」ずれ具合
-	constexpr int DRAW_RANKING_NOT_DATA_SUB_X = 180;
-	// 時間ずれ具合
-	constexpr int DRAW_RANKING_TIME_SUB_X = 400;
-	// ランクずれ具合
-	constexpr int DRAW_RANKING_RANK_SUB_X = 160;
-	// ランキング文字フォントサイズ
-	constexpr int FONT_SIZE_RANKING_RANK = 64;
-	constexpr int FONT_SIZE_RANKING_TIME = 56;
-	// ランク画像サイズ
-	constexpr float FILE_SIZE_RANKING_RANK = 0.125f;
-	constexpr float TIME_SIZE = 0.5f;
-	// ランキングタイムカラー
-	constexpr unsigned int COLOR_TIME = 0xffffff;
+	constexpr int DRAW_SUB_RANKING_ARROW_X = 256;		// 矢印差分描画位置(x)
+	constexpr int DRAW_SUB_RANKING_ARROW_Y = 240;		// 矢印差分描画位置(y)
+	constexpr int DRAW_SUB_RANKING_NAME_Y = 240;		// ステージ名差分描画位置(y)
+	constexpr int DRAW_SUB_RANKING_RANKING_X = -240;	// 順位差分描画位置(x)
+	constexpr int DRAW_SUB_RANKING_RANK_X = -112;		// ランク差分描画位置(x)
+	constexpr int DRAW_SUB_RANKING_TIME_X = 160;		// タイム差分描画位置(x)
+	constexpr int DRAW_SUB_RANKING_INFO_Y = -134;		// ランキング情報差分描画位置(y)
+	constexpr int DRAW_SUB_RANKING_INFO_Y_INTERVAL = 96;	// ランキング情報描画間隔(y)
+	constexpr unsigned int COLOR_RANKING_NAME = 0xffffff;	// ステージ名文字カラー
+	constexpr unsigned int COLOR_RANKING_DATA = 0xffffff;	// 情報文字カラー
+	constexpr int DRAW_RANKING_OUT_VAL = -720;	// 画面外までの大きさ
+	constexpr int FONT_SIZE_RANKING_NAME = 48;	// ステージ名フォントサイズ
+	constexpr int FONT_SIZE_RANKING_INFO = 48;	// 情報フォントサイズ
+	constexpr float FILE_SIZE_RANKING_INFO = 0.5f;		// 順位画像サイズ
+	constexpr float FILE_SIZE_RANKING_ARROW = 1.0f;		// 矢印画像サイズ
+	constexpr float FILE_SIZE_RANKING_RANK = 0.125f;	// ランク画像サイズ
+	constexpr int WAVE_SIZE_RANKING_NAME = 8;		// ステージ名ウェーブサイズ
+	constexpr float WAVE_SPEED_RANKING_NAME = 2.0f;	// ステージ名ウェーブスピード
+	constexpr int DRAW_RANKING_ARROW_X_SWIPE_SIZE = 16;	// 矢印スワイプサイズ
+	constexpr float SWIPE_SPEED_ARROW = 1.3f;			// 矢印スワイプスピード
 	// ランク毎のファイルパス
 	const std::unordered_map<RankKind, int> RANK_FILE_PATH =
 	{
@@ -237,64 +155,71 @@ namespace
 	};
 
 	/* PadUi描画 */
-	constexpr int DRAW_PAD_X = 1100;		// 基準Y描画位置
-	constexpr int DRAW_PAD_Y = 680;			// 画像描画位置
+	constexpr int DRAW_PAD_X = 1130;		// 基準Y描画位置
+	constexpr int DRAW_PAD_Y = 700;			// 画像描画位置
 	constexpr float FILE_SIZE_PAD = 0.3f;	// 画像サイズ
-	constexpr int DRAW_PAD_FRAME_X = 1160;			// フレーム描画位置
-	constexpr float FILE_SIZE_PAD_FRAME = 0.525f;	// フレームサイズ
-	constexpr int DRAW_PAD_STR_X = 1120;	// 文字列描画位置
+	constexpr int DRAW_PAD_STR_X = 1150;	// 文字列描画位置
 	constexpr int FONT_SIZE_PAD = 28;		// フォントサイズ
 	constexpr int PAD_STR_SHADOW_POS = 2;	// 影描画位置
 	constexpr unsigned int COLOR_PAD = 0xffffff;	// 文字カラー
-	// 描画間隔
-	constexpr int DRAW_PAD_X_INTERVAL = 20;	
-	constexpr int DRAW_PAD_Y_INTERVAL = 50;	
-	/* PadUI(ランキングのみ) */
-	constexpr int DRAW_PAD_Y_RANKING = 690;		// 基準Y描画位置
-	constexpr int DRAW_PAD_X_RANKING = 1130;	// 画像描画位置
-	constexpr int DRAW_PAD_FRAME_X_RANKING = 1190;	// フレーム描画位置
-	constexpr int DRAW_PAD_STR_X_RANKING = 1150;	// 文字列描画位置
-	constexpr int DRAW_PAD_ALPHA = static_cast<int>(Game::ALPHA_VAL * 0.75f);
+	constexpr int DRAW_PAD_Y_INTERVAL = 36;		// 描画間隔
 
-	/* その他共通とかの */
+	/* その他 */
+	constexpr float SPEED_FRAME_FADE = 0.02f;	// フレームの点滅速度
+	constexpr int ALPHA_SIZE_FRAME = 48;		// フレームの点滅サイズ
 	// 選択文字カラー
-	constexpr unsigned int COLOR_SELECT = 0x000000;
+	constexpr unsigned int COLOR_SELECT = 0xffffff;
 	// 未選択文字カラー
-	constexpr unsigned int COLOR_NOT_SELECT = 0xffffff;
+	constexpr unsigned int COLOR_NOT_SELECT = 0x888888;
 	// 文字ウェーブの大きさ
-	constexpr int STR_WAVE_SIZE = 16;
+	constexpr int STR_WAVE_SIZE = 4;
 	// ウェーブスピード
-	constexpr float STR_WAVE_SPEED = 2;
-	// 画面外に飛ばす用の値
-	constexpr int DRAW_OUT_VAL = 900;
+	constexpr float STR_WAVE_SPEED = 2.0f;
 	// フェードにかかるフレーム
-	constexpr int FADE_FRAME = 20;
+	constexpr int FADE_FRAME_SAVE_NO = 20;
 	// UIの移動速度
-	constexpr float MOVE_SPEED = 1.0f / FADE_FRAME;
+	constexpr float MOVE_SPEED = 1 / 5.0f;
 	// 時間のフェード速度
 	constexpr int TIME_FADE_SPEED = 2;
+	// リピート間隔
+	constexpr int REPEATE_INTERVAL = 17;
 
-	// ステージ名
-	const wchar_t* const STAGE_NAME = L"Title";
-	// カメラの位置
-	const Vec3 CAMERA_POS = Vec3(-36.0f, 7.5f, 24.0f);
 	// カメラの向き
-	const Vec3 CAMERA_DIR = Vec3(-1.0f, 0.0f, 1.0f);
-	// ゲート弾を打つまでのフレーム
-	constexpr int WAIT_SHOT_FRAME = 360;
-	// 弾の発射位置
-	const Vec3 SHOT_POS = Vec3(-24.0f, 7.5f, 24.0f);
-	// 弾の発射方向
-	const Vec3 SHOT_DIR = Vec3(-0.8f, 0.0f, 1.0f);
-	// RT
-	enum class RTKind
+	const std::vector<Vec3> CAMERA_DIRS =
 	{
-		GATE_A_TEX,
-		GATE_B_TEX,
-		TEMP_1,
-		TEMP_2,
-		MAX,
+		Vec3(-1.0f, -0.8f, 1.0f),
+		Vec3(1.0f, -0.8f, -1.0f),
+		Vec3(0.0f, -0.8f, -1.0f),
 	};
+	// カメラの位置
+	const std::vector<Vec3> CAMERA_POSS =
+	{
+		Vec3(-2.0f, 26.0f, 324.0f),
+		Vec3(156.0f, 16.0f, 42.0f),
+		Vec3(294.3f, 16.0f,  36.0f),
+	};
+	// カメラの回転度度合い
+	constexpr float CAMERA_ROT_ANGLE = 8.0f;
+	// カメラの回転速度
+	constexpr float CAMERA_ROT_SPEED = 0.0025f;
+
+	// ステージ数
+	constexpr int STAGE_NUM = 3;
+	// ステージ名
+	std::vector<std::wstring> STAGE_NAME = 
+	{ 
+		L"Title", 
+		L"Stage4", 
+		L"Stage8"
+	};
+	// ステージ変更までのフレーム
+	constexpr int STAGE_CHANGE_FRAME = 5000;
+	// ステージ変更フェードスピード
+	constexpr float STAGE_FADE_SPEED = 1 / 16.0f;
+	// ステージ変更時のカラーDissolveの色
+	constexpr float COLOR_FIRE_R = 0.09f;	// 赤
+	constexpr float COLOR_FIRE_G = 0.59f;	// 緑
+	constexpr float COLOR_FIRE_B = 0.59f;	// 青
 }
 
 SceneTitle::SceneTitle() :
@@ -302,20 +227,21 @@ SceneTitle::SceneTitle() :
 	m_updateFunc(&SceneTitle::SelectMenuUpdate),
 	m_drawFunc(&SceneTitle::DrawSelectMenu),
 	m_state(State::MENU),
-	m_waitShotFrame(0),
 	m_menuCurrent(0),
 	m_saveDataNo(0),
-	m_preSaveDataNo(0),
 	m_decideCurrent(0),
-	m_checkCurrent(0),
 	m_rankingCurrent(0),
-	m_fadeFrame(0),
-	m_waveCount(0),
-	m_isShot(false),
-	m_isFade(false),
-	m_isFadeTime(false),
-	m_isDrawMenu(true),
-	m_isDrawSelectSave(false)
+	m_fadeSaveInfoFrame(0),
+	m_fadeSaveNoFrame(0),
+	m_uiCount(0),
+	m_cameraFrame(0),
+	m_stageChangeFrame(0),
+	m_stageIndex(0),
+	m_stageFade(0.0f),
+	m_isFadeSaveNo(false),
+	m_isNowSelectMenu(true),
+	m_isNowSelectSaveData(false),
+	m_isStageChangeFade(false)
 {
 }
 
@@ -323,6 +249,9 @@ void SceneTitle::AsyncInit()
 {
 	// ファイル読み込み
 	auto& fileMgr = FileManager::GetInstance();
+	m_files[M_TURRET]				= fileMgr.Load(M_TURRET);
+	m_files[I_LOGO]					= fileMgr.Load(I_LOGO);
+	m_files[I_FRAME]				= fileMgr.Load(I_FRAME);
 	m_files[I_COMMON_FRAME]			= fileMgr.Load(I_COMMON_FRAME);
 	m_files[I_COMMON_SELECT_FRAME]	= fileMgr.Load(I_COMMON_SELECT_FRAME);
 	m_files[I_SAVE_ARM]				= fileMgr.Load(I_SAVE_ARM);
@@ -332,7 +261,7 @@ void SceneTitle::AsyncInit()
 	m_files[I_DECIDE_ARM_FRAME]		= fileMgr.Load(I_DECIDE_ARM_FRAME);
 	m_files[I_DECIDE_WINDOW]		= fileMgr.Load(I_DECIDE_WINDOW);
 	m_files[I_OPTION_WINDOW]		= fileMgr.Load(I_OPTION_WINDOW);
-	m_files[I_RANKING_WINDOW]		= fileMgr.Load(I_RANKING_WINDOW);
+	m_files[I_RANKING_FRAME]		= fileMgr.Load(I_RANKING_FRAME);
 	m_files[I_RANKING_ARROW]		= fileMgr.Load(I_RANKING_ARROW);
 	m_files[I_RANK_S]				= fileMgr.Load(I_RANK_S);
 	m_files[I_RANK_A]				= fileMgr.Load(I_RANK_A);
@@ -340,72 +269,84 @@ void SceneTitle::AsyncInit()
 	m_files[I_RANK_C]				= fileMgr.Load(I_RANK_C);
 	m_files[I_PAD_A]				= fileMgr.Load(I_PAD_A);
 	m_files[I_PAD_B]				= fileMgr.Load(I_PAD_B);
+	m_files[I_DISSOLVE]				= fileMgr.Load(I_DISSOLVE);
 	m_files[S_CANCEL]				= fileMgr.Load(S_CANCEL);
 	m_files[S_DECIDE]				= fileMgr.Load(S_DECIDE);
 	m_files[S_CURSOR_MOVE]			= fileMgr.Load(S_CURSOR_MOVE);
 	m_files[S_SHOT_PLAYER]			= fileMgr.Load(S_SHOT_PLAYER);
 	m_files[B_TITLE]				= fileMgr.Load(B_TITLE);
+	m_files[PS_DISSOLVE]			= fileMgr.Load(PS_DISSOLVE);
+	for (int i = 0; i < RankingDataManager::RANKING_DATA_NUM; ++i) m_files[I_RANKING_FIRST + i] = fileMgr.Load(I_RANKING_FIRST + i);
 	auto& effMgr = EffekseerManager::GetInstance();
-	effMgr.LoadFile(E_GATE_BULLET_BLUE);
-	effMgr.LoadFile(E_GATE_BULLET_ORANGE);
 	effMgr.LoadFile(E_LASER_BULLET);
+	effMgr.LoadFile(E_DEATH_TURRET);
+	effMgr.LoadFile(E_BULLET);
+	effMgr.LoadFile(E_MUZZLE_FLASH);
+
+	SetUseASyncLoadFlag(false);
+	// 画面生成
+	m_cameraRt1 = MakeScreen(Game::WINDOW_W, Game::WINDOW_H, true);
+	m_cameraRt2 = MakeScreen(Game::WINDOW_W, Game::WINDOW_H, true);
+	// VRAMにメモリを確保
+	m_cBuffH = CreateShaderConstantBuffer(sizeof(CBuff));
+	m_cBuff = static_cast<CBuff*>(GetBufferShaderConstantBuffer(m_cBuffH));
+	SetUseASyncLoadFlag(true);
 
 	// マネージャー生成
-	m_stageMgr = std::make_shared<StageManager>(STAGE_NAME);
+	for (int i = 0; i < STAGE_NUM; ++i)
+	{
+		m_stageMgrs.push_back(std::make_shared<StageManager>(STAGE_NAME[i].c_str()));
+	}
 	m_cameraMgr = std::make_shared<CameraManager>();
-	m_gateMgr = std::make_shared<GateManager>(m_cameraMgr, STAGE_NAME);
-	m_player = std::make_shared<Player>(std::dynamic_pointer_cast<PlayerCamera>(m_cameraMgr->GetCamera(CameraKind::PLAYER)), m_gateMgr);
 	// 初期化(非同期)
-	m_stageMgr->AsyncInit();
+	for (auto& mgr : m_stageMgrs) mgr->AsyncInit();
 }
 
 void SceneTitle::Init()
 {
 	m_scnMgr.ChangeBgmH(m_files.at(B_TITLE)->GetHandle());
-	// 画面生成
-	m_rtTable.resize(static_cast<int>(RTKind::MAX));
-	for (auto& handle : m_rtTable) handle = MakeScreen(Game::WINDOW_W, Game::WINDOW_H, true);
 	// UIデータ生成
-	m_menuUIList		= UIMoveData::Make(static_cast<int>(MenuCurrent::MAX), DRAW_MENU_X, DRAW_MENU_Y, 0, DRAW_MENU_Y_INTERVAL);
-	m_saveUIList		= UIMoveData::Make(SaveDataManager::GetInstance().GetSaveDataNum(), DRAW_SAVE_X + DRAW_OUT_VAL, DRAW_SAVE_Y, 0, DRAW_SAVE_Y_INTERVAL);
-	m_decideUIList		= UIMoveData::Make(static_cast<int>(DecideCurrent::MAX), DRAW_DECIDE_X + DRAW_OUT_VAL, DRAW_DECIDE_Y, 0, DRAW_DECIDE_Y_INTERVAL);
-	m_checkUIList		= UIMoveData::Make(static_cast<int>(CheckCurrent::MAX), DRAW_CHECK_X, DRAW_CHECK_Y - DRAW_ALERT_OUT_VAL, DRAW_CHECK_X_INTERVAL, 0);
-	m_saveInfoUI		= UIMoveData::Make(DRAW_SAVE_INFO_X + DRAW_OUT_VAL, DRAW_SAVE_INFO_Y);
-	m_saveArmWindowUI	= UIMoveData::Make(DRAW_SAVE_WINDOW_X + DRAW_OUT_VAL, DRAW_SAVE_WINDOW_Y);
-	m_decideArmWindowUI = UIMoveData::Make(DRAW_DECIDE_WINDOW_X + DRAW_OUT_VAL, DRAW_DECIDE_WINDOW_Y);
-	m_alertUI			= UIMoveData::Make(DRAW_ALERT_X, DRAW_ALERT_Y - DRAW_ALERT_OUT_VAL);
-	m_rankingUI			= UIMoveData::Make(Game::CENTER_X, Game::CENTER_Y);
-	// 初期化
-	m_menuUIList[0]->ChangeHorizontal(DRAW_MENU_X - DRAW_MENU_X_INTERVAL_1);
-	m_stageMgr->Init(m_player.get(), m_gateMgr.get());
-	m_gateMgr->Init(m_player);
-	m_player->Init(CAMERA_POS, CAMERA_DIR);
+	m_mainUI			= UIMoveData::Make(DRAW_MENU_FRAME_X, DRAW_MENU_Y);
+	m_saveUI			= UIMoveData::Make(DRAW_SAVE_FRAME_X, DRAW_SAVE_FRAME_Y);
+	m_saveInfoUI		= UIMoveData::Make(DRAW_SAVE_INFO_X, DRAW_SAVE_INFO_Y);
+	m_decideUI			= UIMoveData::Make(DRAW_DECIDE_X, DRAW_DECIDE_Y);
+	m_rankingUI			= UIMoveData::Make(Game::CENTER_X, Game::CENTER_Y + DRAW_RANKING_OUT_VAL);
+	for (auto& mgr : m_stageMgrs) mgr->Init(nullptr, nullptr);
+	// 1つ目のカメラを設定
+	m_nowCamera = m_cameraMgr->GetCamera(CameraKind::TITLE_1);
+	m_nowCamera->SetFront(CAMERA_DIRS.at(0), 0.0f);
+	m_nowCamera->SetTargetPos(CAMERA_POSS.at(0));
+	m_nowCamera->SetTps(false);
+	// 2つ目のカメラを設定
+	m_nextCamera = m_cameraMgr->GetCamera(CameraKind::TITLE_2);
+	m_nextCamera->SetFront(CAMERA_DIRS.at(1), 0.0f);
+	m_nextCamera->SetTargetPos(CAMERA_POSS.at(1));
+	m_nextCamera->SetTps(false);
+	// シェーダの設定
+	m_cBuff->fireRed = COLOR_FIRE_R;
+	m_cBuff->fireGreen = COLOR_FIRE_G;
+	m_cBuff->fireBlue = COLOR_FIRE_B;
 }
 
 void SceneTitle::End()
 {
-	m_stageMgr->End();
+	for (auto& mgr : m_stageMgrs) mgr->End();
 	m_cameraMgr->End();
-	m_gateMgr->End();
 
-	for (auto& handle : m_rtTable) DeleteGraph(handle);
 	EffekseerManager::GetInstance().ReleaseFile();
 }
 
 void SceneTitle::Update(bool isFade)
 {
 	// ウェーブ更新
-	++m_waveCount;
+	++m_uiCount;
 	// UI更新
-	m_alertUI->Update(MOVE_SPEED);
-	m_saveArmWindowUI->Update(MOVE_SPEED);
-	m_decideArmWindowUI->Update(MOVE_SPEED, EasingType::LERP);
+	m_mainUI->Update(MOVE_SPEED, EasingType::LERP);
+	m_saveUI->Update(MOVE_SPEED, EasingType::LERP);
 	m_saveInfoUI->Update(MOVE_SPEED, EasingType::LERP);
-	for (auto& data : m_menuUIList)	data->Update(MOVE_SPEED);
-	for (auto& data : m_saveUIList)	data->Update(MOVE_SPEED);
-	for (auto& data : m_decideUIList) data->Update(MOVE_SPEED);
-	for (auto& data : m_checkUIList) data->Update(MOVE_SPEED);
-	// 入力による動作更新
+	m_decideUI->Update(MOVE_SPEED, EasingType::LERP);
+	m_rankingUI->Update(MOVE_SPEED, EasingType::LERP);
+	// ステージ更新
 	StageUpdate();
 
 	if (isFade) return;
@@ -416,24 +357,6 @@ void SceneTitle::Update(bool isFade)
 		return;
 	}
 	(this->*m_updateFunc)();
-	if (m_isFade)
-	{
-		--m_fadeFrame;
-		if (m_fadeFrame < 0)
-		{
-			m_fadeFrame = 0;
-			m_isFade = false;
-		}
-	}
-	if (m_isFadeTime)
-	{
-		m_fadeFrame -= TIME_FADE_SPEED;
-		if (m_fadeFrame < -FADE_FRAME)
-		{
-			m_fadeFrame = 0;
-			m_isFadeTime = false;
-		}
-	}
 }
 
 void SceneTitle::Draw() const
@@ -441,19 +364,79 @@ void SceneTitle::Draw() const
 	auto& fontMgr = FontManager::GetInstance();
 
 	/* 共通で描画する部分 */
-	DrawStage();
+	if (m_isStageChangeFade)
+	{
+		// フェード中は2つのカメラで描画
+		SceneHelp::GetInstance().DrawModel(nullptr, m_cameraMgr, m_stageMgrs.at(m_stageIndex), nullptr, m_cameraRt1, CameraKind::TITLE_1);
+		SceneHelp::GetInstance().DrawModel(nullptr, m_cameraMgr, m_stageMgrs.at((m_stageIndex + 1) % STAGE_NUM), nullptr, m_cameraRt2, CameraKind::TITLE_2);
+		// 合成
+		SetDrawScreen(DX_SCREEN_BACK);
+		int dissolveH = m_files.at(I_DISSOLVE)->GetHandle();
+		int dissolvePS = m_files.at(PS_DISSOLVE)->GetHandle();
+		UpdateShaderConstantBuffer(m_cBuffH);
+		SetShaderConstantBuffer(m_cBuffH, DX_SHADERTYPE_PIXEL, 4);
+		MyEngine::DrawGraph(0, 0, dissolvePS, m_cameraRt1, m_cameraRt2, dissolveH);
+	}
+	else
+	{
+		SceneHelp::GetInstance().DrawModel(nullptr, m_cameraMgr, m_stageMgrs.at(m_stageIndex), nullptr, DX_SCREEN_BACK, CameraKind::TITLE_1);
+	}
+
+
 	// 画像ハンドル
-	int selectH = m_files.at(I_COMMON_SELECT_FRAME)->GetHandle();
-	int notSelectH = m_files.at(I_COMMON_FRAME)->GetHandle();
-	// メインとなる部分描画
-	if (m_isDrawMenu)	UIUtility::DrawFrameAndStr(m_menuUIList, 1.0f, 0.0f, FONT_SIZE_MENU, m_menuCurrent, STR_MENU, selectH, notSelectH, COLOR_SELECT, COLOR_NOT_SELECT, UIUtility::DrawStrType::WAVE, STR_WAVE_SIZE, m_waveCount * STR_WAVE_SPEED, true);
-	else				UIUtility::DrawFrameAndStr(m_menuUIList, 1.0f, 0.0f, FONT_SIZE_MENU, m_menuCurrent, STR_MENU, selectH, notSelectH, COLOR_SELECT, COLOR_NOT_SELECT, UIUtility::DrawStrType::NORMAL, 0, -1.0f, true);
-	// 追加情報部分の枠描画
-	ArmWindowDraw(m_saveArmWindowUI, DRAW_SAVE_SUB_ARM_FRAME_X, DRAW_SAVE_SUB_ARM_FRAME_Y, DRAW_SAVE_SUB_ARM_X, DRAW_SAVE_SUB_ARM_Y, I_SAVE_WINDOW, I_SAVE_ARM_FRAME, I_SAVE_ARM);
-	ArmWindowDraw(m_decideArmWindowUI, DRAW_DECIDE_SUB_ARM_FRAME_X, DRAW_DECIDE_SUB_ARM_FRAME_Y, DRAW_DECIDE_SUB_ARM_X, DRAW_DECIDE_SUB_ARM_Y, I_DECIDE_WINDOW, I_DECIDE_ARM_FRAME, I_DECIDE_ARM);
-	// セーブデータ選択のUI描画
-	if (m_isDrawSelectSave) UIUtility::DrawFrameAndStr(m_saveUIList, FILE_SIZE_SAVE, 0.0f, FONT_SIZE_SAVE, m_saveDataNo, STR_SAVE, selectH, notSelectH, COLOR_SELECT, COLOR_NOT_SELECT, UIUtility::DrawStrType::WAVE, STR_WAVE_SIZE, m_waveCount * STR_WAVE_SPEED, true);
-	else					UIUtility::DrawFrameAndStr(m_saveUIList, FILE_SIZE_SAVE, 0.0f, FONT_SIZE_SAVE, m_saveDataNo, STR_SAVE, selectH, notSelectH, COLOR_SELECT, COLOR_NOT_SELECT, UIUtility::DrawStrType::NORMAL, 0, -1.0f, true);
+	int frameH = m_files.at(I_FRAME)->GetHandle();
+	// フレームの点滅具合を計算
+	const float rate = std::cosf(m_uiCount * SPEED_FRAME_FADE);
+	const float halfSize = ALPHA_SIZE_FRAME * 0.5f;
+	const int alpha = static_cast<int>(Game::ALPHA_VAL - halfSize + halfSize * rate);
+
+	/* ロゴ */
+	DrawRotaGraphFast(DRAW_LOGO_X, DRAW_LOGO_Y, FILE_SIZE_LOGO, 0.0f, m_files.at(I_LOGO)->GetHandle(), true);
+
+	/* メニュー */
+	// フレーム
+	if (m_isNowSelectMenu) SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
+	DrawRotaGraphFast(m_mainUI->x, m_mainUI->y, FILE_SIZE_MENU_FRAME, 0.0f, frameH, true);
+	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+	// 文字列
+	for (int i = 0; i < static_cast<int>(MenuCurrent::MAX); ++i)
+	{
+		int y = DRAW_MENU_Y + DRAW_MENU_Y_INTERVAL * i;
+		// 選択中の場合、ウェーブ描画
+		if (m_menuCurrent == i && m_isNowSelectMenu)  UIUtility::DrawWaveStrLeft(DRAW_MENU_STR_X, y, COLOR_SELECT, STR_MENU.at(i), FONT_SIZE_MENU, m_uiCount * STR_WAVE_SPEED, STR_WAVE_SIZE, true);
+		// 未選択の場合、通常描画
+		else									UIUtility::DrawShadowStrLeft(DRAW_MENU_STR_X, y, 2, 2, COLOR_NOT_SELECT, STR_MENU.at(i), FONT_SIZE_MENU);
+	}
+
+	/* セーブデータ選択 */
+	if (m_fadeSaveInfoFrame > 0)
+	{
+		const bool isFadeEnd = m_fadeSaveInfoFrame > FADE_FRAME_SAVE_INFO;
+		if (!isFadeEnd)
+		{
+			const float rate = m_fadeSaveInfoFrame / static_cast<float>(FADE_FRAME_SAVE_INFO);
+			const int alpha = static_cast<int>(Game::ALPHA_VAL * rate);
+			SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
+		}
+		// アーム＆ウィンドウ
+		DrawRotaGraphFast(DRAW_SAVE_X + DRAW_SUB_SAVE_ARM_X, DRAW_SAVE_Y + DRAW_SUB_SAVE_ARM_Y, FILE_SIZE_SAVE_ARM, 0.0f, m_files.at(I_SAVE_ARM)->GetHandle(), true);
+		DrawRotaGraphFast(DRAW_SAVE_X + DRAW_SUB_SAVE_ARM_FRAME_X, DRAW_SAVE_Y, FILE_SIZE_SAVE_ARM_FRAME, 0.0f, m_files.at(I_SAVE_ARM_FRAME)->GetHandle(), true);
+		DrawRotaGraphFast(DRAW_SAVE_X, DRAW_SAVE_Y, FILE_SIZE_SAVE_WINDOW, 0.0f, m_files.at(I_SAVE_WINDOW)->GetHandle(), true);
+		// フレーム
+		if (m_isNowSelectSaveData && isFadeEnd) SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
+		DrawRotaGraphFast(m_saveUI->x, m_saveUI->y, FILE_SIZE_SAVE_FRAME, 0.0f, frameH, true);
+		if (isFadeEnd) SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+		// 文字列
+		for (int i = 0; i < SaveDataManager::GetInstance().GetSaveDataNum(); ++i)
+		{
+			int y = DRAW_SAVE_Y + DRAW_SUB_SAVE_STR_Y + DRAW_SAVE_Y_INTERVAL * i;
+			// 選択中の場合、ウェーブ描画
+			if (m_saveDataNo == i && m_isNowSelectSaveData)	UIUtility::DrawWaveStrLeft(DRAW_SAVE_X + DRAW_SUB_SAVE_STR_X, y, COLOR_SELECT, STR_SAVE.at(i), FONT_SIZE_SAVE, m_uiCount * STR_WAVE_SPEED, STR_WAVE_SIZE, true);
+			// 未選択の場合、通常描画
+			else											UIUtility::DrawShadowStrLeft(DRAW_SAVE_X + DRAW_SUB_SAVE_STR_X, y, 2, 2, COLOR_NOT_SELECT, STR_SAVE.at(i), FONT_SIZE_SAVE);
+		}
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+	}
 	// それぞれでの描画処理
 	(this->*m_drawFunc)();
 	// PadUI
@@ -462,46 +445,94 @@ void SceneTitle::Draw() const
 
 void SceneTitle::StageUpdate()
 {
-	// ゲート弾を打っていない場合
-	if (!m_isShot)
-	{
-		// 待機時間を経過したら発射
-		++m_waitShotFrame;
-		if (m_waitShotFrame > WAIT_SHOT_FRAME)
-		{
-			SoundManager::GetInstance().PlaySe(m_files.at(S_SHOT_PLAYER)->GetHandle());
-			// 生成
-			auto bullet = std::make_shared<GateBullet>(m_gateMgr, GateKind::Orange);
-			// カメラの向いている方向に弾を進ませる
-			bullet->Init(SHOT_POS, SHOT_DIR);
-			// 追加
-			m_gateMgr->AddBullet(bullet);
+	// カメラの回転
+	++m_cameraFrame;
+	float rate = sinf(m_cameraFrame * CAMERA_ROT_SPEED);
+	float angle = CAMERA_ROT_ANGLE * rate;
+	const auto& rot = Quaternion::AngleAxis(angle, Vec3::Up());
+	m_nowCamera->SetFront(rot * CAMERA_DIRS.at(m_stageIndex), 0.0f);
+	m_nowCamera->Update();
+	m_nextCamera->SetFront(rot * CAMERA_DIRS.at((m_stageIndex + 1) % STAGE_NUM), 0.0f);
+	m_nextCamera->Update();
 
-			m_isShot = true;
+	// ステージフェードをしてる場合
+	if (m_isStageChangeFade)
+	{
+		// フェード更新
+		m_stageFade += STAGE_FADE_SPEED;
+		// フェード終了したら
+		if (m_stageFade > 1.0f)
+		{
+			m_isStageChangeFade = false;
+			m_stageFade = 1.0f;
+			// ステージ変更
+			m_stageChangeFrame = 0;
+			m_stageIndex = (m_stageIndex + 1) % STAGE_NUM;
+			// カメラの位置を変更
+			m_nowCamera->SetTargetPos(CAMERA_POSS.at(m_stageIndex));
+			m_nextCamera->SetTargetPos(CAMERA_POSS.at((m_stageIndex + 1) % STAGE_NUM));
+			// カメラの向きを変更
+			m_nowCamera->SetFront(rot * CAMERA_DIRS.at(m_stageIndex), 0.0f);
+			m_nextCamera->SetFront(rot * CAMERA_DIRS.at((m_stageIndex + 1) % STAGE_NUM), 0.0f);
+		}
+		m_cBuff->frame = m_stageFade;
+	}
+	// していない場合
+	else
+	{
+		// 待機
+		++m_stageChangeFrame;
+		// 一定フレーム経過したらフェード開始
+		if (m_stageChangeFrame > STAGE_CHANGE_FRAME)
+		{
+			m_stageFade = 0.0f;
+			m_isStageChangeFade = true;
+			m_cBuff->frame = 0.0f;
 		}
 	}
-
-	m_stageMgr->Update();
-	m_gateMgr->Update();
+	m_stageMgrs.at(m_stageIndex)->Update();
 }
 
 void SceneTitle::SelectMenuUpdate()
 {
-	if (CurrentUpdate(m_menuCurrent, m_menuUIList, DRAW_MENU_X, DRAW_MENU_X_INTERVAL_1, Command::BTN_UP, Command::BTN_DOWN))
+	bool isMove = false;
+	if (CursorUtility::CursorUp<MenuCurrent>(m_menuCurrent, MenuCurrent::MAX, Command::BTN_UP, true, REPEATE_INTERVAL)) isMove = true;
+	if (CursorUtility::CursorDown<MenuCurrent>(m_menuCurrent, MenuCurrent::MAX, Command::BTN_DOWN, true, REPEATE_INTERVAL)) isMove = true;
+	if (isMove)
 	{
+		m_mainUI->ChangeVertical(DRAW_MENU_Y + DRAW_MENU_Y_INTERVAL * m_menuCurrent);
 		SoundManager::GetInstance().PlaySe(m_files.at(S_CURSOR_MOVE)->GetHandle());
-		m_waveCount = 0;
+		m_uiCount = 0;
+		// ステージの変更
+		m_stageFade = 0.0f;
+		m_isStageChangeFade = true;
+		m_cBuff->frame = 0.0f;
 	}
+	--m_fadeSaveInfoFrame;
 
 	auto& input = Input::GetInstance();
 	// 決定
 	if (input.IsTriggerd(Command::BTN_OK))
 	{
 		SoundManager::GetInstance().PlaySe(m_files.at(S_DECIDE)->GetHandle());
-		// セーブデータ選択に移動
+		// スタート
 		if (m_menuCurrent == static_cast<int>(MenuCurrent::SELECT_SAVE))
 		{
-			OnSelectSaveData();
+			// 1つもセーブデータが存在しない場合
+			auto& saveDataMgr = SaveDataManager::GetInstance();
+			if (!saveDataMgr.IsExist(0))
+			{
+				// ゲームスタート
+				m_saveDataNo = 0;
+				OnStart();
+			}
+			else
+			{
+				// セーブデータ選択に移動
+				OnSelectSaveData();
+				// Window関係のものを不透明に
+				m_fadeSaveInfoFrame = std::max<int>(m_fadeSaveInfoFrame, 0);
+			}
 		}
 		// ランキングを開く
 		else if (m_menuCurrent == static_cast<int>(MenuCurrent::RANKING))
@@ -526,8 +557,8 @@ void SceneTitle::RankingUpdate()
 {
 	bool isMove = false;
 	auto stageNum = StageDataManager::GetInstance().GetStageNum() - 2;
-	if (CursorUtility::CursorUp(m_rankingCurrent, stageNum, Command::BTN_LEFT)) isMove = true;
-	if (CursorUtility::CursorDown(m_rankingCurrent, stageNum, Command::BTN_RIGHT)) isMove = true;
+	if (CursorUtility::CursorUp(m_rankingCurrent, stageNum, Command::BTN_LEFT, true, REPEATE_INTERVAL)) isMove = true;
+	if (CursorUtility::CursorDown(m_rankingCurrent, stageNum, Command::BTN_RIGHT, true, REPEATE_INTERVAL)) isMove = true;
 	if (isMove)
 	{
 		SoundManager::GetInstance().PlaySe(m_files.at(S_CURSOR_MOVE)->GetHandle());
@@ -539,26 +570,34 @@ void SceneTitle::RankingUpdate()
 	{
 		SoundManager::GetInstance().PlaySe(m_files.at(S_CANCEL)->GetHandle());
 		OnSelectMenu();
+		m_rankingUI->ChangeVertical(Game::CENTER_Y + DRAW_RANKING_OUT_VAL);
 	}
 }
 
 void SceneTitle::SelectSaveDataUpdate()
 {
-	// フェードしていない場合またはフェードフレームが-の場合は現在の番号を保存
-	if (!m_isFadeTime || m_fadeFrame < 0) m_preSaveDataNo = m_saveDataNo;
 	// カーソルが移動したら
-	if (CurrentUpdate(m_saveDataNo, m_saveUIList, DRAW_SAVE_X, DRAW_SAVE_X_INTERVAL, Command::BTN_UP, Command::BTN_DOWN))
+	const auto saveDataNum = SaveDataManager::GetInstance().GetSaveDataNum();
+	bool isMove = false;
+	if (CursorUtility::CursorUp(m_saveDataNo, saveDataNum, Command::BTN_UP, true, REPEATE_INTERVAL)) isMove = true;
+	if (CursorUtility::CursorDown(m_saveDataNo, saveDataNum, Command::BTN_DOWN, true, REPEATE_INTERVAL)) isMove = true;
+	if (isMove)
 	{
 		SoundManager::GetInstance().PlaySe(m_files.at(S_CURSOR_MOVE)->GetHandle());
-		// ウェーブカウント初期化
-		m_waveCount = 0;
-		// 決定側のwindowとセーブデータ情報の位置を移動
-		m_decideArmWindowUI->ChangeVertical(DRAW_DECIDE_WINDOW_Y + DRAW_DECIDE_WINDOW_INTERVAL_Y * m_saveDataNo, -1, true);
-		m_saveInfoUI->ChangeVertical(DRAW_SAVE_INFO_Y + DRAW_DECIDE_WINDOW_INTERVAL_Y * m_saveDataNo, -1, true);
-		// フレーム変更
-		m_fadeFrame = FADE_FRAME;
-		// フェードしている状態に
-		m_isFadeTime = true;
+		// カウント初期化
+		m_uiCount = 0;
+		m_fadeSaveNoFrame = 0;
+		m_isFadeSaveNo = true;
+		// 位置の変更
+		m_saveUI->ChangeVertical(DRAW_SAVE_FRAME_Y + DRAW_SAVE_Y_INTERVAL * m_saveDataNo, -1, true);
+		m_saveInfoUI->ChangeVertical(DRAW_SAVE_INFO_Y + DRAW_SAVE_INFO_Y_INTERVAL * m_saveDataNo, -1, true);
+	}
+	// フェード更新
+	++m_fadeSaveInfoFrame;
+	if (m_isFadeSaveNo)
+	{
+		++m_fadeSaveNoFrame;
+		m_isFadeSaveNo = m_fadeSaveNoFrame < FADE_FRAME_SAVE_NO;
 	}
 
 	auto& input = Input::GetInstance();
@@ -573,8 +612,6 @@ void SceneTitle::SelectSaveDataUpdate()
 			// セーブデータ決定に移動
 			OnDecideSaveData();
 			m_decideCurrent = 0;
-			m_fadeFrame = FADE_FRAME;
-			m_isFade = true;
 		}
 		// 存在しない場合
 		else
@@ -590,16 +627,23 @@ void SceneTitle::SelectSaveDataUpdate()
 		SoundManager::GetInstance().PlaySe(m_files.at(S_CANCEL)->GetHandle());
 		// メニュー選択に戻る
 		OnSelectMenu();
+		// Window関係のものを透明に
+		m_fadeSaveInfoFrame = std::min<int>(m_fadeSaveInfoFrame, FADE_FRAME_SAVE_INFO);
 	}
 }
 
 void SceneTitle::DecideSaveDataUpdate()
 {
-	if (CurrentUpdate(m_decideCurrent, m_decideUIList, DRAW_DECIDE_X, DRAW_DECIDE_X_INTERVAL, Command::BTN_UP, Command::BTN_DOWN))
+	bool isMove = false;
+	if (CursorUtility::CursorUp<DecideCurrent>(m_decideCurrent, DecideCurrent::MAX, Command::BTN_UP, true, REPEATE_INTERVAL)) isMove = true;
+	if (CursorUtility::CursorDown<DecideCurrent>(m_decideCurrent, DecideCurrent::MAX, Command::BTN_DOWN, true, REPEATE_INTERVAL)) isMove = true;
 	{
+		m_decideUI->ChangeVertical(DRAW_DECIDE_Y + DRAW_DECIDE_Y_INTERVAL * m_decideCurrent);
 		SoundManager::GetInstance().PlaySe(m_files.at(S_CURSOR_MOVE)->GetHandle());
-		m_waveCount = 0;
+		m_uiCount = 0;
 	}
+	// フェード更新
+	++m_fadeSaveInfoFrame;
 
 	auto& input = Input::GetInstance();
 	// 決定
@@ -615,46 +659,6 @@ void SceneTitle::DecideSaveDataUpdate()
 		// 初めから
 		else if (m_decideCurrent == static_cast<int>(DecideCurrent::DELETE_DATA))
 		{
-			// 削除確認に移動
-			OnCheckDeleteSaveData();
-		}
-	}
-	// キャンセル
-	else if (input.IsTriggerd(Command::BTN_CANCEL))
-	{
-		SoundManager::GetInstance().PlaySe(m_files.at(S_CANCEL)->GetHandle());
-		// セーブデータ選択に移動
-		OnSelectSaveData();
-		m_isFade = true;
-		m_fadeFrame = FADE_FRAME;
-	}
-}
-
-void SceneTitle::CheckDeleteSaveDataUpdate()
-{
-	bool isMove = false;
-	if (CursorUtility::CursorUp<CheckCurrent>(m_checkCurrent, CheckCurrent::MAX, Command::BTN_LEFT)) isMove = true;
-	if (CursorUtility::CursorDown<CheckCurrent>(m_checkCurrent, CheckCurrent::MAX, Command::BTN_RIGHT)) isMove = true;
-	if (isMove)
-	{
-		SoundManager::GetInstance().PlaySe(m_files.at(S_CURSOR_MOVE)->GetHandle());
-		m_waveCount = 0;
-	}
-
-	auto& input = Input::GetInstance();
-	// 決定
-	if (input.IsTriggerd(Command::BTN_OK))
-	{
-		SoundManager::GetInstance().PlaySe(m_files.at(S_DECIDE)->GetHandle());
-		// キャンセル
-		if (m_checkCurrent == static_cast<int>(CheckCurrent::CANCEL))
-		{
-			// セーブデータ決定に移動
-			OnDecideSaveData();
-		}
-		// 削除
-		else if (m_checkCurrent == static_cast<int>(CheckCurrent::OK))
-		{
 			// 初期化
 			auto& saveDataMgr = SaveDataManager::GetInstance();
 			saveDataMgr.Initialized(m_saveDataNo);
@@ -666,33 +670,27 @@ void SceneTitle::CheckDeleteSaveDataUpdate()
 	else if (input.IsTriggerd(Command::BTN_CANCEL))
 	{
 		SoundManager::GetInstance().PlaySe(m_files.at(S_CANCEL)->GetHandle());
-		// セーブデータ決定に移動
-		OnDecideSaveData();
+		// セーブデータ選択に移動
+		OnSelectSaveData();
 	}
 }
 
 void SceneTitle::OnSelectMenu()
 {
 	m_state = State::MENU;
-	// メニューに分類されているものを左から中央に戻す
-	UIMoveData::ChangeHorizontal(m_menuUIList, DRAW_MENU_X, m_menuCurrent, DRAW_MENU_X - DRAW_MENU_X_INTERVAL_1);
-	// Window関係のものを画面内から画面外に移す
-	UIMoveData::ChangeHorizontal(m_saveUIList, DRAW_SAVE_X + DRAW_OUT_VAL);
-	m_saveArmWindowUI->ChangeHorizontal(DRAW_SAVE_WINDOW_X + DRAW_OUT_VAL);
-	m_decideArmWindowUI->ChangeHorizontal(DRAW_DECIDE_WINDOW_X + DRAW_OUT_VAL);
-	m_saveInfoUI->ChangeHorizontal(DRAW_SAVE_INFO_X + DRAW_OUT_VAL);
 	// メンバ関数変更
 	m_updateFunc = &SceneTitle::SelectMenuUpdate;
 	m_drawFunc = &SceneTitle::DrawSelectMenu;
 	// カウント初期化
-	m_waveCount = 0;
-	m_isDrawMenu = true;
-	m_isDrawSelectSave = false;
+	m_uiCount = 0;
+	m_isNowSelectMenu = true;
+	m_isNowSelectSaveData = false;
 }
 
 void SceneTitle::OnRanking()
 {
 	m_state = State::RANKING;
+	m_rankingUI->ChangeVertical(Game::CENTER_Y);
 	// メンバ関数変更
 	m_updateFunc = &SceneTitle::RankingUpdate;
 	m_drawFunc = &SceneTitle::DrawRanking;
@@ -701,131 +699,39 @@ void SceneTitle::OnRanking()
 void SceneTitle::OnSelectSaveData()
 {
 	m_state = State::SELECT_SAVE_DATA;
-	// メニューに分類されているものを中央から左にずらす
-	UIMoveData::ChangeHorizontal(m_menuUIList, DRAW_MENU_X - DRAW_MENU_X_INTERVAL_2, m_menuCurrent, DRAW_MENU_X - DRAW_MENU_X_INTERVAL_1 - DRAW_MENU_X_INTERVAL_2);
-	// 画面外にあるWindowたちを画面内に持ってくる
-	UIMoveData::ChangeHorizontal(m_saveUIList, DRAW_SAVE_X, m_saveDataNo, DRAW_SAVE_X - DRAW_SAVE_X_INTERVAL);
-	m_decideArmWindowUI->ChangeHorizontal(DRAW_DECIDE_WINDOW_X);
-	m_saveArmWindowUI->ChangeHorizontal(DRAW_SAVE_WINDOW_X);
-	m_saveInfoUI->ChangeHorizontal(DRAW_SAVE_INFO_X);
-	UIMoveData::ChangeHorizontal(m_decideUIList, DRAW_DECIDE_X + DRAW_SAVE_INFO_AND_DECIDE_OUT_VAL, m_decideCurrent, DRAW_DECIDE_X + DRAW_SAVE_INFO_AND_DECIDE_OUT_VAL - DRAW_DECIDE_X_INTERVAL);
 	// メンバ関数変更
 	m_updateFunc = &SceneTitle::SelectSaveDataUpdate;
 	m_drawFunc = &SceneTitle::DrawSelectSaveData;
 	// カウント初期化
-	m_waveCount = 0;
-	m_isDrawMenu = false;
-	m_isDrawSelectSave = true;
+	m_uiCount = 0;
+	m_isNowSelectMenu = false;
+	m_isNowSelectSaveData = true;
 }
 
 void SceneTitle::OnDecideSaveData()
 {
-	UIMoveData::ChangeVertical(m_checkUIList, DRAW_CHECK_Y - DRAW_ALERT_OUT_VAL);
-	m_alertUI->ChangeVertical(DRAW_ALERT_Y - DRAW_ALERT_OUT_VAL);
-	m_saveInfoUI->ChangeHorizontal(DRAW_SAVE_INFO_X + DRAW_SAVE_INFO_AND_DECIDE_OUT_VAL);
-	UIMoveData::ChangeHorizontal(m_decideUIList, DRAW_DECIDE_X, m_decideCurrent, DRAW_DECIDE_X - DRAW_DECIDE_X_INTERVAL);
 	m_state = State::DECIDE_SAVE_DATA;
 	// メンバ関数変更
 	m_updateFunc = &SceneTitle::DecideSaveDataUpdate;
 	m_drawFunc = &SceneTitle::DrawDecideSaveData;
 	// カウント初期化
-	m_waveCount = 0;
-	m_isDrawSelectSave = false;
-}
-
-void SceneTitle::OnCheckDeleteSaveData()
-{
-	UIMoveData::ChangeVertical(m_checkUIList, DRAW_CHECK_Y);
-	m_alertUI->ChangeVertical(DRAW_ALERT_Y);
-	m_state = State::CHECK_DELETE;
-	// メンバ関数変更
-	m_updateFunc = &SceneTitle::CheckDeleteSaveDataUpdate;
-	m_drawFunc = &SceneTitle::DrawCheckDeleteSaveData;
-	// カウント初期化
-	m_waveCount = 0;
-	// チェック位置初期化
-	m_checkCurrent = 0;
-}
-
-void SceneTitle::DrawStage() const
-{
-	// ゲートの生成状況に合わせて変更
-	if (m_gateMgr->IsCreateBothGates()) DrawBlend();
-	else								DrawNormal();
-}
-
-void SceneTitle::DrawNormal() const
-{
-	DrawModelBlend(DX_SCREEN_BACK, -1, -1, CameraKind::PLAYER, m_cameraMgr->GetCamera(CameraKind::PLAYER)->IsTps());
-	auto& effMgr = EffekseerManager::GetInstance();
-	effMgr.SyncCamera();
-	effMgr.Draw();
-}
-
-void SceneTitle::DrawBlend() const
-{
-	auto rtGateA = m_rtTable[static_cast<int>(RTKind::GATE_A_TEX)];
-	auto rtGateB = m_rtTable[static_cast<int>(RTKind::GATE_B_TEX)];
-
-	// それぞれのゲートから見た景色を描画
-	DrawGateBlend(rtGateA, CameraKind::GATE_A, CameraKind::GATE_A_FROM_B);
-	DrawGateBlend(rtGateB, CameraKind::GATE_B, CameraKind::GATE_B_FROM_A);
-
-	DrawModelBlend(DX_SCREEN_BACK, rtGateA, rtGateB, CameraKind::PLAYER, m_cameraMgr->GetCamera(CameraKind::PLAYER)->IsTps());
-	auto& effMgr = EffekseerManager::GetInstance();
-	effMgr.SyncCamera();
-	effMgr.Draw();
-}
-
-void SceneTitle::DrawGateBlend(int rt, CameraKind gate, CameraKind gateFrom) const
-{
-	auto rtTemp1 = m_rtTable[static_cast<int>(RTKind::TEMP_1)];
-	auto rtTemp2 = m_rtTable[static_cast<int>(RTKind::TEMP_2)];
-
-	{
-		SetDrawScreen(rtTemp1);
-		ClearDrawScreen();
-		m_cameraMgr->AppInfo(gateFrom);
-
-		m_stageMgr->Draw();
-	}
-	for (int i = 0; i < 3; ++i)
-	{
-		SetDrawScreen(rtTemp2);
-		m_cameraMgr->AppInfo(gateFrom);
-		if (i == 0)
-		{
-			ClearDrawScreen();
-			m_gateMgr->DrawGate(rtTemp1, rtTemp1);
-		}
-		else
-		{
-			m_gateMgr->DrawGate(rtTemp2, rtTemp2);
-		}
-
-		// オブジェクト描画
-		m_stageMgr->Draw();
-	}
-	// ゲートからの画面を描画してあげる
-	DrawModelBlend(rt, rtTemp2, rtTemp2, gate, true);
-}
-
-void SceneTitle::DrawModelBlend(int rt, int tex1, int tex2, CameraKind camera, bool isPlayerDraw) const
-{
-	// 使用RTの決定
-	SetDrawScreen(rt);
-	ClearDrawScreen();
-	// カメラの適用
-	m_cameraMgr->AppInfo(camera);
-	// ゲートの描画
-	m_gateMgr->DrawGate(tex1, tex2);
-	// ステージの描画
-	m_stageMgr->Draw();
+	m_uiCount = 0;
+	m_isNowSelectSaveData = false;
 }
 
 void SceneTitle::DrawSelectMenu() const
 {
+	if (m_fadeSaveInfoFrame < 0) return;
+	const float rate = m_fadeSaveInfoFrame / static_cast<float>(FADE_FRAME_SAVE_INFO);
+	const int alpha = static_cast<int>(Game::ALPHA_VAL * rate);
+	SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
+	// アーム＆ウィンドウ
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_X, m_saveInfoUI->y + DRAW_SUB_SAVE_INFO_ARM_Y, FILE_SIZE_SAVE_INFO_ARM, 0.0f, m_files.at(I_DECIDE_ARM)->GetHandle(), true);
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_FRAME_X, m_saveInfoUI->y, FILE_SIZE_SAVE_INFO_ARM_FRAME, 0.0f, m_files.at(I_DECIDE_ARM_FRAME)->GetHandle(), true);
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X, m_saveInfoUI->y, FILE_SIZE_SAVE_INFO_WINDOW, 0.0f, m_files.at(I_DECIDE_WINDOW)->GetHandle(), true);
+	// セーブデータ情報描画
 	DrawSaveInfo(m_saveDataNo);
+	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 }
 
 void SceneTitle::DrawRanking() const
@@ -835,114 +741,85 @@ void SceneTitle::DrawRanking() const
 	const auto& stageName = stageDataMgr.GetStageName(m_rankingCurrent + 1);
 	auto& rnkMgr = RankingDataManager::GetInstance();
 	// ウィンドウ描画
-	DrawRotaGraphFast(m_rankingUI->x, m_rankingUI->y, 1.0f, 0.0f, m_files.at(I_RANKING_WINDOW)->GetHandle(), true);
+	DrawRotaGraphFast(m_rankingUI->x, m_rankingUI->y, 1.0f, 0.0f, m_files.at(I_RANKING_FRAME)->GetHandle(), true);
 	// 矢印描画
-	int addArrowX = static_cast<int>(std::sin(m_waveCount * Game::DEG_2_RAD * SWIPE_SPEED_ARROW) * DRAW_RANKING_ARROW_X_SWIPE_SIZE);
-	DrawRotaGraphFast(m_rankingUI->x - DRAW_RANKING_ARROW_SUB_X + addArrowX, m_rankingUI->y - DRAW_RANKING_ARROW_SUB_Y, 1.0f, 0.0f, m_files.at(I_RANKING_ARROW)->GetHandle(), true);
-	DrawRotaGraphFast(m_rankingUI->x + DRAW_RANKING_ARROW_SUB_X - addArrowX, m_rankingUI->y - DRAW_RANKING_ARROW_SUB_Y, 1.0f, 180.0f * Game::DEG_2_RAD, m_files.at(I_RANKING_ARROW)->GetHandle(), true);
-	UIUtility::DrawWaveStr(m_rankingUI->x - DRAW_RANKING_STAGE_NAME_SUB_X, m_rankingUI->y - DRAW_RANKING_STAGE_NAME_SUB_Y, COLOR_RANKING, stageName, FONT_SIZE_RANKING_STAGE_NAME, m_waveCount * WAVE_SPEED_STAGE_NAME, DRAW_RANKING_STAGE_NAME_WAVE_SIZE, true);
+	int addArrowX = static_cast<int>(std::sin(m_uiCount * Game::DEG_2_RAD * SWIPE_SPEED_ARROW) * DRAW_RANKING_ARROW_X_SWIPE_SIZE);
+	DrawRotaGraphFast(m_rankingUI->x - DRAW_SUB_RANKING_ARROW_X + addArrowX, m_rankingUI->y - DRAW_SUB_RANKING_ARROW_Y, FILE_SIZE_RANKING_ARROW, 0.0f, m_files.at(I_RANKING_ARROW)->GetHandle(), true);
+	DrawRotaGraphFast(m_rankingUI->x + DRAW_SUB_RANKING_ARROW_X - addArrowX, m_rankingUI->y - DRAW_SUB_RANKING_ARROW_Y, FILE_SIZE_RANKING_ARROW, 0.0f, m_files.at(I_RANKING_ARROW)->GetHandle(), true, true);
+	UIUtility::DrawWaveStr(m_rankingUI->x, m_rankingUI->y - DRAW_SUB_RANKING_NAME_Y, COLOR_RANKING_NAME, stageName, FONT_SIZE_RANKING_NAME, m_uiCount * WAVE_SPEED_RANKING_NAME, WAVE_SIZE_RANKING_NAME, true);
 
 	// 順位、タイム描画
-	constexpr int halfNum = static_cast<int>(RankingDataManager::RANKING_DATA_NUM * 0.5f);
-	int drawStrBaseX = m_rankingUI->x - DRAW_RANKING_STR_SUB_X;
-	int drawStrBaseY = m_rankingUI->y - DRAW_RANKING_STR_SUB_Y;
+	int startY = m_rankingUI->y + DRAW_SUB_RANKING_INFO_Y;
 	for (int i = 0; i < RankingDataManager::RANKING_DATA_NUM; ++i)
 	{
-		int x = drawStrBaseX + DRAW_RANKING_STR_X_INTERVAL * (i / halfNum);
-		int y = drawStrBaseY + DRAW_RANKING_STR_Y_INTERVAL * (i % halfNum);
-		std::wostringstream oss;
-		oss << i + 1 << L"位";
-		UIUtility::DrawShadowStrLeft(x, y, 2, 2, COLOR_RANKING, oss.str(), FONT_SIZE_RANKING_RANK);
+		int y = startY + DRAW_SUB_RANKING_INFO_Y_INTERVAL * i;
+		// N位描画
+		DrawRotaGraphFast(m_rankingUI->x + DRAW_SUB_RANKING_RANKING_X, y, 1.0f, 0.0f, m_files.at(I_RANKING_FIRST + i)->GetHandle(), true);
 		auto timeFrame = rnkMgr.GetTime(stageName, i);
 		// 記録がない場合
 		if (timeFrame < 0)
 		{
-			UIUtility::DrawShadowStrLeft(x + DRAW_RANKING_NOT_DATA_SUB_X, y, 2, 2, COLOR_RANKING, L"記録がありません", FONT_SIZE_RANKING_TIME);
+			UIUtility::DrawShadowStrLeft(m_rankingUI->x, y, 2, 2, COLOR_RANKING_DATA, L"記録がありません", FONT_SIZE_RANKING_INFO);
 		}
 		// 記録がある場合
 		else
 		{
 			const auto& rank = stageDataMgr.GetRank(stageName, timeFrame);
 			const auto& path = RANK_FILE_PATH.at(rank);
-			DrawRotaGraphFast(x + DRAW_RANKING_RANK_SUB_X, y, FILE_SIZE_RANKING_RANK, 0.0f, m_files.at(path)->GetHandle(), true);
-			TimeUtility::DrawTime(x + DRAW_RANKING_TIME_SUB_X, y, timeFrame, TIME_SIZE, COLOR_TIME, true);
+			DrawRotaGraphFast(m_rankingUI->x + DRAW_SUB_RANKING_RANK_X, y, FILE_SIZE_RANKING_RANK, 0.0f, m_files.at(path)->GetHandle(), true);
+			TimeUtility::DrawTime(m_rankingUI->x + DRAW_SUB_RANKING_TIME_X, y, timeFrame, FILE_SIZE_RANKING_INFO, COLOR_RANKING_DATA, true);
 		}
 	}
 }
 
 void SceneTitle::DrawSelectSaveData() const
 {
-	auto& saveDataMgr = SaveDataManager::GetInstance();
-	auto& stageDataMgr = StageDataManager::GetInstance();
-	if (m_isFade)
+	// フェード中ならα描画
+	if (m_fadeSaveInfoFrame < FADE_FRAME_SAVE_INFO)
 	{
-		int alpha = static_cast<int>(Game::ALPHA_VAL * (m_fadeFrame / static_cast<float>(FADE_FRAME)));
-		// 透明度変更
+		const float rate = m_fadeSaveInfoFrame / static_cast<float>(FADE_FRAME_SAVE_INFO);
+		const int alpha = static_cast<int>(Game::ALPHA_VAL * rate);
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
-		// 画像ハンドル
-		int selectH = m_files.at(I_COMMON_SELECT_FRAME)->GetHandle();
-		int notSelectH = m_files.at(I_COMMON_FRAME)->GetHandle();
-		// 続きから・初めからのUI描画
-		UIUtility::DrawFrameAndStr(m_decideUIList, FILE_SIZE_DECIDE, 0.0f, FONT_SIZE_DECIDE, m_decideCurrent, STR_DECIDE, selectH, notSelectH, COLOR_SELECT, COLOR_NOT_SELECT, UIUtility::DrawStrType::NORMAL, 0, -1.0f, true);
-		// 透明度変更
-		SetDrawBlendMode(DX_BLENDMODE_ALPHA, Game::ALPHA_VAL - alpha);
 	}
-	else if (m_isFadeTime)
+	// フェード中でない場合、もう一つがフェード中ならα描画
+	else if (m_isFadeSaveNo)
 	{
-		int alpha = static_cast<int>(Game::ALPHA_VAL * (m_fadeFrame / static_cast<float>(FADE_FRAME)));
-		// 透明度変更
-		SetDrawBlendMode(DX_BLENDMODE_ALPHA, std::max<int>(alpha, 0));
-		// セーブデータの情報描画
-		DrawSaveInfo(m_preSaveDataNo);
-		// 透明度変更
-		SetDrawBlendMode(DX_BLENDMODE_ALPHA, std::max<int>(alpha * -1, 0));
+		const float rate = m_fadeSaveNoFrame / static_cast<float>(FADE_FRAME_SAVE_NO);
+		const int alpha = static_cast<int>(Game::ALPHA_VAL * rate);
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
 	}
-	// セーブデータの情報描画
+	// アーム＆ウィンドウ
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_X,		 m_saveInfoUI->y + DRAW_SUB_SAVE_INFO_ARM_Y, FILE_SIZE_SAVE_INFO_ARM,		0.0f, m_files.at(I_DECIDE_ARM)->GetHandle(), true);
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_FRAME_X, m_saveInfoUI->y,							 FILE_SIZE_SAVE_INFO_ARM_FRAME, 0.0f, m_files.at(I_DECIDE_ARM_FRAME)->GetHandle(), true);
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X,									 m_saveInfoUI->y,							 FILE_SIZE_SAVE_INFO_WINDOW,	0.0f, m_files.at(I_DECIDE_WINDOW)->GetHandle(), true);
+	// セーブデータ情報描画
 	DrawSaveInfo(m_saveDataNo);
-	// ブレンドなしに
 	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 }
 
 void SceneTitle::DrawDecideSaveData() const
 {
-	// 画像ハンドル
-	int selectH = m_files.at(I_COMMON_SELECT_FRAME)->GetHandle();
-	int notSelectH = m_files.at(I_COMMON_FRAME)->GetHandle();
-	if (m_isFade)
-	{
-		int alpha = static_cast<int>(Game::ALPHA_VAL * (m_fadeFrame / static_cast<float>(FADE_FRAME)));
-		// 透明度変更
-		SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
-		// セーブデータの情報描画
-		DrawSaveInfo(m_saveDataNo);
-		// 透明度変更
-		SetDrawBlendMode(DX_BLENDMODE_ALPHA, Game::ALPHA_VAL - alpha);
-	}
-	// 続きから・初めからのUI描画
-	UIUtility::DrawFrameAndStr(m_decideUIList, FILE_SIZE_DECIDE, 0.0f, FONT_SIZE_DECIDE, m_decideCurrent, STR_DECIDE, selectH, notSelectH, COLOR_SELECT, COLOR_NOT_SELECT, UIUtility::DrawStrType::WAVE, STR_WAVE_SIZE, m_waveCount * STR_WAVE_SPEED, true);
-	// ブレンドなしに
+	const float rate = std::cosf(m_uiCount * SPEED_FRAME_FADE);
+	const float halfSize = ALPHA_SIZE_FRAME * 0.5f;
+	const int alpha = static_cast<int>(Game::ALPHA_VAL - halfSize + halfSize * rate);
+	// アーム＆ウィンドウ
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_X,		 m_saveInfoUI->y + DRAW_SUB_SAVE_INFO_ARM_Y, FILE_SIZE_SAVE_INFO_ARM,		0.0f, m_files.at(I_DECIDE_ARM)->GetHandle(), true);
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_FRAME_X, m_saveInfoUI->y,							 FILE_SIZE_SAVE_INFO_ARM_FRAME, 0.0f, m_files.at(I_DECIDE_ARM_FRAME)->GetHandle(), true);
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X,									 m_saveInfoUI->y,							 FILE_SIZE_SAVE_INFO_WINDOW,	0.0f, m_files.at(I_DECIDE_WINDOW)->GetHandle(), true);
+	// フレーム
+	int addY = DRAW_SAVE_INFO_Y_INTERVAL * m_saveDataNo;
+	SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
+	DrawRotaGraphFast(m_decideUI->x, m_decideUI->y + addY, FILE_SIZE_DECIDE_FRAME, 0.0f, m_files.at(I_FRAME)->GetHandle(), true);
 	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
-	// 警告ウィンドウ描画
-	DrawRotaGraphFast(m_alertUI->x, m_alertUI->y, FILE_SIZE_ALERT, 0.0f, m_files.at(I_OPTION_WINDOW)->GetHandle(), true);
-	// 削除確認のUI描画
-	UIUtility::DrawFrameAndStr(m_checkUIList, FILE_SIZE_CHECK, 0.0f, FONT_SIZE_CHECK, m_checkCurrent, STR_CHECK, selectH, notSelectH, COLOR_SELECT, COLOR_NOT_SELECT, UIUtility::DrawStrType::NORMAL, 0, -1.0f, true);
-}
-
-void SceneTitle::DrawCheckDeleteSaveData() const
-{
-	// 画像ハンドル
-	int selectH = m_files.at(I_COMMON_SELECT_FRAME)->GetHandle();
-	int notSelectH = m_files.at(I_COMMON_FRAME)->GetHandle();
-	// 続きから・初めからのUI描画
-	UIUtility::DrawFrameAndStr(m_decideUIList, FILE_SIZE_DECIDE, 0.0f, FONT_SIZE_DECIDE, m_decideCurrent, STR_DECIDE, selectH, notSelectH, COLOR_SELECT, COLOR_NOT_SELECT, UIUtility::DrawStrType::NORMAL, 0, -1.0f, true);
-	// 警告ウィンドウ描画
-	DrawRotaGraphFast(m_alertUI->x, m_alertUI->y, FILE_SIZE_ALERT, 0.0f, m_files.at(I_OPTION_WINDOW)->GetHandle(), true);
-	// 削除確認のUI描画
-	UIUtility::DrawFrameAndStr(m_checkUIList, FILE_SIZE_CHECK, 0.0f, FONT_SIZE_CHECK, m_checkCurrent, STR_CHECK, selectH, notSelectH, COLOR_SELECT, COLOR_NOT_SELECT, UIUtility::DrawStrType::NORMAL, 0, -1.0f, true);
-	// 文字描画
-	if (m_checkCurrent == static_cast<int>(CheckCurrent::CANCEL))	UIUtility::DrawWaveStr(m_alertUI->x, m_alertUI->y - DRAW_ALERT_STR_SUB_Y, COLOR_ALERT, STR_ALERT, FONT_SIZE_ALERT, m_waveCount * STR_WAVE_SPEED, STR_WAVE_SIZE, true);
-	else															UIUtility::DrawShakeStr(m_alertUI->x, m_alertUI->y - DRAW_ALERT_STR_SUB_Y, COLOR_ALERT, STR_ALERT, FONT_SIZE_ALERT, SHAKE_SIZE_ALERT, true);
-	
+	// 文字列
+	for (int i = 0; i < STR_DECIDE.size(); ++i)
+	{
+		int y = DRAW_DECIDE_Y + DRAW_SUB_DECIDE_STR_Y + DRAW_DECIDE_Y_INTERVAL * i + addY;
+		// 選択中の場合、ウェーブ描画
+		if (m_decideCurrent == i)	UIUtility::DrawWaveStrLeft(m_decideUI->x + DRAW_SUB_DECIDE_STR_X, y, COLOR_SELECT, STR_DECIDE.at(i), FONT_SIZE_DECIDE, m_uiCount * STR_WAVE_SPEED, STR_WAVE_SIZE, true);
+		// 未選択の場合、通常描画
+		else						UIUtility::DrawShadowStrLeft(m_decideUI->x + DRAW_SUB_DECIDE_STR_X, y, 2, 2, COLOR_NOT_SELECT, STR_DECIDE.at(i), FONT_SIZE_DECIDE);
+	}
 }
 
 void SceneTitle::DrawSaveInfo(int saveNo) const
@@ -952,18 +829,17 @@ void SceneTitle::DrawSaveInfo(int saveNo) const
 	if (saveDataMgr.IsExist(saveNo))
 	{
 		auto& stageDataMgr = StageDataManager::GetInstance();
-		const auto time = saveDataMgr.GetPlayTime(saveNo);
+		const auto time = saveDataMgr.GetTotalTime(saveNo);
 		const auto clearNo = saveDataMgr.GetClearStageNum(saveNo);
 		const auto stageNum = stageDataMgr.GetStageNum() - 1;
-		UIUtility::DrawShadowStrLeft(m_saveInfoUI->x, m_saveInfoUI->y, 2, 2, COLOR_NOT_SELECT, L"ユーザー名：", FONT_SIZE_SAVE_INFO);
-		TimeUtility::DrawTime(m_saveInfoUI->x, m_saveInfoUI->y + DRAW_SAVE_INFO_TIME_Y, COLOR_NOT_SELECT, FONT_SIZE_SAVE_INFO, time, L"プレイ時間：", nullptr, true);
+		TimeUtility::DrawTimeLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y + DRAW_SAVE_INFO_TIME_Y, time, FONT_SIZE_SAVE_INFO, COLOR_SELECT, L"プレイ時間：", nullptr, true);
 		std::wostringstream oss;
 		oss << L"クリア数　：" << clearNo << L" / " << stageNum;
-		UIUtility::DrawShadowStrLeft(m_saveInfoUI->x, m_saveInfoUI->y + DRAW_SAVE_INFO_CLEAR_NUM_Y, 2, 2, COLOR_NOT_SELECT, oss.str(), FONT_SIZE_SAVE_INFO);
+		UIUtility::DrawShadowStrLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y + DRAW_SAVE_INFO_CLEAR_NUM_Y, 2, 2, COLOR_SELECT, oss.str(), FONT_SIZE_SAVE_INFO);
 	}
 	else
 	{
-		UIUtility::DrawShadowStrLeft(m_saveInfoUI->x, m_saveInfoUI->y + DRAW_SAVE_INFO_TIME_Y, 2, 2, COLOR_NOT_SELECT, L"データが存在しません", FONT_SIZE_SAVE_INFO);
+		UIUtility::DrawShadowStrLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y, 2, 2, COLOR_SELECT, L"データが存在しません", FONT_SIZE_SAVE_INFO);
 	}
 }
 
@@ -975,44 +851,24 @@ void SceneTitle::DrawPadUI() const
 	const auto fontPadH = FontManager::GetInstance().GetHandle(FONT_SIZE_PAD);
 	if (m_state == State::RANKING)
 	{
-		SetDrawBlendMode(DX_BLENDMODE_ALPHA, DRAW_PAD_ALPHA);
 		// B:キャンセル
-		DrawRotaGraphFast(DRAW_PAD_FRAME_X_RANKING, DRAW_PAD_Y_RANKING, FILE_SIZE_PAD_FRAME, 0.0f, m_files.at(I_COMMON_FRAME)->GetHandle(), true);
-		DrawRotaGraphFast(DRAW_PAD_X_RANKING, DRAW_PAD_Y_RANKING, FILE_SIZE_PAD, 0.0f, m_files.at(I_PAD_B)->GetHandle(), true);
-		UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X_RANKING, DRAW_PAD_Y_RANKING, PAD_STR_SHADOW_POS, PAD_STR_SHADOW_POS, COLOR_PAD, L"キャンセル", FONT_SIZE_PAD);
-		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+		DrawRotaGraphFast(DRAW_PAD_X, DRAW_PAD_Y, FILE_SIZE_PAD, 0.0f, m_files.at(I_PAD_B)->GetHandle(), true);
+		UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X, DRAW_PAD_Y, PAD_STR_SHADOW_POS, PAD_STR_SHADOW_POS, COLOR_PAD, L"キャンセル", FONT_SIZE_PAD);
 	}
 	else
 	{
 		int y = DRAW_PAD_Y;
 		// A:決定
-		DrawRotaGraphFast(DRAW_PAD_FRAME_X, y, FILE_SIZE_PAD_FRAME, 0.0f, m_files.at(I_COMMON_FRAME)->GetHandle(), true);
 		DrawRotaGraphFast(DRAW_PAD_X, y, FILE_SIZE_PAD, 0.0f, m_files.at(I_PAD_A)->GetHandle(), true);
 		UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X, y, PAD_STR_SHADOW_POS, PAD_STR_SHADOW_POS, COLOR_PAD, L"決定", FONT_SIZE_PAD);
 		if (m_state != State::MENU)
 		{
 			// B:キャンセル
 			y -= DRAW_PAD_Y_INTERVAL;
-			DrawRotaGraphFast(DRAW_PAD_FRAME_X + DRAW_PAD_X_INTERVAL, y, FILE_SIZE_PAD_FRAME, 0.0f, m_files.at(I_COMMON_FRAME)->GetHandle(), true);
-			DrawRotaGraphFast(DRAW_PAD_X + DRAW_PAD_X_INTERVAL, y, FILE_SIZE_PAD, 0.0f, m_files.at(I_PAD_B)->GetHandle(), true);
-			UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X + DRAW_PAD_X_INTERVAL, y, PAD_STR_SHADOW_POS, PAD_STR_SHADOW_POS, COLOR_PAD, L"キャンセル", FONT_SIZE_PAD);
+			DrawRotaGraphFast(DRAW_PAD_X, y, FILE_SIZE_PAD, 0.0f, m_files.at(I_PAD_B)->GetHandle(), true);
+			UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X, y, PAD_STR_SHADOW_POS, PAD_STR_SHADOW_POS, COLOR_PAD, L"キャンセル", FONT_SIZE_PAD);
 		}
 	}
-}
-
-bool SceneTitle::CurrentUpdate(int& current, const std::vector<std::shared_ptr<UIMoveData>>& list, int start, int interval, const char* const upCmd, const char* const downCmd)
-{
-	bool isMove = false;
-	int pre = current;
-	if (CursorUtility::CursorUp(current, list.size(), upCmd)) isMove = true;
-	if (CursorUtility::CursorDown(current, list.size(), downCmd)) isMove = true;
-	if (isMove)
-	{
-		list[pre]->ChangeHorizontal(start);
-		list[current]->ChangeHorizontal(start - interval);
-	}
-
-	return isMove;
 }
 
 void SceneTitle::OnStart()
@@ -1020,17 +876,18 @@ void SceneTitle::OnStart()
 	auto& saveDataMgr = SaveDataManager::GetInstance();
 	// 使用セーブデータの決定
 	saveDataMgr.DecideUseSaveNo(m_saveDataNo);
-	// シーンの変更
-	auto next = std::make_shared<SceneStageSelect>();
-	m_scnMgr.Change(next);
-}
 
-void SceneTitle::ArmWindowDraw(const std::shared_ptr<UIMoveData>& data, int subArmFrameX, int subArmFrameY, int subArmX, int subArmY, int windowFileName, int armFrameFileName, int armFileName) const
-{
-	// ウィンドウ
-	DrawRotaGraphFast(data->x, data->y, 1.25f, 0.0f, m_files.at(windowFileName)->GetHandle(), true);
-	// アームフレーム
-	DrawRotaGraphFast(data->x - subArmFrameX, data->y - subArmFrameY, 1.25f, 0.0f, m_files.at(armFrameFileName)->GetHandle(), true);
-	// アーム
-	DrawRotaGraphFast(data->x - subArmX, data->y - subArmY, 1.0f, 0.0f, m_files.at(armFileName)->GetHandle(), true);
+	// セーブデータが存在しない場合
+	if (!saveDataMgr.IsExist(m_saveDataNo))
+	{
+		// チュートリアルシーンに遷移
+		auto next = std::make_shared<SceneTutorial>();
+		m_scnMgr.Change(next);
+	}
+	else
+	{
+		// ステージ選択シーンに遷移
+		auto next = std::make_shared<SceneStageSelect>();
+		m_scnMgr.Change(next);
+	}
 }

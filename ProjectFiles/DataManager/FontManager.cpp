@@ -1,6 +1,7 @@
 ﻿#include <DxLib.h>
 #include <cassert>
 #include "FontManager.h"
+#include "FileManager.h"
 
 namespace
 {
@@ -24,6 +25,15 @@ FontManager& FontManager::GetInstance()
 
 void FontManager::Init()
 {
+	//const wchar_t* const MASTER_PATH = L"Data/Master/FontMaster.csv";
+	//auto table = FileManager::GetInstance().LoadCsv(MASTER_PATH);
+	//for (auto& info : table)
+	//{
+	//	auto size = std::stoi(info[0]);
+	//	auto path = info[1].c_str();
+	//	m_handle[size] = CreateFontToHandle(path, size, -1);
+	//}
+
 	// 読み込むフォントファイルのパス
 	m_fontPath = kFontPath;
 	if (AddFontResourceEx(m_fontPath, FR_PRIVATE, NULL) > 0) 

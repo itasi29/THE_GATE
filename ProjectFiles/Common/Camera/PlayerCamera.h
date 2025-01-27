@@ -3,28 +3,38 @@
 
 class Gate;
 
+/// <summary>
+/// プレイヤーカメラを管理するクラス
+/// </summary>
 class PlayerCamera : public Camera
 {
 public:
-	PlayerCamera();
-	~PlayerCamera();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    PlayerCamera();
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    ~PlayerCamera();
 
-	/// <summary>
-	/// 更新
-	/// </summary>
-	/// <param name="playerPos">プレイヤーの座標</param>
-	void Update(const Vec3& playerPos);
+    /// <summary>
+    /// プレイヤーカメラ情報を更新する
+    /// </summary>
+    /// <param name="playerPos">プレイヤーの座標</param>
+    void Update(const Vec3& playerPos);
 
-	/// <summary>
-	/// ワープ処理
-	/// </summary>
-	/// <param name="playerPos">プレイヤーの座標</param>
-	/// <param name="gate">ワープ元のゲート</param>
-	/// <param name="pairGate">ワープ先のゲート</param>
-	void OnWarp(const Vec3& preVelDir, const Vec3& newVelDir, const Vec3& pos);
+    /// <summary>
+    /// ワープ処理を行う
+    /// </summary>
+    /// <param name="preVelDir">ワープ前の速度方向</param>
+    /// <param name="newVelDir">ワープ後の速度方向</param>
+    /// <param name="pos">ワープ先の座標</param>
+    void OnWarp(const Vec3& preVelDir, const Vec3& newVelDir, const Vec3& pos);
 
 private:
-	int m_frame;
-	bool m_isTurn;
+    // フレーム数
+    int m_frame;
+    // 回転フラグ
+    bool m_isTurn;
 };
-

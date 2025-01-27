@@ -68,13 +68,15 @@ void GateBullet::OnCollideEnter(MyEngine::Collidable* colider, int selfIndex, in
 	auto tag = colider->GetTag();
 	if (tag == ObjectTag::WALL)
 	{
-		m_gateMgr->CreateGate(m_kind, colider, hitInfo, Vec3::Up());
+		m_gateMgr->CreateGate(m_kind, colider, hitInfo, hitInfo.fixDir, Vec3::Up());
 	}
 	else if (tag == ObjectTag::FLOOR || tag == ObjectTag::ROOF)
 	{
 		auto velDir = m_rigid.GetDir();
 		velDir.y = 0;
-		m_gateMgr->CreateGate(m_kind, colider, hitInfo, velDir.GetNormalized());
+		Vec3 norm = Vec3::Up();
+		if (tag == ObjectTag::ROOF) norm = Vec3::Down();
+		m_gateMgr->CreateGate(m_kind, colider, hitInfo, norm, velDir.GetNormalized());
 	}
 
 	m_isBreak = true;

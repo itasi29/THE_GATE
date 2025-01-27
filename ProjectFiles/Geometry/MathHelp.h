@@ -3,6 +3,14 @@
 #include "Quaternion.h"
 
 /// <summary>
+/// ベクトルaからベクトルbまで向かうベクトルの上下の回転具合（ピッチ角）を取得する
+/// </summary>
+/// <param name="a">ベクトルa</param>
+/// <param name="b">ベクトルb</param>
+/// <returns>ピッチ角（度数法）</returns>
+float GetPitchAngle(const Vec3& vecA, const Vec3& vecB);
+
+/// <summary>
 /// 線分同士が平行か判定
 /// </summary>
 /// <param name="startA">線分Aの開始地点</param>

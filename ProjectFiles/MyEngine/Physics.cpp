@@ -110,7 +110,7 @@ void Physics::Update()
 #endif
 }
 
-std::vector<Physics::HitObjectInfo> MyEngine::Physics::CheckObject(Vec3& pos, ColliderBase* collider, int& count, int checkNum, bool isFix, PreHitInfoList_t preInfoList, std::list<ObjectTag> checkTags, std::list<Collidable*> throughObj)
+std::vector<Physics::HitObjectInfo> MyEngine::Physics::CheckObject(Vec3& pos, Rigidbody rigid, ColliderBase* collider, int& count, int checkNum, bool isFix, PreHitInfoList_t preInfoList, std::list<ObjectTag> checkTags, std::list<Collidable*> throughObj)
 {
     // 判定リストの作成
     std::list<std::shared_ptr<Collidable>> checkList;
@@ -162,7 +162,7 @@ std::vector<Physics::HitObjectInfo> MyEngine::Physics::CheckObject(Vec3& pos, Co
                 auto& preHitInfo = preInfoTable[item->GetTag()];
 
                 // 当たっていなければ次の判定に
-                auto info = checkCol->IsCollide(item->GetPos(), collider, fixPos, preHitInfo);
+                auto info = checkCol->IsCollide(item->GetPos(), item->m_rigid, collider, fixPos, rigid, preHitInfo);
                 if (!info.isHit) continue;
 
                 res.push_back({ item.get(), info, i });
@@ -270,25 +270,22 @@ void Physics::CheckCollide()
 #ifdef _DEBUG
                 ++checkCount;
 #endif
-                collideHitInfo = colS->IsCollide(checkPos, colP, item.primary->m_rigid.GetNextPos(), preHitInfo);
+                collideHitInfo = colS->IsCollide(checkPos, item.primary->m_rigid, colP, item.primary->m_rigid.GetNextPos(), item.secondary->m_rigid, preHitInfo);
             }
             // 達していれば座標を分割して判定
             else
             {
                 int num = static_cast<int>(speed / CHECK_DIVISION_SPEED) + 1;
                 auto divisionDir = item.secondary->m_rigid.GetNextPos() - item.secondary->GetPos();
-                float y = divisionDir.y;
-                divisionDir.y = 0;
                 divisionDir = divisionDir / static_cast<float>(num);
                 checkPos = item.secondary->GetPos() + divisionDir;
-                checkPos.y += y;
                 for (int k = 0; k < num; ++k)
                 {
 #ifdef _DEBUG
                     ++checkCount;
                     AddDebugInfo(checkPos, item.secondary->m_collider, DebugDraw::COL_HIT);
 #endif
-                    collideHitInfo = colS->IsCollide(checkPos, colP, item.primary->m_rigid.GetNextPos(), preHitInfo);
+                    collideHitInfo = colS->IsCollide(checkPos, item.primary->m_rigid, colP, item.primary->m_rigid.GetNextPos(), item.secondary->m_rigid, preHitInfo);
                     if (collideHitInfo.isHit) break;
                     checkPos += divisionDir;
                 }
@@ -529,9 +526,6 @@ void Physics::OnCollideInfo(const std::weak_ptr<Collidable>& own, const std::wea
     }
 }
 
-/// <summary>
-/// 最終的な未来の座標から現在の座標に適用
-/// </summary>
 void Physics::FixPos() const
 {
     for (const auto& item : m_objects)

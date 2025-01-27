@@ -6,8 +6,10 @@
 
 namespace
 {
-	// FIXME: 外部化
+	// 生成間隔
 	constexpr int CREATE_COUNT = 60;
+	// 発射距離
+	constexpr float FIRINGER_LENGTH = 3.0f;
 }
 
 LaserLaunchPad::LaserLaunchPad(const GateManager* gateMgr, const int reflectionNum) :
@@ -67,7 +69,7 @@ void LaserLaunchPad::Update()
 		SoundManager::GetInstance().PlaySe3D(m_shotSe->GetHandle(), shared_from_this());
 		// 弾生成
 		m_bullet = std::make_shared<LaserBullet>(this, m_gateMgr, m_reflectionNum);
-		auto pos = m_rigid.GetPos() + m_firingDir;
+		auto pos = m_rigid.GetPos() + m_firingDir * FIRINGER_LENGTH;
 		m_bullet->Init(pos, m_firingDir);
 		// カウント初期化
 		m_createCount = 0;

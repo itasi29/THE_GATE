@@ -34,6 +34,12 @@ private:
 
 public:
 	/// <summary>
+	/// 移動レートの取得
+	/// </summary>
+	/// <returns>移動レート</returns>
+	float GetRate() const { return m_moveRate; }
+
+	/// <summary>
 	/// データの生成
 	/// </summary>
 	/// <param name="x">初期X</param>
@@ -144,6 +150,16 @@ public:
 		this->m_isMoveX = true;
 	}
 	/// <summary>
+	/// 即時に水平方向(X方向)に変更
+	/// </summary>
+	/// <param name="next">移動位置</param>
+	void ChangeHorizontalImmediate(int next)
+	{
+		this->m_nextX = next;
+		this->m_preX = this->x;
+		this->x = next;
+	}
+	/// <summary>
 	/// 垂直方向(Y方向)に変更
 	/// </summary>
 	/// <param name="next">次の位置</param>
@@ -166,6 +182,16 @@ public:
 			this->m_moveRate = 1.0f - this->m_moveRate;
 		}
 		this->m_isMoveY = true;
+	}
+	/// <summary>
+	/// 即時に垂直方向(Y方向)に変更
+	/// </summary>
+	/// <param name="next">移動位置</param>
+	void ChangeVerticalImmediate(int next)
+	{
+		this->m_nextY = next;
+		this->m_preY = this->y;
+		this->y = next;
 	}
 
 	/// <summary>
@@ -456,19 +482,25 @@ public:
 				nowType = DrawStrType::NORMAL;
 			}
 			const auto& data = *list[i];
-			// フレーム描画
-			DrawRotaGraphFast(data.x, data.y, graphSize, angle, handle, true);
+			// 画像がある場合
+			if (handle > 0)
+			{
+				// フレーム描画
+				int w, h;
+				GetGraphSize(handle, &w, &h);
+				int drawX = data.x + static_cast<int>(w * 0.45f * graphSize);
+				DrawRotaGraphFast(drawX, data.y, graphSize, angle, handle, true);
+			}
 			// 文字列描画
 			const auto& str = strs.at(i);
 			if (nowType == DrawStrType::NORMAL)
 			{
-				int drawStrX = GetSubCenterFromLen(data.x, str, fontSize);
-				if (isShadow) DrawStringToHandle(drawStrX + shadowX, data.y - drawStrAdd + shadowY, str.c_str(), shadowColor, fontH);
-				DrawStringToHandle(drawStrX, data.y - drawStrAdd, str.c_str(), color, fontH);
+				if (isShadow) DrawStringToHandle(data.x + shadowX, data.y - drawStrAdd + shadowY, str.c_str(), shadowColor, fontH);
+				DrawStringToHandle(data.x, data.y - drawStrAdd, str.c_str(), color, fontH);
 			}
 			else if (nowType == DrawStrType::WAVE)
 			{
-				DrawWaveStr(data.x, data.y, color, str, fontSize, count, size, isShadow, shadowX, shadowY, shadowColor, rate);
+				DrawWaveStrLeft(data.x, data.y, color, str, fontSize, count, size, isShadow, shadowX, shadowY, shadowColor, rate);
 			}
 			else if (nowType == DrawStrType::SHAKE)
 			{

@@ -9,12 +9,13 @@ class Input;
 
 enum class SceneKind
 {
-	TITLE,	// タイトル
+	TITLE,			// タイトル
 	STAGE_SELECT,	// ステージセレクト
-	MAIN,	// プレイ画面
-	CLEAR,	// クリア画面
-	OPTION,	// オプション
-	DEBUG,	// デバッグ
+	MAIN,			// プレイ画面
+	TUTORIAL,		// チュートリアル画面
+	CLEAR,			// クリア画面
+	OPTION,			// オプション
+	DEBUG,			// デバッグ
 	MAX
 };
 

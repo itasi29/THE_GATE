@@ -5,9 +5,16 @@
 #include "MathHelp.h"
 #include "Object/Gate/Gate.h"
 #include "Collider/ColliderCapsule.h"
+#include "SaveDataManager.h"
 
 namespace
 {
+	// カメラ感度の中心
+	constexpr int CAMERA_SENS_CENTER = 50;
+
+	// 回転速度
+	constexpr float HORIZONTAL_ANGLE_SPEED = 1.75f;	// 水平
+	constexpr float VERTEX_ANGLE_SPEED = -1.75f;		// 垂直
 	// 上下回転限界値
 	constexpr float LIMIT_VERTEX_ANGLE = 89.0f;
 	// 180度ターンに必要なもの
@@ -27,18 +34,21 @@ PlayerCamera::~PlayerCamera()
 
 void PlayerCamera::Update(const Vec3& playerPos)
 {
-	constexpr float VERTEX_ANGLE_SPEED = -1.0f;
-	constexpr float HORIZONTAL_ANGLE_SPEED = 1.0f;
 	// カメラの回転
 	auto& input = Input::GetInstance();
 	const auto& trigger = input.GetTriggerData().RStick;
 	m_info.targetPos = playerPos;
+	// 回転速度を計算
+	const auto sens = SaveDataManager::GetInstance().GetCameraSens();
+	const float rate = 1.0f + (sens - CAMERA_SENS_CENTER) * 0.01f;
+	const float rotSpeedHorizontal = trigger.x * rate * HORIZONTAL_ANGLE_SPEED;
+	const float rotSpeedVertical = trigger.y * rate * VERTEX_ANGLE_SPEED;
 	// 左右回転
-	const auto& rot = Quaternion::AngleAxis(trigger.x * HORIZONTAL_ANGLE_SPEED, Vec3::Up());
+	const auto& rot = Quaternion::AngleAxis(rotSpeedHorizontal, Vec3::Up());
 	m_info.front = rot * m_info.front;
 	m_info.right = rot * m_info.right;
 	// 上下回転
-	m_info.vertexAngle = std::min<float>(std::max<float>(m_info.vertexAngle + trigger.y * VERTEX_ANGLE_SPEED, -LIMIT_VERTEX_ANGLE), LIMIT_VERTEX_ANGLE);
+	m_info.vertexAngle = std::min<float>(std::max<float>(m_info.vertexAngle + rotSpeedVertical, -LIMIT_VERTEX_ANGLE), LIMIT_VERTEX_ANGLE);
 	
 	// 180度回転
 	if (m_isTurn) 

@@ -16,6 +16,8 @@ namespace
 	constexpr float CAPSULE_SIZE = 4.0f;
 	// 半径
 	constexpr float RADIUS = 2.0f;
+	// ワープ時の加速調整係数
+	constexpr float ADD_WARP_VEL_RATE = 0.75f;
 }
 
 Gate::Gate(const std::shared_ptr<GateCamera>& camera, const std::shared_ptr<GateCamera>& cameraFromPair, GateKind kind) :
@@ -32,6 +34,7 @@ Gate::Gate(const std::shared_ptr<GateCamera>& camera, const std::shared_ptr<Gate
 
 Gate::~Gate()
 {
+	DeleteShaderConstantBuffer(m_cbuffH);
 }
 
 void Gate::Init(ObjectTag hitObjTag, const Vec3& pos, const Vec3& norm, const Vec3& dir, const std::weak_ptr<Player>& player)
@@ -39,7 +42,7 @@ void Gate::Init(ObjectTag hitObjTag, const Vec3& pos, const Vec3& norm, const Ve
 	OnEntryPhysics();
 
 	auto& fileMgr = FileManager::GetInstance();
-	m_dissolve = fileMgr.Load(I_DISSOLVE);
+	m_dissolveFile = fileMgr.Load(I_DISSOLVE);
 	m_warpSe = fileMgr.Load(S_WARP);
 
 	m_rigid.SetGravity(false);
@@ -73,14 +76,14 @@ void Gate::ChangePos(ObjectTag hitObjTag, const Vec3& pos, const Vec3& norm, con
 	m_norm = norm.GetNormalized();
 	m_rigid.SetPos(pos);
 	m_collider->dir = dir;
-	m_right = Vec3::Cross(m_collider->dir, m_norm);
+	m_right = Vec3::Cross(dir, m_norm);
 	m_updateFunc = &Gate::OpenUpdate;
 
 	m_rotation = Quaternion::GetQuaternion(m_norm, Vec3::Front());
 	// 壁に設置していない場合
-	if (m_collider->dir.y < 1.0f)
+	if (dir.y == 0.0f)
 	{
-		m_rotation = Quaternion::GetQuaternion(Vec3::Front(), m_collider->dir) * m_rotation;
+		m_rotation = Quaternion::GetQuaternion(Vec3::Front(), dir) * m_rotation;
 	}
 
 	m_userData->center = pos;
@@ -99,41 +102,26 @@ void Gate::SetCameraInfo()
 	m_camera->SetTargetPos(pos);
 	m_cameraFromPair->SetTargetPos(pos);
 
+	// ペアのゲートのY軸の法線方向に合わせて角度を取得
+	const auto& pairNorm = m_pairGate->GetNorm();
+	float vertexAngle = pairNorm.y * 90.0f;
+
 	// 見る方向は法線方向
-	m_camera->SetBaseViewDir(m_norm);
+	m_camera->SetBase(m_norm, vertexAngle);
 	// 見る方向は自身からペアの方向に向かうベクトルを法線方向に回転させて実行
 	auto dir = m_pairGate->GetPos() - pos;
 	dir.Normalize();
-	auto angle = std::acosf(Vec3::Dot(-m_norm, m_pairGate->GetNorm())) * Game::RAD_2_DEG;
-	auto axis = Vec3::Cross(m_pairGate->GetNorm(), -m_norm);
+	auto angle = std::acosf(Vec3::Dot(-m_norm, pairNorm)) * Game::RAD_2_DEG;
+	auto axis = Vec3::Cross(pairNorm, -m_norm);
 	if (!axis.SqLength())
 	{
 		axis = m_collider->dir;
 	}
-	m_cameraFromPair->SetBaseViewDir(Quaternion::AngleAxis(angle, axis) * dir);
+	m_cameraFromPair->SetBase(Quaternion::AngleAxis(angle, axis) * dir, vertexAngle);
 }
 
 void Gate::Update()
 {
-#ifdef _DEBUG
-	printf("---------ゲートカメラ情報-----------\n");
-	if (m_kind == GateKind::Orange)
-	{
-		printf("ゲート：オレンジ\n");
-	}
-	else
-	{
-		printf("ゲート：ブルー\n");
-	}
-	const auto& pos = m_camera->GetInfo().targetPos;
-	printf("座標：(%.2f, %.2f, %.2f)\n", pos.x, pos.y, pos.z);
-	const auto& dir = m_camera->GetInfo().look;
-	printf("方向(法線)：(%.2f, %.2f, %.2f)\n", dir.x, dir.y, dir.z);
-	const auto& dir2 = m_cameraFromPair->GetInfo().look;
-	printf("方向(対象)：(%.2f, %.2f, %.2f)\n", dir2.x, dir2.y, dir2.z);
-#endif
-
-
 	// シェーダーに送る情報更新
 	++m_userData->frame;
 	m_userData->isCreate = m_pairGate != nullptr;
@@ -146,6 +134,19 @@ void Gate::Update()
 	const auto& playerCameraInfo = m_player.lock()->GetCamera()->GetInfo();
 	m_camera->Update(playerCameraInfo, pairNorm);
 	m_cameraFromPair->Update(playerCameraInfo, pairNorm);
+
+#if false
+	// カメラの場所を更新
+	const auto& pairToPlayer = m_pairGate->GetPos() - m_player.lock()->GetPos();
+	const auto& projNorm = Vec3::Projection(pairToPlayer, pairNorm);
+	const auto& projRight = Vec3::Projection(pairToPlayer, m_pairGate->GetRight());
+	auto sizeNorm = projNorm.Length();
+	auto sizeRight = projRight.Length();
+	if (std::signbit(projNorm.y)) sizeNorm *= -1;
+	if (std::signbit(projRight.y)) sizeRight *= -1;
+	const auto& pos = m_rigid.GetPos();
+	m_camera->SetTargetPos(pos + m_norm * sizeNorm - m_right * sizeRight);
+#endif
 }
 
 void Gate::DrawGate(int tex) const
@@ -158,7 +159,7 @@ void Gate::DrawGate(int tex) const
 		tex = MV1GetTextureGraphHandle(m_modelHandle, 0);
 	}
 	SetUseTextureToShader(1, tex);
-	SetUseTextureToShader(2, m_dissolve->GetHandle());
+	SetUseTextureToShader(2, m_dissolveFile->GetHandle());
 	Object3DBase::Draw();
 	SetUseTextureToShader(1, -1);
 	SetUseTextureToShader(2, -1);
@@ -178,34 +179,45 @@ bool Gate::CheckWarp(const Vec3& targetPos)
 	return dot < 0.0f;
 }
 
-void Gate::OnWarp(const Vec3& targetPos, MyEngine::Rigidbody& targetRigid, bool isAddGravity)
+void Gate::OnWarp(const Vec3& targetPos, MyEngine::Rigidbody& targetRigid, bool isChangeVel)
 {
 	// 音鳴らす
 	SoundManager::GetInstance().PlaySe(m_warpSe->GetHandle());
 
-
 	/* 場所変換 */
 	const auto& gateToTarget = targetPos - m_rigid.GetPos();
-
+	// ゲート同士の法線、上下方向の回転具合を取得
 	const auto& normRot = Quaternion::GetQuaternion(m_norm, m_pairGate->GetNorm());
 	const auto& upRot = Quaternion::GetQuaternion(m_collider->dir, m_pairGate->GetCol()->dir);
 	// ゲート上での右方向・上方向動いている大きさを取得
 	const auto& right = normRot * Vec3::Projection(gateToTarget, m_right);
 	const auto& up    = upRot * Vec3::Projection(gateToTarget, m_collider->dir);
 	// 修正位置の取得
-	auto fixPos = m_pairGate->GetPos() + right + up + m_pairGate->GetNorm() * 0.1f;
+	auto fixPos = m_pairGate->GetPos() + right + up + m_pairGate->GetNorm() * 0.5f;
 	targetRigid.SetPos(fixPos);
 	
 
 	/* 速度変換 */
-	// 現在の速度を取得
-	auto vel = targetRigid.GetVelocity();
-	auto velLen = vel.Length();
-	vel.Normalize();
+	// 速度を変更する場合
+	if (isChangeVel)
+	{
+		const auto& vel = targetRigid.GetVelocity();
+		const auto& velN = vel.GetNormalized();
 
-	auto rot1 = Quaternion::GetQuaternion(-m_norm, m_pairGate->GetNorm(), m_collider->dir);
-	auto newVel = rot1 * vel * velLen;
-	targetRigid.SetVelocity(newVel);
+		auto rot1 = Quaternion::GetQuaternion(-m_norm, m_pairGate->GetNorm(), m_collider->dir);
+		auto newVel = rot1 * velN * std::abs(vel.y * ADD_WARP_VEL_RATE);
+		targetRigid.SetVelocity(newVel);
+	}
+	// 変更しない場合
+	else
+	{
+		const auto& vel = targetRigid.GetVelocity();
+
+		auto rot1 = Quaternion::GetQuaternion(-m_norm, m_pairGate->GetNorm(), m_collider->dir);
+		auto newVel = rot1 * vel;
+		targetRigid.SetVelocity(newVel);
+	}
+	
 }
 
 void Gate::OpenUpdate()

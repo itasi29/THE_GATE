@@ -14,7 +14,7 @@ namespace MyEngine
 	enum class ColKind;
 
 	/// <summary>
-	/// 衝突できるもの
+	/// コライダブルクラス
 	/// </summary>
 	class Collidable abstract : public std::enable_shared_from_this<Collidable>
 	{
@@ -30,9 +30,21 @@ namespace MyEngine
 		};
 
 	public:
+		/// <summary>
+		/// コンストラクタ
+		/// </summary>
+		/// <param name="priority">優先順位</param>
+		/// <param name="tag">オブジェクトタグ</param>
 		Collidable(Priority priority, ObjectTag tag);
+
+		/// <summary>
+		/// デストラクタ
+		/// </summary>
 		virtual ~Collidable();
 
+		/// <summary>
+		/// 終了処理
+		/// </summary>
 		virtual void End();
 
 		/// <summary>

@@ -3,79 +3,175 @@
 #include <list>
 #include <memory>
 
-class AnimController;
-class FileBase;
 class Player;
 class TurretBullet;
+class AnimController;
+class FileBase;
 
+/// <summary>
+/// タレットを表すクラス
+/// </summary>
 class Turret : public Object3DBase
 {
 private:
-	enum class State
-	{
-		SEARCH,
-		OPEN,
-		ATTACK,
-		CLOSE,
-		DEATH,
-	};
+    enum class State
+    {
+        SEARCH,  // 探索状態
+        OPEN,    // オープン状態
+        ATTACK,  // 攻撃状態
+        CLOSE,   // クローズ状態
+        DEATH    // 死亡状態
+    };
 
 public:
-	Turret();
-	~Turret();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    Turret();
 
-	void Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std::list<Tuple<MyEngine::ColKind, MyEngine::ColliderBase*>> list, bool isGravity) override;
-	void Init(const Vec3& dir, Player* player);
-	void End() override;
-	void Update() override;
-	void Draw() const override;
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    ~Turret();
 
-	void OnDamage(const Vec3& dir);
-//	void OnCollideEnter(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
+    /// <summary>
+    /// 初期化
+    /// </summary>
+    /// <param name="pos">位置</param>
+    /// <param name="scale">スケール</param>
+    /// <param name="rot">回転</param>
+    /// <param name="list">コライダーリスト</param>
+    /// <param name="isGravity">重力を使用するかどうか</param>
+    void Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std::list<Tuple<MyEngine::ColKind, MyEngine::ColliderBase*>> list, bool isGravity) override;
+
+    /// <summary>
+    /// 初期化
+    /// </summary>
+    /// <param name="dir">方向</param>
+    /// <param name="player">プレイヤー</param>
+    void Init(const Vec3& dir, Player* player);
+
+    /// <summary>
+    /// 終了処理
+    /// </summary>
+    void End() override;
+
+    /// <summary>
+    /// 更新処理
+    /// </summary>
+    void Update() override;
+
+    /// <summary>
+    /// 描画処理
+    /// </summary>
+    void Draw() const override;
+
+    /// <summary>
+    /// ダメージ処理
+    /// </summary>
+    /// <param name="dir">ダメージ方向</param>
+    void OnDamage(const Vec3& dir);
 
 private:
-	void AnimUpdate();
+    /// <summary>
+    /// アニメーションの更新処理
+    /// </summary>
+    void AnimUpdate();
+    /// <summary>
+    /// 探索状態の更新処理
+    /// </summary>
+    void SearchUpdate();
+    /// <summary>
+    /// オープン状態の更新処理
+    /// </summary>
+    void OpenUpdate();
+    /// <summary>
+    /// 攻撃状態の更新処理
+    /// </summary>
+    void AttackUpdate();
+    /// <summary>
+    /// クローズ状態の更新処理
+    /// </summary>
+    void CloseUpdate();
+    /// <summary>
+    /// 死亡状態の更新処理
+    /// </summary>
+    void DeathUpdate();
 
-	void SearchUpdate();
-	void OpenUpdate();
-	void AttackUpdate();
-	void CloseUpdate();
-	void DeathUpdate();
+    /// <summary>
+    /// プレイヤーを探索しているかどうかを確認する
+    /// </summary>
+    /// <returns>true:探索している / false:探索していない</returns>
+    bool IsSearch() const;
 
-	bool IsSearch() const;
-	void Shot();
+    /// <summary>
+    /// 弾を発射する
+    /// </summary>
+    void OnShot();
 
-	void OnSearch();
-	void OnOpen();
-	void OnAttack();
-	void OnClose();
-//	void OnDeath();
+    /// <summary>
+    /// 探索状態に遷移する
+    /// </summary>
+    void OnSearch();
+    /// <summary>
+    /// オープン状態に遷移する
+    /// </summary>
+    void OnOpen();
+    /// <summary>
+    /// 攻撃状態に遷移する
+    /// </summary>
+    void OnAttack();
+    /// <summary>
+    /// クローズ状態に遷移する
+    /// </summary>
+    void OnClose();
 
-	
 private:
-	using UpdateFunc_t = void(Turret::*)();
-	UpdateFunc_t m_updateFunc;
+    // 更新関数
+    using UpdateFunc_t = void(Turret::*)();
+    UpdateFunc_t m_updateFunc;  
 
-	std::shared_ptr<AnimController> m_anim;
-	std::shared_ptr<FileBase> m_deathEff;
+    // アニメーションコントローラー
+    std::shared_ptr<AnimController> m_anim;  
+    // 死亡エフェクト
+    std::shared_ptr<FileBase> m_deathEff;  
 
-	std::list<std::shared_ptr<TurretBullet>> m_bulletList;
+    // プレイヤー
+    Player* m_player;  
 
-	Player* m_player;
+    // 弾リスト
+    std::list<std::shared_ptr<TurretBullet>> m_bulletList;  
 
-	State m_state;
+    // 現在の状態
+    State m_state;  
 
-	Vec3 m_baseDir;
-	Vec3 m_lookDir;
-	Vec3 m_nextDir;
+    // 基本方向
+    Vec3 m_baseDir;  
+    // 見ている方向
+    Vec3 m_lookDir;  
+    // 落下回転
+    Quaternion m_fallRot;  
+    // 次の方向
+    Vec3 m_nextDir;  
 
-	Quaternion m_fallRot;
+    // 攻撃フレーム
+    int m_attackFrame;  
+    // 死亡後モデル描画フレーム
+    int m_deathFrame;
+    // 死亡エフェクトハンドル
+    int m_deathEffPlayH;  
+    // 右ウィングハンドル
+    int m_rightWingH;  
+    // 左ウィングハンドル
+    int m_leftWingH;  
 
-	int m_attackFrame;
-	int m_deathEffPlayH;
-	int m_rightWingH;
-	int m_leftWingH;
-
-	bool m_isCreateLeft;
+    // 左ウィングから弾を生成するかどうか
+    bool m_isCreateLeft;
+    // 死亡しているかどうか
+	bool m_isDeath;
 };
+
+
+
+
 

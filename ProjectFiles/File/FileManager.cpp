@@ -76,14 +76,14 @@ CsvData_t FileManager::LoadCsv(const wchar_t* const path)
 	CsvData_t data;
 
 	// ファイル読み込み
-	std::wifstream ifs(path);
+	std::ifstream ifs(path);
 	if (!ifs)
 	{
 		assert(false);
 		return data;
 	}
 	// バッファー
-	std::wstring strBuf;
+	std::string strBuf;
 	// データすべて読み込み
 	while (std::getline(ifs, strBuf))
 	{
@@ -253,7 +253,8 @@ void FileManager::LoadPath()
 	for (auto& item : csv)
 	{
 		LoadType type = TO_TYPE.at(std::stoi(item[FileIndex::TYPE]));
-		m_path.push_back({type, item[FileIndex::PATH] });
+		const auto& wPath = StringUtility::StringToWString(item[FileIndex::PATH]);
+		m_path.push_back({type, wPath });
 	}
 }
 

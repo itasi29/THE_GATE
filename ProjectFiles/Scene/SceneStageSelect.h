@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "SceneBase.h"
 
+enum class RankKind;
+
 class SceneStageSelect : public SceneBase
 {
 public:
@@ -22,6 +24,9 @@ private:
 	void SelectUpdate();
 
 	void DrawStageFrame(int stageNum) const;
+	void DrawRankTime(const wchar_t* const stageName) const;
+	void DrawRankTime(int y, int graphX, int strX, const wchar_t* const stageName, RankKind rank, int rankId) const;
+	void DrawPadUI() const;
 
 private:
 	int m_selectCurrent;
