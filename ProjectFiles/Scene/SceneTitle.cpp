@@ -825,7 +825,7 @@ void SceneTitle::DrawDecideSaveData() const
 void SceneTitle::DrawSaveInfo(int saveNo) const
 {
 	auto& saveDataMgr = SaveDataManager::GetInstance();
-	const auto fontH = FontManager::GetInstance().GetHandle(FONT_SIZE_SAVE_INFO);
+	const auto fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, FONT_SIZE_SAVE_INFO);
 	if (saveDataMgr.IsExist(saveNo))
 	{
 		auto& stageDataMgr = StageDataManager::GetInstance();
@@ -848,7 +848,7 @@ void SceneTitle::DrawPadUI() const
 	// オプションなら描画しない
 	if (m_scnMgr.IsOpenOption()) return;
 
-	const auto fontPadH = FontManager::GetInstance().GetHandle(FONT_SIZE_PAD);
+	const auto fontPadH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, FONT_SIZE_PAD);
 	if (m_state == State::RANKING)
 	{
 		// B:キャンセル

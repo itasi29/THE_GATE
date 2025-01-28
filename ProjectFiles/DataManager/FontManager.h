@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <unordered_map>
-#include <windows.h>
+#include <vector>
+#include <string>
 
 /// <summary>
 /// フォントを扱うクラス
@@ -42,15 +43,15 @@ public:
     /// <summary>
     /// サイズに対応したハンドルを取得
     /// </summary>
+	/// <param name="id">フォントのID</param>
     /// <param name="size">フォントのサイズ</param>
     /// <returns>ハンドル</returns>
-    int GetHandle(int size) const;
+    int GetHandle(int id, int size) const;
 
 private:
-    // フォントのパス
-    LPCWSTR m_fontPath;  
-
     // フォントのハンドル
-    // Key:フォントのサイズ　Value:フォントハンドル
-    std::unordered_map<int, int> m_handle;
+    // Key: フォントID{Key:フォントのサイズ　Value:フォントハンドル}
+    std::vector<std::unordered_map<int, int>> m_handle;
+	// フォントファイルのパス
+	std::vector<std::wstring> m_fontPathTable;
 };

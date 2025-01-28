@@ -6,7 +6,7 @@
 #include <memory>
 #include "RandomUtility.h"
 #include "Easing.h"
-#include "FontManager.h"
+#include "Font.h"
 
 enum class EasingType;
 // 移動するUIのデータ
@@ -348,7 +348,7 @@ public:
 	/// <param name="edgeColor">影カラー(def = 0(黒))</param>
 	static void DrawShadowStrLeft(int x, int y, int shadowX, int shadowY, unsigned int color, const std::wstring& str, int fontSize, unsigned int shadowColor = 0)
 	{
-		const auto fontH = FontManager::GetInstance().GetHandle(fontSize);
+		const auto fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, fontSize);
 		y -= static_cast<int>(fontSize * 0.5f);
 		DrawFormatStringToHandle(x + shadowX, y + shadowY, shadowColor, fontH, str.c_str());
 		DrawFormatStringToHandle(x, y, color, fontH, str.c_str());
@@ -392,7 +392,7 @@ public:
 	/// <param name="rate">フォントサイズ調整係数</param>
 	static void DrawWaveStrLeft(int x, int y, unsigned int color, const std::wstring& str, int fontSize, float count, int upSize, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0, float rate = 0.4f)
 	{
-		const auto fontH = FontManager::GetInstance().GetHandle(fontSize);
+		const auto fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, fontSize);
 		const int addX = static_cast<int>(fontSize * rate * 2);
 		const float addCount = static_cast<float>(180 / str.size());
 		y -= static_cast<int>(fontSize * 0.5f);
@@ -422,7 +422,7 @@ public:
 	/// <param name="rate">フォントサイズ調整係数</param>
 	static void DrawShakeStr(int x, int y, unsigned int color, const std::wstring& str, int fontSize, int shakeSize, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0, float rate = 0.4f)
 	{
-		auto fontH = FontManager::GetInstance().GetHandle(fontSize);
+		auto fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, fontSize);
 		y -= static_cast<int>(fontSize * 0.5f);
 		int drawX = GetSubCenterFromLen(x, str, fontSize);
 		int addX = static_cast<int>(fontSize * rate * 2);
@@ -461,7 +461,7 @@ public:
 	/// <param name="rate">フォントサイズ調整係数</param>
 	static void DrawFrameAndStr(const std::vector<std::shared_ptr<UIMoveData>>& list, float graphSize, float angle, int fontSize, int current, const std::vector<std::wstring>& strs, int selectFileH, int notSelectFileH, unsigned int selectColor, unsigned int notSelectColor, DrawStrType type = DrawStrType::NORMAL, int size = 0, float count = -1, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0, float rate = 0.4f)
 	{
-		int fontH = FontManager::GetInstance().GetHandle(fontSize);
+		int fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, fontSize);
 		int drawStrAdd = static_cast<int>(fontSize * 0.5f);
 		int handle = -1;
 		unsigned int color = -1;
@@ -536,7 +536,7 @@ public:
 	/// <param name="rate">フォントサイズ調整係数</param>
 	static void DrawFrameAndStr(int x, int y, int intervalX, int intervalY, float graphSize, float angle, int fontSize, int current, const std::vector<std::wstring>& strs, int selectFileH, int notSelectFileH, unsigned int selectColor, unsigned int notSelectColor, DrawStrType type = DrawStrType::NORMAL, int size = 0, float count = -1, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0, float rate = 0.4f)
 	{
-		int fontH = FontManager::GetInstance().GetHandle(fontSize);
+		int fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, fontSize);
 		int drawX = x;
 		int drawY = y;
 		int drawStrAddY = static_cast<int>(fontSize * 0.5f);

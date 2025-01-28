@@ -235,6 +235,7 @@
     <ClInclude Include="Common\Novels.h" />
     <ClInclude Include="Common\ObjectTag.h" />
     <ClInclude Include="DataManager\EffekseerManager.h" />
+    <ClInclude Include="DataManager\Font.h" />
     <ClInclude Include="DataManager\FontId.h" />
     <ClInclude Include="DataManager\FontManager.h" />
     <ClInclude Include="DataManager\RankingDataManager.h" />

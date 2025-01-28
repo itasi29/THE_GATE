@@ -13,10 +13,10 @@
 #include "CommandList.h"
 // マネージャー系
 #include "Files.h"
+#include "Font.h"
 #include "SoundManager.h"
 #include "StageDataManager.h"
 #include "SaveDataManager.h"
-#include "FontManager.h"
 #include "SceneManager.h"
 #include "EffekseerManager.h"
 #include "CameraManager.h"
@@ -419,6 +419,6 @@ void SceneMain::DrawDeathUI() const
 	// 描画
 	DrawRotaGraphFast(m_deathUIWindow->x, m_deathUIWindow->y, FILE_SIZE_DEATH_UI_WINDOW, 0.0f, m_files.at(I_OPTION_WINDOW)->GetHandle(), true);
 	int x = UIUtility::GetSubCenterFromLen(m_deathUIWindow->x, STR_DEATH_WINDOW, FONT_SIZE_DEATH_WINDOW);
-	DrawStringToHandle(x, m_deathUIWindow->y - DRAW_DEATH_WINDOW_STR_SUB_Y, STR_DEATH_WINDOW, COLOR_DEATH_WINDOW, FontManager::GetInstance().GetHandle(FONT_SIZE_DEATH_WINDOW));
+	DrawStringToHandle(x, m_deathUIWindow->y - DRAW_DEATH_WINDOW_STR_SUB_Y, STR_DEATH_WINDOW, COLOR_DEATH_WINDOW, FontManager::GetInstance().GetHandle(FONT_KAISOTAI, FONT_SIZE_DEATH_WINDOW));
 	UIUtility::DrawFrameAndStr(m_deathUIList, FILE_SIZE_DEATH_UI, 0.0f, FONT_SIZE_DEATH_UI, m_current, STR_DEATH, selectH, notSelectH, COLOR_SELECT, COLOR_NOT_SELECT, UIUtility::DrawStrType::WAVE, WAVE_SIZE_DEATH_UI, m_count * WAVE_SPEED_DEATH_UI);
 }

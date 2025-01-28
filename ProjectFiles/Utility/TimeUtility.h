@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <sstream>
 #include <iomanip>
-#include "FontManager.h"
+#include "Font.h"
 #include "UIUtility.h"
 #include "NumUtility.h"
 
@@ -85,7 +85,7 @@ public:
 	static void DrawTimeLeft(int x, int y, int frame, int size, unsigned int color, const wchar_t* const startStr = nullptr, const wchar_t* const endStr = nullptr, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0)
 	{
 		auto time = FrameToTime(frame);
-		auto fontH = FontManager::GetInstance().GetHandle(size);
+		auto fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, size);
 
 		std::wostringstream oss;
 		if (startStr) oss << startStr;

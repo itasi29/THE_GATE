@@ -1,7 +1,7 @@
 ﻿#include "Novel.h"
 #include <DxLib.h>
 #include "Game.h"
-#include "FontManager.h"
+#include "Font.h"
 
 namespace
 {
@@ -78,7 +78,7 @@ void Novel::Draw(int spaceWidthNum, int startY, unsigned int color) const
 void Novel::Draw(int spaceWidthNum, int startY, unsigned int color, int fontSize, float rateW, float rateH) const
 {
 	// 文字列ハンドル
-	const auto fontH = FontManager::GetInstance().GetHandle(fontSize);
+	const auto fontH = FontManager::GetInstance().GetHandle(FONT_MEIRYO, fontSize);
 
 	const float rate = fontSize / static_cast<float>(BASE_FONT_SIZE);
 	const int intervalX = static_cast<int>(INTERVAL_X * rate * rateW);

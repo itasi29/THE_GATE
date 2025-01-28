@@ -36,6 +36,7 @@ namespace
 		KIND,
 		INFO_1,
 		INFO_2,
+		INFO_3,
 		IS_DRAW_ALLOW,
 		ALLOW_POS,
 		IS_DRAW_GOAL,
@@ -123,27 +124,20 @@ namespace
 
 	/* ノベルデータUI関係 */
 	constexpr int NOVEL_SPACE_NUM = 2;					// 左右空白文字数
-	constexpr int DRAW_NOVEL_Y = 500;					// 文字描画位置
+	constexpr int DRAW_NOVEL_Y = 460;					// 文字描画位置
 	constexpr int DRAW_NOVEL_GRAPH_Y = 218;				// 画像描画位置Y
-	constexpr int FONT_SIZE_NOVEL = 48;					// フォントサイズ
+	constexpr int FONT_SIZE_NOVEL = 36;					// フォントサイズ
 	constexpr unsigned int COLOR_NOVEL = 0xffffff;		// 文字列カラー
 	constexpr float FILE_SIZE_NOVEL_FRAME_Y = 0.375f;	// フレーム画像サイズ
 	constexpr float ADD_FILE_SIZE_TUTORIAL_FRAME = 1.0f;	// 画像増加サイズ
 	// フレーム描画位置
 	constexpr int DRAW_NOVEL_FRAME_X = 37;				
 	constexpr int DRAW_NOVEL_FRAME_Y = 437;
-
-	/* 「閉じる・次の文へ」UI関係 */
-	constexpr int DRAW_CLOSE_Y = 680;	// Y描画位置
-	constexpr int DRAW_CLOSE_FRAME_X = 1160;		// フレーム描画位置
-	constexpr int DRAW_CLOSE_PAD_X = 1100;			// PadUI描画位置
-	constexpr int DRAW_CLOSE_STR_X = 1120;			// 文字列描画位置
-	
-	constexpr float FILE_SIZE_CLOSE_FRAME = 0.525f;	// フレーム描画サイズ
-	constexpr int FONT_SIZE_CLOSE = 28;				// フォントサイズ
-	constexpr unsigned int COLOR_CLOSE = 0xffffff;	// 文字列カラー
-	constexpr float WAVE_SPEED_CLOSE = 1.5f;		// ウェーブスピード
-	constexpr int WAVE_SIZE_CLOSE_STR = 4;			// ウェーブサイズ
+	constexpr int DRAW_NOVEL_BUTTON_Y = 680;	// Y描画位置
+	constexpr int DRAW_NOVEL_BUTTON_X = 1240;			// PadUI描画位置
+	constexpr float FILE_SIZE_NOVEL_BUTTON = 0.5f;		// PadUI描画サイズ
+	constexpr float SCALING_NOVEEL_BUTTON = 0.0625f;		// PadUI拡大サイズ
+	constexpr float SCALING_SPEED_NOVEL_BUTTON = 0.02f;	// PadUI拡大スピード
 
 	/* 移動先描画矢印関係 */
 	constexpr float FILE_SIZE_DESTINATION_ARROW = 2.0f;				// 画像サイズ
@@ -363,8 +357,20 @@ void SceneTutorial::Load()
 			auto& input = std::get<CheckInputInfo>(info.info);
 			// Triggerで判定するか判定
 			input.isTrigger = static_cast<bool>(std::stoi(item.at(static_cast<int>(FileIndex::INFO_1))));
-			// Triggerで判定しない場合、コマンドを取得
-			if (!input.isTrigger) input.command = item.at(static_cast<int>(FileIndex::INFO_2));
+			// Triggerで判定する場合
+			if (input.isTrigger)
+			{
+				// Triggerの種類取得
+				input.type = static_cast<CheckInputInfo::TriggerType>(std::stoi(item.at(static_cast<int>(FileIndex::INFO_2))));
+				// 判定フレーム取得
+				input.frame = std::stoi(item.at(static_cast<int>(FileIndex::INFO_3)));
+			}
+			// Triggerで判定しない場合
+			else
+			{
+				// コマンドを取得
+				input.command = item.at(static_cast<int>(FileIndex::INFO_2));
+			}
 		}
 		else if (info.kind == TutorialKind::CP)
 		{
@@ -412,10 +418,7 @@ void SceneTutorial::CheckStateUpdate()
 		// そのステートをしている時間増加
 		++m_checkFrame;
 		// 設定した時間を超えたら次のチュートリアルへ
-		if (m_checkFrame > info.frame)
-		{
-			OnClearTutorial();
-		}
+		if (m_checkFrame > info.frame) OnClearTutorial();
 	}
 }
 
@@ -427,18 +430,30 @@ void SceneTutorial::CheckInputUpdate()
 	// トリガー入力
 	if (info.isTrigger)
 	{
-		if (input.GetTriggerData().LT != 0 || input.GetTriggerData().RT != 0)
+		const auto& trigger = input.GetTriggerData();
+		// 左スティック
+		if (info.type == CheckInputInfo::TriggerType::STICK_LEFT)
 		{
-			OnClearTutorial();
+			if (trigger.LStick.SqLength() > 0) ++m_checkFrame;
 		}
+		// 右スティック
+		else if (info.type == CheckInputInfo::TriggerType::STICK_RIGHT)
+		{
+			if (trigger.RStick.SqLength() > 0) ++m_checkFrame;
+		}
+		// トリガー
+		else
+		{
+			if (trigger.LT != 0 || trigger.RT != 0) ++m_checkFrame;
+		}
+
+		// 設定した時間を超えたら次のチュートリアルへ
+		if (m_checkFrame > info.frame) OnClearTutorial();
 	}
 	// ボタン入力
 	else
 	{
-		if (input.IsTriggerd(info.command.c_str()))
-		{
-			OnClearTutorial();
-		}
+		if (input.IsTriggerd(info.command.c_str())) OnClearTutorial();
 	}
 }
 
@@ -459,10 +474,7 @@ void SceneTutorial::ClearTutorialUpdate()
 	// TODO: OK!描画終わったら次へ行くようにする
 	++m_stampFrame;
 
-	if (m_stampFrame > CHANGE_NEXT_TUTORIAL_FRAME)
-	{
-		ChangeTutorial();
-	}
+	if (m_stampFrame > CHANGE_NEXT_TUTORIAL_FRAME) ChangeTutorial();
 }
 
 void SceneTutorial::OnClearTutorial()
@@ -690,35 +702,15 @@ void SceneTutorial::DrawTutorialNovel() const
 	auto& novelMgr = NovelManager::GetInstance();
 	if (novelMgr.IsStop()) return;
 	// フレーム
-	DrawRotaGraphFast3(DRAW_NOVEL_FRAME_X, DRAW_NOVEL_FRAME_Y, 0, 0, 1.0f, FILE_SIZE_NOVEL_FRAME_Y, 0.0f, m_files.at(I_OPTION_WINDOW)->GetHandle(), true);
+	DrawRotaGraphFast3(DRAW_NOVEL_FRAME_X, DRAW_NOVEL_FRAME_Y, 0, 0, 1.0f, FILE_SIZE_NOVEL_FRAME_Y, 0.0f, m_files.at(I_OPTION_WINDOW)->GetHandle(), true, true);
 	// 文字列
 	novelMgr.Draw(NOVEL_SPACE_NUM, DRAW_NOVEL_Y, COLOR_NOVEL, FONT_SIZE_NOVEL);
 	// 画像
 	novelMgr.DrawGraph(Game::CENTER_X, DRAW_NOVEL_GRAPH_Y, 1.0f);
 
-	constexpr float FILE_SIZE_CLOSE_PAD = 0.5f;		// PadUI描画サイズ
-	constexpr float SCALING_CLOSE_PAD = 0.125f;
-	constexpr float CLOSE_PAD_SCALING_SPEED = 0.02f;
-
-	float rate = std::cosf(m_uiFrame2 * CLOSE_PAD_SCALING_SPEED);
-	float size = FILE_SIZE_CLOSE_PAD + rate * SCALING_CLOSE_PAD;
-	DrawRotaGraphFast(DRAW_CLOSE_PAD_X, DRAW_CLOSE_Y, size, 0.0f, m_files.at(I_PAD_A)->GetHandle(), true);
-
-	return;
-	
-	// 文字描画中なら終了
-	const auto state = novelMgr.GetState();
-	if (state == NovelManager::State::DRAWING) return;
-	// フレーム
-	DrawRotaGraphFast(DRAW_CLOSE_FRAME_X, DRAW_CLOSE_Y, FILE_SIZE_CLOSE_FRAME, 0.0f, m_files.at(I_COMMON_FRAME)->GetHandle(), true);
-	// ボタン
-	DrawRotaGraphFast(DRAW_CLOSE_PAD_X, DRAW_CLOSE_Y, FILE_SIZE_CLOSE_PAD, 0.0f, m_files.at(I_PAD_A)->GetHandle(), true);
-	// 全文章描画していたら「閉じる」に
-	std::wstring str;
-	if (state == NovelManager::State::END)	str = L"閉じる";
-	// 次の文章があるなら「次の文へ」に
-	else									str = L"次の文へ";
-	UIUtility::DrawWaveStrLeft(DRAW_CLOSE_STR_X, DRAW_CLOSE_Y, COLOR_CLOSE, str, FONT_SIZE_CLOSE, m_uiFrame2 * WAVE_SPEED_CLOSE, WAVE_SIZE_CLOSE_STR, true);
+	float rate = std::cosf(m_uiFrame2 * SCALING_SPEED_NOVEL_BUTTON);
+	float size = FILE_SIZE_NOVEL_BUTTON + rate * SCALING_NOVEEL_BUTTON;
+	DrawRotaGraphFast(DRAW_NOVEL_BUTTON_X, DRAW_NOVEL_BUTTON_Y, size, 0.0f, m_files.at(I_PAD_A)->GetHandle(), true);
 }
 
 void SceneTutorial::DrawTutorialDestination() const

@@ -2,6 +2,7 @@
 #include <cassert>
 #include "FontManager.h"
 #include "FileManager.h"
+#include "StringUtility.h"
 
 namespace
 {
@@ -9,8 +10,7 @@ namespace
 	const wchar_t* const kFontName = L"廻想体 ネクスト UP B";
 }
 
-FontManager::FontManager() :
-	m_fontPath()
+FontManager::FontManager()
 {}
 
 FontManager::~FontManager()
@@ -25,64 +25,117 @@ FontManager& FontManager::GetInstance()
 
 void FontManager::Init()
 {
-	//const wchar_t* const MASTER_PATH = L"Data/Master/FontMaster.csv";
-	//auto table = FileManager::GetInstance().LoadCsv(MASTER_PATH);
-	//for (auto& info : table)
+	enum class FileIndex : int
+	{
+		NAME,
+		PATH,
+		EXTENSION
+	};
+
+	const wchar_t* const MASTER_PATH = L"Data/Master/FontMaster.csv";
+	auto table = FileManager::GetInstance().LoadCsv(MASTER_PATH);
+	bool isFirst = true;
+	int size = 0;
+	int count = 0;
+	std::vector<std::wstring> fontNameTable;
+	for (auto& data : table)
+	{
+		// 初めはフォント数を取得
+		if (isFirst)
+		{
+			// フォント数を取得
+			size = std::stoi(data[0]);
+			m_handle.resize(size);
+			isFirst = false;
+			continue;
+		}
+		// 全てのフォントを読み込む
+		else if (count < size)
+		{
+			count++;
+			// フォント名・パス取得
+			const auto& name = StringUtility::StringToWString(data[static_cast<int>(FileIndex::NAME)]);
+			const auto& path = StringUtility::StringToWString(data[static_cast<int>(FileIndex::PATH)]);
+			fontNameTable.push_back(name);
+			m_fontPathTable.push_back(path);
+			// フォント読み込み
+			if (AddFontResourceEx(path.c_str(), FR_PRIVATE, NULL) <= 0)
+			{
+				// フォント読込エラー処理
+				MessageBox(NULL, L"フォント読込失敗", L"", MB_OK);
+			}
+		}
+		// 全フォントの生成サイズ取得
+		else
+		{
+			for (int i = 0; i < fontNameTable.size(); ++i)
+			{
+				// フォントサイズ取得
+				int createSize = std::stoi(data[0]);
+				// フォントハンドル生成
+				m_handle.at(i)[createSize] = CreateFontToHandle(fontNameTable[i].c_str(), createSize, -1);
+			}
+		}
+	}
+
+	//// 読み込むフォントファイルのパス
+	//m_fontPath = kFontPath;
+	//if (AddFontResourceEx(m_fontPath, FR_PRIVATE, NULL) > 0) 
 	//{
-	//	auto size = std::stoi(info[0]);
-	//	auto path = info[1].c_str();
-	//	m_handle[size] = CreateFontToHandle(path, size, -1);
+	//}
+	//else 
+	//{
+	//	// フォント読込エラー処理
+	//	MessageBox(NULL, L"フォント読込失敗", L"", MB_OK);
 	//}
 
-	// 読み込むフォントファイルのパス
-	m_fontPath = kFontPath;
-	if (AddFontResourceEx(m_fontPath, FR_PRIVATE, NULL) > 0) 
-	{
-	}
-	else 
-	{
-		// フォント読込エラー処理
-		MessageBox(NULL, L"フォント読込失敗", L"", MB_OK);
-	}
-
-	// 使いそうなサイズを作っておく
-	m_handle[16] = CreateFontToHandle(kFontName, 16, -1);
-	m_handle[24] = CreateFontToHandle(kFontName, 24, -1);
-	m_handle[28] = CreateFontToHandle(kFontName, 28, -1);
-	m_handle[30] = CreateFontToHandle(kFontName, 30, -1);
-	m_handle[32] = CreateFontToHandle(kFontName, 32, -1);
-	m_handle[36] = CreateFontToHandle(kFontName, 36, -1);
-	m_handle[42] = CreateFontToHandle(kFontName, 42, -1);
-	m_handle[48] = CreateFontToHandle(kFontName, 48, -1);
-	m_handle[56] = CreateFontToHandle(kFontName, 56, -1);
-	m_handle[60] = CreateFontToHandle(kFontName, 60, -1);
-	m_handle[64] = CreateFontToHandle(kFontName, 64, -1);
-	m_handle[80] = CreateFontToHandle(kFontName, 80, -1);
+	//// 使いそうなサイズを作っておく
+	//m_handle[16] = CreateFontToHandle(kFontName, 16, -1);
+	//m_handle[24] = CreateFontToHandle(kFontName, 24, -1);
+	//m_handle[28] = CreateFontToHandle(kFontName, 28, -1);
+	//m_handle[30] = CreateFontToHandle(kFontName, 30, -1);
+	//m_handle[32] = CreateFontToHandle(kFontName, 32, -1);
+	//m_handle[36] = CreateFontToHandle(kFontName, 36, -1);
+	//m_handle[42] = CreateFontToHandle(kFontName, 42, -1);
+	//m_handle[48] = CreateFontToHandle(kFontName, 48, -1);
+	//m_handle[56] = CreateFontToHandle(kFontName, 56, -1);
+	//m_handle[60] = CreateFontToHandle(kFontName, 60, -1);
+	//m_handle[64] = CreateFontToHandle(kFontName, 64, -1);
+	//m_handle[80] = CreateFontToHandle(kFontName, 80, -1);
 }
 
 void FontManager::End()
 {
 	// 作ったフォントデータを全て削除
-	for (auto& handle : m_handle)
+	for (auto& table : m_handle)
 	{
-		DeleteFontToHandle(handle.second);
+		for (auto& handle : table)
+		{
+			DeleteFontToHandle(handle.second);
+		}
 	}
 
-	if (RemoveFontResourceEx(m_fontPath, FR_PRIVATE, NULL)) {
-	}
-	else
+	// フォントファイルの削除
+	for (const auto& path : m_fontPathTable)
 	{
-		MessageBox(NULL, L"remove failure", L"", MB_OK);
+		if (RemoveFontResourceEx(path.c_str(), FR_PRIVATE, NULL))
+		{
+		}
+		else
+		{
+			MessageBox(NULL, L"remove failure", L"", MB_OK);
+		}
 	}
 }
 
-int FontManager::GetHandle(int size) const
+int FontManager::GetHandle(int id, int size) const
 {
-	auto it = m_handle.find(size);
-	if (it == m_handle.end())
+	const auto& table = m_handle.at(id);
+	auto it = table.find(size);
+	if (it == table.end())
 	{
 		assert(false && L"そのフォントサイズは存在しません");
-		return m_handle.at(32);
+		return table.at(32);
 	}
 
 	return it->second;

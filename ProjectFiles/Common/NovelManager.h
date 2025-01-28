@@ -115,7 +115,7 @@ public:
     State GetState() const;
 
 public:
-    static constexpr float BASE_RATE_W_FONT = 0.8f;  // フォントの幅の基本倍率
+    static constexpr float BASE_RATE_W_FONT = 1.0f;  // フォントの幅の基本倍率
     static constexpr float BASE_RATE_H_FONT = 1.0f;  // フォントの高さの基本倍率
 
 private:

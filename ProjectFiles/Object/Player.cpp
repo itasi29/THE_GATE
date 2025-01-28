@@ -9,7 +9,7 @@
 #include "Input.h"
 #include "CommandList.h"
 #include "SoundManager.h"
-#include "FontManager.h"
+#include "Font.h"
 #include "AnimController.h"
 #include "PlayerCamera.h"
 #include "Physics.h"
@@ -1067,7 +1067,7 @@ void Player::OnHand(MyEngine::Collidable* obj)
 
 void Player::DrawPadUI(int y, bool isActive, int imageId, const wchar_t* const str) const
 {
-	const int fontH = FontManager::GetInstance().GetHandle(FONT_SIZE_PAD);
+	const int fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, FONT_SIZE_PAD);
 	unsigned int color;
 	if (isActive)	color = COLOR_ACTIVE;
 	else			color = COLOR_NOT_ACTIVE;

@@ -27,8 +27,16 @@ struct CheckStateInfo
 // 入力情報でのチェック情報
 struct CheckInputInfo
 {
+	enum class TriggerType
+	{
+		STICK_LEFT,
+		STICK_RIGHT,
+		TRIGGER,
+	};
 	bool isTrigger = false;
+	TriggerType type = TriggerType::STICK_RIGHT;
 	std::string command;
+	int frame = 0;
 };
 // CPでのチェック情報
 struct CheckCPInfo
