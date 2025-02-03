@@ -5,8 +5,10 @@
 
 void StartCommonProcess(std::array<VERTEX2DSHADER, 4>& vertices, int& w, int& h, int firstH)
 {
+	// テクスチャのサイズを取得
 	GetGraphSize(firstH, &w, &h);
 
+	// 頂点情報の設定
 	for (auto& v : vertices)
 	{
 		v.dif = GetColorU8(255, 255, 255, 255);

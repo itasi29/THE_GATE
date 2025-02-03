@@ -4,6 +4,7 @@
 
 FileBase::FileBase(FileManager& mgr) :
 	m_mgr(mgr),
+	m_id(-1),
 	m_handle(-1),
 	m_refCount(0),
 	m_isEternal(false),

@@ -8,7 +8,7 @@ class Novel;
 class FileBase;
 
 /// <summary>
-/// ノベルゲームのように文字を出力管理するクラス
+/// ノベルテキスト管理クラス
 /// </summary>
 class NovelManager final
 {

@@ -15,7 +15,7 @@ namespace
     // 分割判定速度
     constexpr float CHECK_DIVISION_SPEED = 0.4f;
     // 判定するオブジェクト同士の距離
-    constexpr float CHECK_COLLIDE_LENDGHT = 10.0f;
+    constexpr float CHECK_COLLIDE_LENDGHT = 24.0f;
     constexpr float CHECK_COLLIDE_SQ_LENDGHT = CHECK_COLLIDE_LENDGHT * CHECK_COLLIDE_LENDGHT;
 }
 
@@ -147,6 +147,7 @@ std::vector<Physics::HitObjectInfo> MyEngine::Physics::CheckObject(Vec3& pos, Ri
     std::vector<HitObjectInfo> res;
     PreHitInfoList_t preInfoTable;
     count = 0;
+    // 判定している間ループ
     while (true)
     {
         Vec3 fixPos = pos;
@@ -175,15 +176,20 @@ std::vector<Physics::HitObjectInfo> MyEngine::Physics::CheckObject(Vec3& pos, Ri
                     if (count > checkNum - 1) return res;
                 }
 
+				// トリガーの場合は次の判定に
                 if (checkCol->isTrigger) continue;
 
+				// 位置修正
                 fixPos = checkCol->FixNextPos(item->GetPos(), collider, pos, info);
                 preHitInfo = { info, true };
                 isNoHit = false;
+                // 最後の判定ターンでないなら再度判定しなおし
                 if (!isLastCheck) break;
             }
+			// 最後の判定ターンでないなら再度判定しなおし
             if (!isNoHit && !isLastCheck) break;
         }
+		// 位置修正
         pos = fixPos;
         // 判定回数増加
         count++;
@@ -206,18 +212,21 @@ void Physics::MoveNextPos() const
         if (rigid.IsGravity())
         {
             auto frame = rigid.GetStayGravityFrame();
+			// 停止フレームでない場合
             if (frame < 0)
             {
                 auto vel = rigid.GetVelocity();
+				// 重力を加算
                 vel.y -= Game::GRAVITY;
-                if (vel.y < -Game::GRAVITY_MAX_SPEED)
-                {
-                    vel.y = -Game::GRAVITY_MAX_SPEED;
-                }
+				// 最大速度を超えていたら補正
+                if (vel.y < -Game::GRAVITY_MAX_SPEED) vel.y = -Game::GRAVITY_MAX_SPEED;
+				// 速度を設定
                 rigid.SetVelocity(vel);
             }
+            // 停止フレームの場合
             else
             {
+				// フレーム減少
                 --frame;
                 rigid.SetStayGravityFrame(frame);
             }
@@ -249,6 +258,7 @@ void Physics::CheckCollide()
     int count = 0;
     // 判定情報
     PreHitInfoTable_t preHitInfoList;
+	// 判定している間ループ
     while (true)
     {
         bool isNoHit = true;
@@ -279,6 +289,7 @@ void Physics::CheckCollide()
                 auto divisionDir = item.secondary->m_rigid.GetNextPos() - item.secondary->GetPos();
                 divisionDir = divisionDir / static_cast<float>(num);
                 checkPos = item.secondary->GetPos() + divisionDir;
+				// 分割数分判定
                 for (int k = 0; k < num; ++k)
                 {
 #ifdef _DEBUG
@@ -286,6 +297,7 @@ void Physics::CheckCollide()
                     AddDebugInfo(checkPos, item.secondary->m_collider, DebugDraw::COL_HIT);
 #endif
                     collideHitInfo = colS->IsCollide(checkPos, item.primary->m_rigid, colP, item.primary->m_rigid.GetNextPos(), item.secondary->m_rigid, preHitInfo);
+					// 当たっていた場合その時点で終了
                     if (collideHitInfo.isHit) break;
                     checkPos += divisionDir;
                 }
@@ -312,12 +324,15 @@ void Physics::CheckCollide()
             // 通知を追加
             AddNewCollideInfo(item.primary, item.secondary, item.primaryIndex, item.secondaryIndex, m_newCollideInfo, collideHitInfo);
 
+			// 位置修正
             auto nextPos = colP->FixNextPos(item.primary->m_rigid.GetNextPos(), colS, checkPos, collideHitInfo);
             item.secondary->m_rigid.SetNextPos(nextPos);
 
+			// 事前判定済み情報を更新
             preHitInfo = { collideHitInfo, true };
 
             isNoHit = false;
+			// 最後の判定ターンでないなら再度判定しなおし
             if (!isLastCheck) break;
         }
 
@@ -339,6 +354,7 @@ std::list<Physics::CheckData> Physics::GetCollisionList() const
     std::list<CheckData> res;
     CheckData temp;
 
+	// チェックリストを回す
     for (auto& item : m_checkList)
     {
         temp.primary = item.primary;
@@ -383,6 +399,7 @@ void Physics::MakeCheckList()
     // チェックリストの初期化
     m_checkList.clear();
 
+	// チェックリストの作成
     for (int i = 0; i < m_objects.size(); ++i)
     {
         for (int j = i + 1; j < m_objects.size(); ++j)

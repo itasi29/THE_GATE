@@ -8,7 +8,7 @@ class GateManager;
 class Gate;
 
 /// <summary>
-/// ハンドオブジェクトを表すクラス
+/// ハンドオブジェクトクラス
 /// </summary>
 class HandObject : public Object3DBase
 {
@@ -127,8 +127,8 @@ private:
     // 判定サイズ
     float m_colSize;  
 
-    // ワンハンドフラグ
-    bool m_isOneHand;  
+    // 持っているフラグ
+    bool m_isHold;  
     // ワープフラグ
     bool m_isWarp;  
     // ワープ可能フラグ

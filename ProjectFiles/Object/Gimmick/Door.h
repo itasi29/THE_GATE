@@ -4,7 +4,7 @@
 class FileBase;
 
 /// <summary>
-/// ドアを表すクラス
+/// ドアクラス
 /// </summary>
 class Door : public GimmickLinkObject
 {

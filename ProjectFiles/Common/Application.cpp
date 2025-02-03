@@ -21,6 +21,7 @@
 
 namespace
 {
+    // ウィンドウ名
     const wchar_t* const kWindowText = L"THE GATE:";
 #ifdef _DEBUG
     const std::unordered_map<SceneKind, const char* const> SCENE_KIND =
@@ -85,9 +86,11 @@ bool Application::Init()
     SetUseZBuffer3D(true);
     SetWriteZBuffer3D(true);
 
-    auto& effMgr = EffekseerManager::GetInstance();
-    effMgr.Init(8000);
-
+    // 各種初期化処理
+    m_lightBufferH = CreateShaderConstantBuffer(sizeof(LightBuffer));
+	assert(m_lightBufferH != -1);
+	m_lightBuffer = static_cast<LightBuffer*>(GetBufferShaderConstantBuffer(m_lightBufferH));
+	assert(m_lightBuffer != nullptr);
     InitManager();
     NumUtility::GetInstance().Init();
     Random::GetInstance().Init();
@@ -177,8 +180,8 @@ void Application::Run()
         scnMgr.Draw();
 
 #ifdef _DEBUG
-//        debug.Draw();
-#if false
+#if true
+        debug.Draw();
         if (isStep) DrawString(16, 620, L"動作：ステップ中", 0x00ff00);
         else        DrawString(16, 620, L"動作：通常中", 0x00ff00);
         
@@ -231,8 +234,18 @@ void Application::Terminate()
 #endif
 }
 
+void Application::SetLightBuffer(Light* ligths, int lightNum)
+{
+	m_lightBuffer->num = lightNum;
+	for (int i = 0; i < lightNum; ++i)
+	{
+		m_lightBuffer->lights[i] = ligths[i];
+	}
+}
+
 void Application::InitManager()
 {
+    auto& effMgr = EffekseerManager::GetInstance();
     auto& fileMgr = FileManager::GetInstance();
     auto& scnMgr = SceneManager::GetInstance();
     auto& fontMgr = FontManager::GetInstance();
@@ -241,6 +254,7 @@ void Application::InitManager()
     auto& rankMgr = RankingDataManager::GetInstance();
     auto& novelMgr = NovelManager::GetInstance();
 
+    effMgr.Init(8000);
     fileMgr.Init();
     fontMgr.Init();
     stageDataMgr.Load();

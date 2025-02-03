@@ -10,18 +10,24 @@ public:
 		auto& input = Input::GetInstance();
 
 		RepeatKind kind;
+		// 入力からtrueが返ってきた場合
 		if (input.IsRepeat(command, kind, repeatIntreval))
 		{
+			// 入力直後のフレームの場合
 			if (kind == RepeatKind::TRIGGER)
 			{
+				// 繰り返しありでインデックス減少
 				index = (index - 1 + max) % max;
 				return true;
 			}
+			// 繰り返しありの場合
 			else if (isRepeat)
 			{
+				// 繰り返しなしでインデックス減少
 				--index;
 				if (index < 0)
 				{
+					// 繰り返しの場合はカーソルが移動していないことに
 					index = 0;
 					return false;
 				}
@@ -36,18 +42,24 @@ public:
 		auto& input = Input::GetInstance();
 
 		RepeatKind kind;
+		// 入力からtrueが返ってきた場合
 		if (input.IsRepeat(command, kind, repeatIntreval))
 		{
+			// 入力直後のフレームの場合
 			if (kind == RepeatKind::TRIGGER)
 			{
+				// 繰り返しありでインデックス増加
 				index = (index + 1) % max;
 				return true;
 			}
+			// 繰り返しありの場合
 			else if (isRepeat)
 			{
+				// 繰り返しなしでインデックス増加
 				++index;
 				if (index > max - 1)
 				{
+					// 繰り返しの場合はカーソルが移動していないことに
 					index = max - 1;
 					return false;
 				}

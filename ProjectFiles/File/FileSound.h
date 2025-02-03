@@ -2,7 +2,7 @@
 #include "FileBase.h"
 
 /// <summary>
-/// サウンドファイルを管理するクラス
+/// サウンドファイルクラス
 /// </summary>
 class FileSound : public FileBase
 {

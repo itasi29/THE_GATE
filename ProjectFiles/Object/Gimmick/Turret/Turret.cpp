@@ -9,6 +9,7 @@
 #include "Object/Player.h"
 #include "Collider/ColliderSphere.h"
 #include "AnimTurret.h"
+#include "DebugDraw.h"
 
 namespace
 {
@@ -65,25 +66,31 @@ Turret::~Turret()
 
 void Turret::Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std::list<Tuple<MyEngine::ColKind, MyEngine::ColliderBase*>> list, bool isGravity)
 {
+	// ファイル読み込み
 	auto& fileMgr = FileManager::GetInstance();
 	m_deathEff = fileMgr.Load(E_DEATH_TURRET);
 
+	// 初期化
 	Object3DBase::Init(pos, MODEL_SCALE, rot, list, isGravity);
 	m_pivot = MODEL_PIVOT;
+	// 左右のウィングハンドル取得
 	m_rightWingH = MV1SearchFrame(m_modelHandle, FRAME_RIGHT_WING);
 	m_leftWingH = MV1SearchFrame(m_modelHandle, FRAME_LEFT_WING);
 
+	// アニメーション初期化
 	m_anim = std::make_shared<AnimController>();
 	m_anim->Init(ANIM_INFO_PATH, m_modelHandle, ANIM_CLOSED);
 
+	// 状態初期化
 	OnSearch();
 }
 
 void Turret::Init(const Vec3& dir, Player* player)
 {
+	// 向き初期化
 	m_baseDir = dir;
 	m_lookDir = dir;
-
+	// プレイヤー設定
 	m_player = player;
 }
 
@@ -115,41 +122,53 @@ void Turret::Update()
 
 void Turret::Draw() const
 {
+	// 死亡フレームまで描画
 	if (m_deathFrame < DEATH_FRAME) Object3DBase::Draw();
+	// 弾の描画
 	for (auto& item : m_bulletList) item->Draw();
 
 #ifdef _DEBUG
 	auto s = m_rigid.GetPos() + m_collider.at(0)->center;
 	auto e = s + m_baseDir * 3;
-	DrawLine3D(s.VGet(), e.VGet(), 0x0000ff);
+	auto& debug = MyEngine::DebugDraw::GetInstance();
+	debug.DrawLine(s, e, 0x0000ff);
 	e = s + m_lookDir * 3;
-	DrawLine3D(s.VGet(), e.VGet(), 0x00ff00);
+	debug.DrawLine(s, e, 0x00ff00);
 #endif
 }
 
 void Turret::OnDamage(const Vec3& dir)
 {
+	// 死亡していたら処理しない
 	if (m_isDeath) return;
 
+	// 死亡処理に遷移
 	m_updateFunc = &Turret::DeathUpdate;
+	// ステート更新
 	m_state = State::DEATH;
+	// アニメーション変更
 	m_anim->Change(ANIM_ROTATION, true, false, true, false);
+	// 死亡エフェクト再生
 	auto& effMgr = EffekseerManager::GetInstance();
 	m_deathEffPlayH = effMgr.Play(E_DEATH_TURRET);
 	effMgr.SetInfo(m_deathEffPlayH, m_rigid.GetPos(), m_rotation);
 
+	// 向いている方向を設定
 	m_nextDir = m_lookDir;
 
+	// 回転方向を取得
 	const auto& xzDir = Vec3(dir.x, 0, dir.z);
 	const auto& rot = Quaternion::GetQuaternion(Vec3::Up(), xzDir, PROXY_ROT_AXIS);
 	m_fallRot = Quaternion::AngleAxis(DEATH_ROT_ANGLE, rot.GetAxis());
 
+	// 死亡していることに
 	m_isDeath = true;
 	m_deathFrame = 0;
 }
 
 void Turret::AnimUpdate()
 {
+	// 向いている方向に合わせてアニメーションを更新
 	const auto& axis = Vec3::Cross(m_lookDir, m_baseDir);
 	const auto& dot = Vec2::Dot(m_lookDir.GetXZDir(), m_baseDir.GetXZDir());
 	float rate = (1.0f - dot) / (1.0f - DISCOVERY_RANGE);
@@ -172,6 +191,7 @@ void Turret::SearchUpdate()
 
 void Turret::OpenUpdate()
 {
+	// アニメーションが終了したら攻撃状態に遷移
 	if (m_anim->IsLoop())
 	{
 		OnAttack();
@@ -204,6 +224,7 @@ void Turret::AttackUpdate()
 
 void Turret::CloseUpdate()
 {
+	// アニメーションが終了したら探索状態に遷移
 	if (m_anim->IsLoop())
 	{
 		OnSearch();
@@ -220,7 +241,9 @@ void Turret::DeathUpdate()
 		return;
 	}
 
+	// 死亡フレーム更新
 	++m_deathFrame;
+	// 完全に死亡したら処理しない
 	if (m_deathFrame > DEATH_FRAME) return;
 
 	// 回転処理
@@ -269,14 +292,17 @@ void Turret::OnShot()
 		m_isCreateLeft = true;
 		wingIndex = m_rightWingH;
 	}
+	// 発射位置を計算
 	Vec3 pos = MV1GetFramePosition(m_modelHandle, wingIndex);
 	const auto vec = Vec3::Cross(Vec3::Up(), m_lookDir);
 	pos = pos + m_lookDir * 0.5f + vec * 0.5f * bit;
 
+	// 弾生成
 	auto bullet = std::make_shared<TurretBullet>();
 	bullet->Init(pos, m_lookDir, m_player);
 	m_bulletList.emplace_back(bullet);
 
+	// エフェクト再生
 	auto& effMgr = EffekseerManager::GetInstance();
 	int handle = effMgr.Play(E_MUZZLE_FLASH);
 	effMgr.SetInfo(handle, pos, m_rotation);
@@ -284,28 +310,40 @@ void Turret::OnShot()
 
 void Turret::OnSearch()
 {
+	// 関数変更
 	m_updateFunc = &Turret::SearchUpdate;
+	// ステート更新
 	m_state = State::SEARCH;
+	// アニメーション変更
 	m_anim->Change(ANIM_CLOSED);
 }
 
 void Turret::OnOpen()
 {
+	// 関数変更
 	m_updateFunc = &Turret::OpenUpdate;
+	// ステート更新
 	m_state = State::OPEN;
+	// アニメーション変更
 	m_anim->Change(ANIM_OPEN, true, true);
 }
 
 void Turret::OnAttack()
 {
+	// 関数変更
 	m_updateFunc = &Turret::AttackUpdate;
+	// ステート更新
 	m_state = State::ATTACK;
+	// アニメーション変更
 	m_anim->Change(ANIM_ROTATION, true, false, true);
 }
 
 void Turret::OnClose()
 {
+	// 関数変更
 	m_updateFunc = &Turret::CloseUpdate;
+	// ステート更新
 	m_state = State::CLOSE;
+	// アニメーション変更
 	m_anim->Change(ANIM_CLOSE, true, true);
 }

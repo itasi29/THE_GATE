@@ -4,7 +4,7 @@
 namespace MyEngine
 {
     /// <summary>
-    /// 物理挙動を管理するクラス
+    /// 物理挙動クラス
     /// </summary>
     class Rigidbody final
     {

@@ -149,80 +149,176 @@ public:
 	virtual void OnTriggerExit(MyEngine::Collidable* colider, int selfIndex, int sendIndex, const MyEngine::CollideHitInfo& hitInfo) override;
 
 private:
+	/// <summary>
+	/// 手で持つ処理
+	/// </summary>
 	void HandUpdate();
+	/// <summary>
+	/// 銃処理
+	/// </summary>
 	void GunUpdate();
+	/// <summary>
+	/// 回復処理
+	/// </summary>
 	void RecoverHpUpdate();
+	/// <summary>
+	/// HPバー処理
+	/// </summary>
 	void HpBarUpdate();
+	/// <summary>
+	/// モデル回転処理
+	/// </summary>
 	void RotationUpdate();
+	/// <summary>
+	/// アニメーション処理
+	/// </summary>
 	void AnimUpdate();
+	/// <summary>
+	/// カメラ処理
+	/// </summary>
 	void CameraUpdate();
 
+	/// <summary>
+	/// 待機状態処理
+	/// </summary>
 	void IdleUpdate();
+	/// <summary>
+	/// 歩き状態処理
+	/// </summary>
 	void WalkUpdate();
+	/// <summary>
+	/// 走り状態処理
+	/// </summary>
 	void RunUpdate();
+	/// <summary>
+	/// ジャンプ状態処理
+	/// </summary>
 	void JumpUpdate();
+	/// <summary>
+	/// 空中状態処理
+	/// </summary>
 	void AerialUpdate();
+	/// <summary>
+	/// 着地状態処理
+	/// </summary>
 	void LandingUpdate();
+	/// <summary>
+	/// ヒットストップ状態処理
+	/// </summary>
 	void HitUpdate();
+	/// <summary>
+	/// 死亡状態処理
+	/// </summary>
 	void DeathUpdate();
 
+	/// <summary>
+	/// 移動処理
+	/// </summary>
+	/// <param name="speed">移動速度</param>
+	/// <param name="isFixedStick">スティックの値を固定するか</param>
+	/// <returns>true:移動した /false:移動していない</returns>
 	bool Move(float speed, bool isFixedStick);
+	/// <summary>
+	/// 空中移動処理
+	/// </summary>
 	void AerialMove();
 
+	/// <summary>
+	/// 待機状態に遷移
+	/// </summary>
 	void OnIdle();
+	/// <summary>
+	/// 歩き状態に遷移
+	/// </summary>
 	void OnWalk();
+	/// <summary>
+	///	走り状態に遷移
+	/// </summary>
 	void OnRun();
+	/// <summary>
+	/// ジャンプ状態に遷移
+	/// </summary>
 	void OnJump();
+	/// <summary>
+	/// 空中状態に遷移
+	/// </summary>
 	void OnAerial();
+	/// <summary>
+	/// 着地状態に遷移
+	/// </summary>
 	void OnLanding();
+	/// <summary>
+	/// ヒットストップ状態に遷移
+	/// </summary>
 	void OnHit();
+	/// <summary>
+	/// 死亡状態に遷移
+	/// </summary>
 	void OnDeath();
 
+	/// <summary>
+	/// 銃の発射処理
+	/// </summary>
 	void OnShot();
+	/// <summary>
+	/// 手で掴む・離す処理
+	/// </summary>
+	/// <param name="obj">手で持てるオブジェクト</param>
 	void OnHand(MyEngine::Collidable* obj);
 
+	/// <summary>
+	/// Pad情報描画
+	/// </summary>
+	/// <param name="y">描画位置(y)</param>
+	/// <param name="isActive">そのボタンが使えるかどうか</param>
+	/// <param name="imageId">画像ID</param>
+	/// <param name="str">文字列</param>
 	void DrawPadUI(int y, bool isActive, int imageId, const wchar_t* const str) const;
 
 private:
+	// 更新関数
 	using UpdateFunc_t = void(Player::*)();
 	UpdateFunc_t m_updateFunc;
 
+	// ファイルリスト
 	std::unordered_map<int, std::shared_ptr<FileBase>> m_files;
 
-	std::shared_ptr<PlayerCamera> m_camera;
-	std::shared_ptr<GateManager> m_gateMgr;
-	std::shared_ptr<AnimController> m_anim;
+	std::shared_ptr<PlayerCamera> m_camera;	// カメラ
+	std::shared_ptr<GateManager> m_gateMgr;	// ゲートマネージャ
+	std::shared_ptr<AnimController> m_anim;	// アニメーション
 
-	std::shared_ptr<MyEngine::ColliderCapsule> m_centerCol;
-	std::shared_ptr<MyEngine::ColliderSphere> m_handCol;
+	std::shared_ptr<MyEngine::ColliderCapsule> m_centerCol;	// 中心コライダー
+	std::shared_ptr<MyEngine::ColliderSphere> m_handCol;	// 手で掴む・離す用コライダー
 
+	// 現在のステート
 	PlayerState m_nowState;
-
+	// 現在持っているオブジェクト
 	HandObject* m_handObj;
-
+	// 次のモデル回転情報
 	Quaternion m_nextRot;
-
+	// ゲートの位置
 	Vec3 m_gatePos;
 
-	int m_gunVS;
-	int m_gunPS;
-	int m_hp;
-	int m_preHp;
-	int m_hitStopFrame;
-	int m_receverFrame;
-	int m_shotInteval;
-	int m_shakeHpBarFrame;
-	int m_stayAerialMove;
+	int m_gunVS;	// 銃の頂点シェーダ
+	int m_gunPS;	// 銃のピクセルシェーダ
+	int m_hp;	 // HP
+	int m_preHp; // 前のHP
+	int m_hitStopFrame; // ヒットストップフレーム
+	int m_receverFrame; // 回復待機フレーム
+	int m_shotInteval; // ショットインターバル
+	int m_shakeHpBarFrame; // HPバーの揺れるフレーム
+	int m_stayAerialMove; // 空中移動の待機フレーム
 
-	bool m_isOneHand;
-	bool m_isDeath;
-	bool m_isRecever;
-	bool m_isGround;
-	bool m_isCanCatch;
-	bool m_isCatch;
-	bool m_isCanWarp;
-	bool m_isWarp;
-	bool m_isChangeNear;
+	bool m_isOneHand;	// 片手ステージかどうか
+	bool m_isDeath;	// 死亡フラグ
+	bool m_isRecever;	// 回復中かどうか
+	bool m_isGround;	// 接地しているかどうか
+	bool m_isCanHold;	// 物を持てるかどうか
+	bool m_isHold;	// 物を持っているかどうか
+	bool m_isCanWarp;	// ワープできるかどうか
+	bool m_isWarpRange;	// ワープ範囲内かどうか
+	bool m_isChangeNear;	// カメラのニアを変更しているかどうか
 
+	// タグ追加フラグ
 	std::unordered_map<MyEngine::Collidable*, bool> m_isAddTag;
 };

@@ -55,13 +55,18 @@ public:
 		const int add1 = static_cast<int>(NumUtility::SRC_SIZE_X * size);
 		const int add2 = static_cast<int>(NumUtility::SRC_SIZE_X * sizeExRate * size);
 
+		// "MM"描画
 		int minX = x - add1 * 3;
 		util.DrawNumberMore(minX, y, size, color, time.min, 2, isShadow, shadowX, shadowY, shadowColor);
+		// ":"描画
 		int colonX = x - add1 * 2;
 		util.DrawNumber(colonX, y, size, color, -1, L":", isShadow, shadowX, shadowY, shadowColor);
+		// "SS"描画
 		util.DrawNumberMore(x, y, size, color, time.sec, 2, isShadow, shadowX, shadowY, shadowColor);
+		// "."描画
 		int dotX = x + add1;
 		util.DrawNumber(dotX, y, size, color, -1, L".", isShadow, shadowX, shadowY, shadowColor);
+		// "dd"描画
 		int decX = x + add1 + add2 * 2;
 		int decY = y + static_cast<int>(NumUtility::SRC_SIZE_Y * 0.15f * size * sizeExRate);
 		util.DrawNumberMore(decX, decY, size * sizeExRate, color, time.dec, 2, isShadow, shadowX, shadowY, shadowColor);

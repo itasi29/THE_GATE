@@ -12,10 +12,12 @@ namespace
 	const wchar_t* const PATH = L"Data/Master/NovelData.csv";
 	enum class FileIndex
 	{
-		NEXT_FLAG,
+		IS_NEXT,
 		NEXT_ID,
-		INTERVAL,
-		STR
+		IS_GRAPH,
+		GRAPH_ID,
+		DRAW_INTERVAL,
+		STR,
 	};
 }
 
@@ -40,15 +42,7 @@ NovelManager& NovelManager::GetInstance()
 
 void NovelManager::Load()
 {
-	enum class FileIndex
-	{
-		IS_NEXT,
-		NEXT_ID,
-		IS_GRAPH,
-		GRAPH_ID,
-		DRAW_INTERVAL,
-		STR,
-	};
+
 	auto& fileMgr = FileManager::GetInstance();
 	const auto& table = FileManager::GetInstance().LoadCsv(PATH);
 	for (auto& item : table) 

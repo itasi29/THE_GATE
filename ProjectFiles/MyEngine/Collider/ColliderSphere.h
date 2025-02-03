@@ -4,7 +4,7 @@
 namespace MyEngine
 {
     /// <summary>
-    /// 球コライダーを表すクラス
+    /// スフィアコライダークラス
     /// </summary>
     class ColliderSphere : public ColliderBase
     {

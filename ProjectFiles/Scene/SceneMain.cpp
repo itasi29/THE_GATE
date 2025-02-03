@@ -179,6 +179,7 @@ void SceneMain::Init()
 	m_deathUIList = UIMoveData::Make(static_cast<int>(DeathUICurrent::MAX), DRAW_DEATH_UI_FRAME_X, -DRAW_DEATH_UI_OUT_VAL, DRAW_DEATH_UI_FRAME_X_INTERVL, 0);
 	// 初期化(同期)
 	m_stageMgr->Init(m_player.get(), m_gateMgr.get());
+	m_stageMgr->AppLights();
 	m_gateMgr->Init(m_player);
 	SoundManager::GetInstance().SetSeCenter(m_player);
 	m_player->Init(m_stageMgr->GetCheckPoint(), m_stageMgr->GetCheckPointDir(), StageDataManager::GetInstance().IsOneHand(m_stageName));

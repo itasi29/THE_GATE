@@ -227,6 +227,10 @@ SceneTitle::SceneTitle() :
 	m_updateFunc(&SceneTitle::SelectMenuUpdate),
 	m_drawFunc(&SceneTitle::DrawSelectMenu),
 	m_state(State::MENU),
+	m_cBuff(nullptr),
+	m_cBuffH(-1),
+	m_cameraRt1(-1),
+	m_cameraRt2(-1),
 	m_menuCurrent(0),
 	m_saveDataNo(0),
 	m_decideCurrent(0),
@@ -312,16 +316,19 @@ void SceneTitle::Init()
 	m_decideUI			= UIMoveData::Make(DRAW_DECIDE_X, DRAW_DECIDE_Y);
 	m_rankingUI			= UIMoveData::Make(Game::CENTER_X, Game::CENTER_Y + DRAW_RANKING_OUT_VAL);
 	for (auto& mgr : m_stageMgrs) mgr->Init(nullptr, nullptr);
+	m_stageMgrs.at(m_stageIndex)->AppLights();
 	// 1つ目のカメラを設定
 	m_nowCamera = m_cameraMgr->GetCamera(CameraKind::TITLE_1);
 	m_nowCamera->SetFront(CAMERA_DIRS.at(0), 0.0f);
 	m_nowCamera->SetTargetPos(CAMERA_POSS.at(0));
 	m_nowCamera->SetTps(false);
+	m_nowCamera->SetUpFixed(true);
 	// 2つ目のカメラを設定
 	m_nextCamera = m_cameraMgr->GetCamera(CameraKind::TITLE_2);
 	m_nextCamera->SetFront(CAMERA_DIRS.at(1), 0.0f);
 	m_nextCamera->SetTargetPos(CAMERA_POSS.at(1));
 	m_nextCamera->SetTps(false);
+	m_nextCamera->SetUpFixed(true);
 	// シェーダの設定
 	m_cBuff->fireRed = COLOR_FIRE_R;
 	m_cBuff->fireGreen = COLOR_FIRE_G;
@@ -367,8 +374,11 @@ void SceneTitle::Draw() const
 	if (m_isStageChangeFade)
 	{
 		// フェード中は2つのカメラで描画
+		m_stageMgrs.at(m_stageIndex)->AppLights();
 		SceneHelp::GetInstance().DrawModel(nullptr, m_cameraMgr, m_stageMgrs.at(m_stageIndex), nullptr, m_cameraRt1, CameraKind::TITLE_1);
-		SceneHelp::GetInstance().DrawModel(nullptr, m_cameraMgr, m_stageMgrs.at((m_stageIndex + 1) % STAGE_NUM), nullptr, m_cameraRt2, CameraKind::TITLE_2);
+		int nextIndex = (m_stageIndex + 1) % STAGE_NUM;
+		m_stageMgrs.at(nextIndex)->AppLights();
+		SceneHelp::GetInstance().DrawModel(nullptr, m_cameraMgr, m_stageMgrs.at(nextIndex), nullptr, m_cameraRt2, CameraKind::TITLE_2);
 		// 合成
 		SetDrawScreen(DX_SCREEN_BACK);
 		int dissolveH = m_files.at(I_DISSOLVE)->GetHandle();
@@ -381,7 +391,6 @@ void SceneTitle::Draw() const
 	{
 		SceneHelp::GetInstance().DrawModel(nullptr, m_cameraMgr, m_stageMgrs.at(m_stageIndex), nullptr, DX_SCREEN_BACK, CameraKind::TITLE_1);
 	}
-
 
 	// 画像ハンドル
 	int frameH = m_files.at(I_FRAME)->GetHandle();
@@ -474,6 +483,8 @@ void SceneTitle::StageUpdate()
 			// カメラの向きを変更
 			m_nowCamera->SetFront(rot * CAMERA_DIRS.at(m_stageIndex), 0.0f);
 			m_nextCamera->SetFront(rot * CAMERA_DIRS.at((m_stageIndex + 1) % STAGE_NUM), 0.0f);
+			// ライトの適用
+			m_stageMgrs.at(m_stageIndex)->AppLights();
 		}
 		m_cBuff->frame = m_stageFade;
 	}

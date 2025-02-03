@@ -2,7 +2,7 @@
 #include <string>
 
 /// <summary>
-/// ノベルゲームのテキスト表示を管理するクラス
+/// ノベルテキストクラス
 /// </summary>
 class Novel
 {

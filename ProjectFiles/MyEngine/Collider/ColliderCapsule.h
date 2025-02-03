@@ -5,7 +5,7 @@
 namespace MyEngine
 {
     /// <summary>
-    /// カプセルコライダーを表すクラス
+    /// カプセルコライダークラス
     /// </summary>
     class ColliderCapsule : public ColliderBase
     {

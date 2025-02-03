@@ -11,157 +11,198 @@ class Player;
 class Camera;
 enum class CameraKind;
 
+/// <summary>
+/// タイトルシーンクラス
+/// </summary>
 class SceneTitle : public SceneBase
 {
 private:
-	enum class State
-	{
-		MENU,
-		RANKING,
-		SELECT_SAVE_DATA,
-		DECIDE_SAVE_DATA,
-	};
+    /// <summary>
+    /// シーンの状態を表す列挙型
+    /// </summary>
+    enum class State
+    {
+        MENU,               // メニュー
+        RANKING,            // ランキング
+        SELECT_SAVE_DATA,   // セーブデータ選択
+        DECIDE_SAVE_DATA,   // セーブデータ決定
+    };
 
-	struct CBuff
-	{
-		float frame;
-		float fireRed;
-		float fireGreen;
-		float fireBlue;
-	};
+    /// <summary>
+    /// シェーダー用の定数バッファ
+    /// </summary>
+    struct CBuff
+    {
+        float frame;
+        float fireRed;
+        float fireGreen;
+        float fireBlue;
+    };
 
 public:
-	SceneTitle();
-	~SceneTitle() {}
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    SceneTitle();
 
-	// 初期化処理(非同期)
-	void AsyncInit() override;
-	// 初期化処理(同期)
-	void Init() override;
-	// 終了処理
-	void End() override;
-	// 更新処理(同期)
-	void Update(bool isFade) override;
-	// 描画処理
-	void Draw() const override;
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    ~SceneTitle() {}
 
-private:
-	/// <summary>
-	/// ステージ情報の更新
-	/// </summary>
-	void StageUpdate();
+    /// <summary>
+    /// 初期化処理(非同期)
+    /// </summary>
+    void AsyncInit() override;
 
-	/// <summary>
-	/// メニュー(セーブデータ・オプション・終了)の選択
-	/// </summary>
-	void SelectMenuUpdate();
-	/// <summary>
-	/// ランキング
-	/// </summary>
-	void RankingUpdate();
-	/// <summary>
-	/// どのセーブデータを使うかの選択
-	/// </summary>
-	void SelectSaveDataUpdate();
-	/// <summary>
-	/// そのセーブデータで始める・消すの選択
-	/// </summary>
-	void DecideSaveDataUpdate();
+    /// <summary>
+    /// 初期化処理(同期)
+    /// </summary>
+    void Init() override;
 
-	/// <summary>
-	/// メニュー選択
-	/// </summary>
-	void OnSelectMenu();
-	/// <summary>
-	/// ランキング
-	/// </summary>
-	void OnRanking();
-	/// <summary>
-	/// セーブデータ選択
-	/// </summary>
-	void OnSelectSaveData();
-	/// <summary>
-	/// セーブデータ決定
-	/// </summary>
-	void OnDecideSaveData();
-	
-	/// <summary>
-	/// メニュー選択時の描画
-	/// </summary>
-	void DrawSelectMenu() const;
-	/// <summary>
-	/// ランキングの描画
-	/// </summary>
-	void DrawRanking() const;
-	/// <summary>
-	/// セーブデータ選択時の描画
-	/// </summary>
-	void DrawSelectSaveData() const;
-	/// <summary>
-	/// 続きから・初めから選択時の描画
-	/// </summary>
-	void DrawDecideSaveData() const;
-	/// <summary>
-	/// セーブデータ情報描画
-	/// </summary>
-	void DrawSaveInfo(int saveNo) const;
-	/// <summary>
-	/// PadUIの描画
-	/// </summary>
-	void DrawPadUI() const;
+    /// <summary>
+    /// 終了処理
+    /// </summary>
+    void End() override;
 
-	/// <summary>
-	/// ゲームの開始
-	/// </summary>
-	void OnStart();
+    /// <summary>
+    /// 更新処理(同期)
+    /// </summary>
+    /// <param name="isFade">フェード中かどうか</param>
+    void Update(bool isFade) override;
+
+    /// <summary>
+    /// 描画処理
+    /// </summary>
+    void Draw() const override;
 
 private:
-	using UpdateFunc_t = void(SceneTitle::*)();
-	UpdateFunc_t m_updateFunc;
-	using DrawFunc_t = void(SceneTitle::*)() const;
-	DrawFunc_t m_drawFunc;
+    /// <summary>
+    /// ステージ情報の更新
+    /// </summary>
+    void StageUpdate();
 
-	std::vector<std::shared_ptr<StageManager>> m_stageMgrs;
-	std::shared_ptr<CameraManager> m_cameraMgr;
-	std::shared_ptr<Camera> m_nowCamera;
-	std::shared_ptr<Camera> m_nextCamera;
+    /// <summary>
+    /// メニュー(セーブデータ・オプション・終了)の選択
+    /// </summary>
+    void SelectMenuUpdate();
 
-	State m_state;
+    /// <summary>
+    /// ランキングの更新
+    /// </summary>
+    void RankingUpdate();
 
-	std::shared_ptr<UIMoveData> m_mainUI;
-	std::shared_ptr<UIMoveData> m_saveUI;
-	std::shared_ptr<UIMoveData> m_saveInfoUI;
-	std::shared_ptr<UIMoveData> m_decideUI;
-	std::shared_ptr<UIMoveData> m_rankingUI;
+    /// <summary>
+    /// どのセーブデータを使うかの選択
+    /// </summary>
+    void SelectSaveDataUpdate();
 
-	CBuff* m_cBuff;
+    /// <summary>
+    /// そのセーブデータで始める・消すの選択
+    /// </summary>
+    void DecideSaveDataUpdate();
 
-	// 定数バッファハンドル
-	int m_cBuffH;
-	// カメラ描画先RT
-	int m_cameraRt1;
-	int m_cameraRt2;
-	// 選択カーソル
-	int m_menuCurrent;		// メニュー
-	int m_saveDataNo;		// セーブデータ番号
-	int m_decideCurrent;	// 続きから・初めから
-	int m_rankingCurrent;	// ランキング番号
-	// フレーム系
-	int m_fadeSaveInfoFrame;	// セーブ情報関係のフェードフレーム
-	int m_fadeSaveNoFrame;		// セーブデータ番号変更フェード
-	int m_uiCount;
-	// ステージ系
-	int m_cameraFrame;
-	int m_stageChangeFrame;
-	int m_stageIndex;
+    /// <summary>
+    /// メニュー選択時の処理
+    /// </summary>
+    void OnSelectMenu();
 
-	float m_stageFade;			// ステージ変更
+    /// <summary>
+    /// ランキング選択時の処理
+    /// </summary>
+    void OnRanking();
 
-	// フェードフラグ
-	bool m_isFadeSaveNo;		// セーブデータ番号変更
-	// 描画フラグ
-	bool m_isNowSelectMenu;		// 現在選択がメニュー
-	bool m_isNowSelectSaveData;	// 現在選択がセーブデータ番号選択
-	bool m_isStageChangeFade;	// ステージ変更フェード
+    /// <summary>
+    /// セーブデータ選択時の処理
+    /// </summary>
+    void OnSelectSaveData();
+
+    /// <summary>
+    /// セーブデータ決定時の処理
+    /// </summary>
+    void OnDecideSaveData();
+
+    /// <summary>
+    /// メニュー選択時の描画
+    /// </summary>
+    void DrawSelectMenu() const;
+
+    /// <summary>
+    /// ランキングの描画
+    /// </summary>
+    void DrawRanking() const;
+
+    /// <summary>
+    /// セーブデータ選択時の描画
+    /// </summary>
+    void DrawSelectSaveData() const;
+
+    /// <summary>
+    /// 続きから・初めから選択時の描画
+    /// </summary>
+    void DrawDecideSaveData() const;
+
+    /// <summary>
+    /// セーブデータ情報の描画
+    /// </summary>
+    /// <param name="saveNo">セーブデータ番号</param>
+    void DrawSaveInfo(int saveNo) const;
+
+    /// <summary>
+    /// PadUIの描画
+    /// </summary>
+    void DrawPadUI() const;
+
+    /// <summary>
+    /// ゲームの開始
+    /// </summary>
+    void OnStart();
+
+private:
+    using UpdateFunc_t = void(SceneTitle::*)();
+    UpdateFunc_t m_updateFunc;  // 更新関数ポインタ
+    using DrawFunc_t = void(SceneTitle::*)() const;
+    DrawFunc_t m_drawFunc;      // 描画関数ポインタ
+
+    // ステージマネージャーのリスト
+    std::vector<std::shared_ptr<StageManager>> m_stageMgrs; 
+    // カメラマネージャー
+    std::shared_ptr<CameraManager> m_cameraMgr; 
+    std::shared_ptr<Camera> m_nowCamera;  // 現在のカメラ
+    std::shared_ptr<Camera> m_nextCamera; // 次のカメラ
+
+    // 現在のシーンの状態
+    State m_state; 
+
+    std::shared_ptr<UIMoveData> m_mainUI;       // メインUI
+    std::shared_ptr<UIMoveData> m_saveUI;       // セーブUI
+    std::shared_ptr<UIMoveData> m_saveInfoUI;   // セーブ情報UI
+    std::shared_ptr<UIMoveData> m_decideUI;     // 決定UI
+    std::shared_ptr<UIMoveData> m_rankingUI;    // ランキングUI
+
+    CBuff* m_cBuff; // シェーダー用の定数バッファ
+    int m_cBuffH; // 定数バッファハンドル
+
+    int m_cameraRt1; // カメラ描画先RT1
+    int m_cameraRt2; // カメラ描画先RT2
+    int m_menuCurrent;      // メニューの選択カーソル
+    int m_saveDataNo;       // セーブデータ番号
+    int m_decideCurrent;    // 続きから・初めからの選択カーソル
+    int m_rankingCurrent;   // ランキング番号
+    int m_stageIndex;       // ステージインデックス
+    int m_fadeSaveInfoFrame;    // セーブ情報関係のフェードフレーム
+    int m_fadeSaveNoFrame;      // セーブデータ番号変更フェード
+	int m_uiCount;              // UIのカウント  
+	int m_cameraFrame;          // カメラのフレーム
+    int m_stageChangeFrame;     // ステージ変更フレーム
+	float m_stageFade;          // ステージのフェード
+
+    // セーブデータ番号変更フェードフラグ
+    bool m_isFadeSaveNo; 
+    // 現在選択がメニューかどうか
+    bool m_isNowSelectMenu; 
+    // 現在選択がセーブデータ番号選択かどうか
+    bool m_isNowSelectSaveData; 
+    // ステージ変更フェードフラグ
+    bool m_isStageChangeFade; 
 };
-

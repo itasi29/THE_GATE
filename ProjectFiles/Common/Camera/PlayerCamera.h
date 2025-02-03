@@ -4,7 +4,7 @@
 class Gate;
 
 /// <summary>
-/// プレイヤーカメラを管理するクラス
+/// プレイヤーカメラクラス
 /// </summary>
 class PlayerCamera : public Camera
 {

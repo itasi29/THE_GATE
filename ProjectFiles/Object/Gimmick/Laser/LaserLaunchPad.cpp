@@ -28,8 +28,9 @@ LaserLaunchPad::~LaserLaunchPad()
 
 void LaserLaunchPad::Init(const Vec3& dir)
 {
+	// 発射方向
 	m_firingDir = -dir;
-
+	// ファイル読み込み
 	m_shotSe = FileManager::GetInstance().Load(S_SHOT_ENERGY);
 }
 

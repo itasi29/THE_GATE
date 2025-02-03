@@ -13,6 +13,7 @@ class GateManager;
 class Object3DBase;
 class CheckPoint;
 class Player;
+struct Light;
 
 namespace MyEngine
 {
@@ -95,6 +96,11 @@ public:
     void AddObject(std::shared_ptr<Object3DBase> object);
 
     /// <summary>
+    /// ライト情報の設定
+    /// </summary>
+    void AppLights() const;
+
+    /// <summary>
     /// 現在のチェックポイント番号を取得する
     /// </summary>
     /// <returns>現在のチェックポイント番号</returns>
@@ -129,6 +135,10 @@ private:
     /// チェックポイント情報の読み込み
     /// </summary>
     void LoadCheckPoint();
+    /// <summary>
+	/// ライト情報の読み込み
+    /// </summary>
+    void LoadLightInfo();
 
     /// <summary>
     /// ボックスコライダー情報の読み込み
@@ -165,9 +175,16 @@ private:
     std::vector<std::shared_ptr<Object3DBase>> m_objs;  
     // チェックポイントリスト
     std::vector<std::shared_ptr<CheckPoint>> m_checkPoints;  
+    // ライト情報
+    Light* m_lights;
+    int m_lightNum;
+#ifdef _DEBUG
+    std::vector<Vec3> m_lightPos;
+	std::vector<float> m_lightRange;
+#endif
 
     // ステージ名
-    const wchar_t* const m_stageName;  
+    const wchar_t* const m_stageName;
 
     // 現在のチェックポイント番号
     int m_nowCp;  

@@ -8,7 +8,7 @@ namespace MyEngine
 class Player;
 
 /// <summary>
-/// タレット弾を表すクラス
+/// タレット弾クラス
 /// </summary>
 class TurretBullet : public Object3DBase
 {

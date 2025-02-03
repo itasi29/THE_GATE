@@ -4,7 +4,7 @@
 #include <string>
 
 /// <summary>
-/// フォントを扱うクラス
+/// フォント管理クラス
 /// </summary>
 class FontManager
 {

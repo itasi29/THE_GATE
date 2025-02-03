@@ -92,7 +92,10 @@ public:
 	State_t GetNowState() const { return m_nowState; }
 
 private:
+	// 現在のステート
 	State_t m_nowState;
+	// ステートの関数マップ
 	std::unordered_map<State_t, StateDelegateData> m_stateFuncMap;
+	// 初回かどうか
 	bool m_isInit;
 };

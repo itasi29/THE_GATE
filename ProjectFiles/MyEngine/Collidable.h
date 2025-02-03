@@ -168,6 +168,8 @@ namespace MyEngine
 		std::list<ObjectTag> m_throughTag;
 		// 地面判定タグ
 		std::list<ObjectTag> m_groundTag;
+		// 壁判定タグ
+		std::list<ObjectTag> m_wallTag;
 
 	private:
 		// オブジェクトタグ

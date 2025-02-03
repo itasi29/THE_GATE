@@ -18,7 +18,7 @@ struct SaveData
 using SaveDataTable_t = std::vector<SaveData>;
 
 /// <summary>
-/// セーブデータを管理するクラス
+/// セーブデータ管理クラス
 /// </summary>
 class SaveDataManager final
 {

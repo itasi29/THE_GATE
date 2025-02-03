@@ -16,7 +16,7 @@ HandObject::HandObject(GateManager& gateMgr) :
 	m_gateMgr(gateMgr),
 	m_gate(nullptr),
 	m_colSize(-1),
-	m_isOneHand(false),
+	m_isHold(false),
 	m_isWarp(false),
 	m_isCanWarp(false)
 {
@@ -28,6 +28,7 @@ HandObject::~HandObject()
 
 void HandObject::Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std::list<Tuple<MyEngine::ColKind, MyEngine::ColliderBase*>> list, bool isGravity)
 {
+	// 初期化
 	Object3DBase::Init(pos, scale, rot, list, isGravity);
 	m_initPos = pos;
 	m_pivot = PIVOT;
@@ -41,14 +42,7 @@ void HandObject::Update()
 	{
 		const auto& gateToTarget = m_rigid.GetPos() - m_gate->GetPos();
 		const float size = Vec3::Projection(gateToTarget, m_gate->GetNorm()).Length();
-		if (size > m_colSize)
-		{
-			m_isWarp = true;
-		}
-		else
-		{
-			m_isWarp = false;
-		}
+		m_isWarp = size > m_colSize;
 	}
 	
 	// 見た目だけワープの場合
@@ -123,8 +117,10 @@ void HandObject::OnTriggerStay(MyEngine::Collidable* colider, int selfIndex, int
 	const auto tag = colider->GetTag();
 	if (tag == ObjectTag::GATE)
 	{
+		// ゲート両方未生成の場合は処理しない
 		if (!m_gateMgr.IsCreateBothGates()) return;
-		if (!m_isOneHand && !m_isCanWarp) return;
+		// 持たれていないまたはワープ不可の場合は処理しない
+		if (!m_isHold && !m_isCanWarp) return;
 
 		auto gate = dynamic_cast<Gate*>(colider);
 		if (!m_isAddTag[colider])
@@ -133,30 +129,19 @@ void HandObject::OnTriggerStay(MyEngine::Collidable* colider, int selfIndex, int
 			m_throughTag.emplace_back(gate->GetHitObjectTag());
 			m_isAddTag[colider] = true;
 		}
-		if (!m_isOneHand)
+		if (!m_isHold)
 		{
 			// ワープ判定
 			if (gate->CheckWarp(m_rigid.GetPos()))
 			{
-				gate->OnWarp(m_rigid.GetPos(), m_rigid, true);
+				gate->OnWarp(m_rigid.GetPos(), m_rigid, true, m_colSize);
 
-				// スルータグの変更
-				if (m_isAddTag[colider])
-				{
-					auto hitTag = gate->GetHitObjectTag();
-					for (auto it = m_throughTag.begin(); it != m_throughTag.end(); ++it)
-					{
-						if (*it == hitTag)
-						{
-							m_throughTag.erase(it);
-							break;
-						}
-					}
-					m_isAddTag[colider] = false;
-				}
 				auto pairGate = gate->GetPairGate();
-				m_throughTag.push_back(pairGate->GetHitObjectTag());
+				// スルータグの変更
+				m_isAddTag[colider] = false;
 				m_isAddTag[pairGate.get()] = true;
+				m_throughTag.remove(gate->GetHitObjectTag());
+				m_throughTag.push_back(pairGate->GetHitObjectTag());
 			}
 		}
 		else
@@ -176,19 +161,11 @@ void HandObject::OnTriggerExit(MyEngine::Collidable* colider, int selfIndex, int
 	{
 		if (!m_gateMgr.IsCreateBothGates()) return;
 
-		auto gate = dynamic_cast<Gate*>(colider);
 		// スルータグ外す
 		if (m_isAddTag[colider])
 		{
-			auto hitTag = gate->GetHitObjectTag();
-			for (auto it = m_throughTag.begin(); it != m_throughTag.end(); ++it)
-			{
-				if (*it == hitTag)
-				{
-					m_throughTag.erase(it);
-					break;
-				}
-			}
+			auto gate = dynamic_cast<Gate*>(colider);
+			m_throughTag.remove(gate->GetHitObjectTag());
 			m_isAddTag[colider] = false;
 		}
 	}
@@ -207,22 +184,30 @@ void HandObject::AppModelInfo() const
 
 void HandObject::OnHand()
 {
-	m_isOneHand = true;
+	// 持たれていることに
+	m_isHold = true;
+	// 重力を無効に
 	m_rigid.SetGravity(false);
+	// スルータグ追加
 	m_throughTag.emplace_back(ObjectTag::PLAYER);
 	m_throughTag.emplace_back(ObjectTag::GATE_BULLET);
 }
 
 void HandObject::EndHand()
 {
+	// ワープ可能の場合
 	if (m_isWarp)
 	{
+		// 座標の変更
 		m_rigid.SetPos(m_warpPos);
 		m_gate = nullptr;
 		m_isWarp = false;
 	}
-	m_isOneHand = false;
+	// 持たれていないことに
+	m_isHold = false;
+	// 重力を有効に
 	m_rigid.SetGravity(true);
+	// スルータグ削除
 	m_throughTag.remove(ObjectTag::PLAYER);
 	m_throughTag.remove(ObjectTag::GATE_BULLET);
 }

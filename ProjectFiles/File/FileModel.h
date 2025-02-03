@@ -2,7 +2,7 @@
 #include "FileBase.h"
 
 /// <summary>
-/// モデルファイルを管理するクラス
+/// モデルファイルクラス
 /// </summary>
 class FileModel : public FileBase
 {

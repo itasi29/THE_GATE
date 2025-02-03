@@ -19,12 +19,14 @@ CheckPoint::~CheckPoint()
 
 void CheckPoint::Init(const Vec3& pos, const Vec3& dir, float size, float radius, const Vec3& respawnDir)
 {
+    // Physicsに登録
     OnEntryPhysics();
+    // 初期化
     m_rigid.SetPos(pos);
     m_rigid.SetGravity(false);
-
+    // リスポーン時のカメラ方向を設定
 	m_respawnDir = respawnDir;
-
+	// コライダーの設定
     const auto& sphere = std::dynamic_pointer_cast<MyEngine::ColliderCapsule>(CreateCollider(MyEngine::ColKind::CAPSULE));
     sphere->center = Vec3();
     sphere->isTrigger = true;
@@ -39,11 +41,15 @@ void CheckPoint::OnTriggerEnter(MyEngine::Collidable* colider, int selfIndex, in
     MyEngine::Collidable::OnTriggerEnter(colider, selfIndex, sendIndex, hitInfo);
 
     auto tag = colider->GetTag();
+	// タグがプレイヤーの場合
     if (tag == ObjectTag::PLAYER)
     {
+		// チェックポイントの更新
         m_mgr.UpdateCheckPoint(m_no);
+		// ギミックリンクオブジェクトがある場合
         if (m_link)
         {
+			// ギミックをオンにする
             m_link->OnGimmick();
         }
     }

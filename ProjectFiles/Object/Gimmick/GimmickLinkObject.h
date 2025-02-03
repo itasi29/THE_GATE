@@ -3,7 +3,7 @@
 #include "StateMachine.h"
 
 /// <summary>
-/// ギミックリンクオブジェクトを表すクラス
+/// ギミックリンククラス
 /// </summary>
 class GimmickLinkObject : public Object3DBase
 {

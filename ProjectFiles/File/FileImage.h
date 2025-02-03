@@ -2,7 +2,7 @@
 #include "FileBase.h"
 
 /// <summary>
-/// 画像ファイルを管理するクラス
+/// 画像ファイルクラス
 /// </summary>
 class FileImage :  public FileBase
 {

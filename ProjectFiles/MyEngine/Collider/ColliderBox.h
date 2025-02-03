@@ -6,7 +6,7 @@
 namespace MyEngine
 {
     /// <summary>
-    /// ボックスコライダーを表すクラス
+    /// ボックスコライダークラス
     /// </summary>
     class ColliderBox : public ColliderBase
     {

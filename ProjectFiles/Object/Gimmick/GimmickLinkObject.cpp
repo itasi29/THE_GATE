@@ -6,6 +6,7 @@ GimmickLinkObject::GimmickLinkObject(Priority priority, ObjectTag tag) :
 	m_isRelease(false),
 	m_count(0)
 {
+	// ステートの追加
 	m_stateMachine.AddState(State::GIMMICK_ON,  [this]() {ProcessGimmickOn(); },  [this]() {GimmickOnUpdate(); },  nullptr);
 	m_stateMachine.AddState(State::GIMMICK_OFF, [this]() {ProcessGimmickOff(); }, [this]() {GimmickOffUpdate(); }, nullptr);
 }

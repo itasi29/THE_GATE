@@ -34,7 +34,7 @@ using InputData_t = int;
 using InputTriggerData_t = TriggerData;
 
 /// <summary>
-/// 入力を管理するクラス
+/// 入力管理クラス
 /// </summary>
 class Input
 {

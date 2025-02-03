@@ -7,6 +7,8 @@
 /// </summary>
 struct CameraInfo
 {
+	// 上方向固定フラグ
+	bool isUpFixed = false;
 	// Tpsフラグ
 	bool isTps = false;
 	// near, far
@@ -38,7 +40,7 @@ struct Quaternion;
 class GateManager;
 
 /// <summary>
-/// カメラを管理するクラス
+/// カメラクラス
 /// </summary>
 class Camera
 {
@@ -89,6 +91,11 @@ public:
 	/// </summary>
 	/// <param name="isTps">true:TPS /false: FPS</param>
 	void SetTps(bool isTps);
+	/// <summary>
+	/// カメラの上方向固定化を設定する
+	/// </summary>
+	/// <param name="isUpFixed">true: 固定(0, 1, 0) /false: 正面、右方向から上を計算</param>
+	void SetUpFixed(bool isUpFixed) { m_info.isUpFixed = isUpFixed; }
 
 	/// <summary>
 	/// カメラを有効化する

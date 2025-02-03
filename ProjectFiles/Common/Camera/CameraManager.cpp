@@ -5,6 +5,7 @@
 
 CameraManager::CameraManager()
 {
+	// カメラの生成
 	for (int i = 0; i < static_cast<int>(CameraKind::MAX); ++i)
 	{
 		auto& camera = m_cameras[i];

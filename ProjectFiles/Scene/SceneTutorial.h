@@ -11,134 +11,244 @@ class CameraManager;
 class Player;
 enum class PlayerState;
 
-// チュートリアルの種類
+/// <summary>
+/// チュートリアルの種類
+/// </summary>
 enum class TutorialKind
 {
-	STATE,
-	INPUT,
-	CP,
-};
-// プレイヤーステートでのチェック情報
-struct CheckStateInfo
-{
-	PlayerState state;
-	int frame = 0;
-};
-// 入力情報でのチェック情報
-struct CheckInputInfo
-{
-	enum class TriggerType
-	{
-		STICK_LEFT,
-		STICK_RIGHT,
-		TRIGGER,
-	};
-	bool isTrigger = false;
-	TriggerType type = TriggerType::STICK_RIGHT;
-	std::string command;
-	int frame = 0;
-};
-// CPでのチェック情報
-struct CheckCPInfo
-{
-	int cp = -1;
-};
-// 共用体に
-using CheckInfo = std::variant<CheckStateInfo, CheckInputInfo, CheckCPInfo>;
-// チュートリアルで使う情報
-struct TutorialInfo
-{
-	TutorialKind kind = TutorialKind::STATE;
-	CheckInfo info;
-	bool isDrawClear = false;
-	bool isDrawDestination = false;
-	Vec3 destination;
-	bool isDrawGoal = false;
-	int goalTextId = -1;
-	bool isDrawNovel = false;
-	int novelId = -1;
+    STATE,  // プレイヤーステートでのチェック
+    INPUT,  // 入力情報でのチェック
+    CP,     // チェックポイントでのチェック
 };
 
+/// <summary>
+/// プレイヤーステートでのチェック情報
+/// </summary>
+struct CheckStateInfo
+{
+    PlayerState state;
+    int frame = 0;
+};
+
+/// <summary>
+/// 入力情報でのチェック情報
+/// </summary>
+struct CheckInputInfo
+{
+    /// <summary>
+    /// トリガーの種類
+    /// </summary>
+    enum class TriggerType
+    {
+        STICK_LEFT,
+        STICK_RIGHT,
+        TRIGGER,
+    };
+    bool isTrigger = false;
+    TriggerType type = TriggerType::STICK_RIGHT;
+    std::string command;
+    int frame = 0;
+};
+
+/// <summary>
+/// チェックポイントでのチェック情報
+/// </summary>
+struct CheckCPInfo
+{
+    int cp = -1;
+};
+
+// 共用体に
+using CheckInfo = std::variant<CheckStateInfo, CheckInputInfo, CheckCPInfo>;
+
+/// <summary>
+/// チュートリアルで使う情報
+/// </summary>
+struct TutorialInfo
+{
+    TutorialKind kind = TutorialKind::STATE;
+    CheckInfo info;
+    bool isDrawClear = false;
+    bool isDrawDestination = false;
+    Vec3 destination;
+    bool isDrawGoal = false;
+    int goalTextId = -1;
+    bool isDrawNovel = false;
+    int novelId = -1;
+};
+
+/// <summary>
+/// チュートリアルシーンクラス
+/// </summary>
 class SceneTutorial : public SceneBase
 {
 private:
-	
+    /// <summary>
+    /// シェーダー用の定数バッファ
+    /// </summary>
+    struct CBuff
+    {
+        float frame;
+        float fireRed;
+        float fireGreen;
+        float fireBlue;
+    };
 
-	struct CBuff
-	{
-		float frame;
-		float fireRed;
-		float fireGreen;
-		float fireBlue;
-	};
-	
 public:
-	SceneTutorial();
-	~SceneTutorial();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    SceneTutorial();
 
-	// 初期化処理(非同期)
-	void AsyncInit() override;
-	// 初期化処理(同期)
-	void Init() override;
-	// 終了処理
-	void End() override;
-	// 更新処理(同期)
-	void Update(bool isFade) override;
-	// 描画処理
-	void Draw() const override;
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    ~SceneTutorial();
 
-	void OnRestart();
+    /// <summary>
+    /// 初期化処理(非同期)
+    /// </summary>
+    void AsyncInit() override;
+
+    /// <summary>
+    /// 初期化処理(同期)
+    /// </summary>
+    void Init() override;
+
+    /// <summary>
+    /// 終了処理
+    /// </summary>
+    void End() override;
+
+    /// <summary>
+    /// 更新処理(同期)
+    /// </summary>
+    /// <param name="isFade">フェード中かどうか</param>
+    void Update(bool isFade) override;
+
+    /// <summary>
+    /// 描画処理
+    /// </summary>
+    void Draw() const override;
+
+    /// <summary>
+    /// 再スタート
+    /// </summary>
+    void OnRestart();
 
 private:
-	void Load();
+    /// <summary>
+    /// チュートリアル情報の読み込み
+    /// </summary>
+    void Load();
 
-	void MainUpdate();
-	void RestartUpdate();
+    /// <summary>
+    /// メインの更新処理
+    /// </summary>
+    void MainUpdate();
 
-	void CheckStateUpdate();
-	void CheckInputUpdate();
-	void CheckCPUpdate();
-	void ClearTutorialUpdate();
+    /// <summary>
+    /// 再スタート時の更新処理
+    /// </summary>
+    void RestartUpdate();
 
-	void OnClearTutorial();
-	void ChangeTutorial();
+    /// <summary>
+    /// プレイヤーステートのチェック更新処理
+    /// </summary>
+    void CheckStateUpdate();
 
-	void DrawMain() const;
-	void DrawRestart() const;
+    /// <summary>
+    /// 入力情報のチェック更新処理
+    /// </summary>
+    void CheckInputUpdate();
 
-	void DrawUI() const;
-	void DrawGateUI() const;
-	void DrawTutorialClear() const;
-	void DrawTutorialGoal() const;
-	void DrawTutorialNovel() const;
-	void DrawTutorialDestination() const;
+    /// <summary>
+    /// チェックポイントのチェック更新処理
+    /// </summary>
+    void CheckCPUpdate();
+
+    /// <summary>
+    /// チュートリアルクリア時の更新処理
+    /// </summary>
+    void ClearTutorialUpdate();
+
+    /// <summary>
+    /// チュートリアルクリア時の処理
+    /// </summary>
+    void OnClearTutorial();
+
+    /// <summary>
+    /// チュートリアルの変更
+    /// </summary>
+    void ChangeTutorial();
+
+    /// <summary>
+    /// メインの描画処理
+    /// </summary>
+    void DrawMain() const;
+
+    /// <summary>
+    /// 再スタート時の描画処理
+    /// </summary>
+    void DrawRestart() const;
+
+    /// <summary>
+    /// UIの描画処理
+    /// </summary>
+    void DrawUI() const;
+
+    /// <summary>
+    /// ゲートUIの描画処理
+    /// </summary>
+    void DrawGateUI() const;
+
+    /// <summary>
+    /// チュートリアルクリア時の描画処理
+    /// </summary>
+    void DrawTutorialClear() const;
+
+    /// <summary>
+    /// チュートリアルゴール時の描画処理
+    /// </summary>
+    void DrawTutorialGoal() const;
+
+    /// <summary>
+    /// チュートリアルノベルの描画処理
+    /// </summary>
+    void DrawTutorialNovel() const;
+
+    /// <summary>
+    /// チュートリアル目的地の描画処理
+    /// </summary>
+    void DrawTutorialDestination() const;
 
 private:
-	using UpdateFunc_t = void(SceneTutorial::*)();
-	using DrawFunc_t = void(SceneTutorial::*)() const;
-	UpdateFunc_t m_updateFunc;
-	UpdateFunc_t m_tutorialUpdateFunc;
-	DrawFunc_t m_drawFunc;
+    using UpdateFunc_t = void(SceneTutorial::*)();
+    using DrawFunc_t = void(SceneTutorial::*)() const;
+    UpdateFunc_t m_updateFunc;          // 更新関数ポインタ
+    UpdateFunc_t m_tutorialUpdateFunc;  // チュートリアル更新関数ポインタ
+    DrawFunc_t m_drawFunc;              // 描画関数ポインタ
 
-	std::shared_ptr<GateManager> m_gateMgr;
-	std::shared_ptr<StageManager> m_stageMgr;
-	std::shared_ptr<CameraManager> m_cameraMgr;
+    std::shared_ptr<GateManager> m_gateMgr;     // ゲートマネージャー
+    std::shared_ptr<StageManager> m_stageMgr;   // ステージマネージャー
+    std::shared_ptr<CameraManager> m_cameraMgr; // カメラマネージャー
+    std::shared_ptr<Player> m_player;           // プレイヤー
 
-	std::shared_ptr<Player> m_player;
+    std::vector<int> m_rtTable; // レンダーターゲットのテーブル
+    std::vector<TutorialInfo> m_tutorialInfo; // チュートリアル情報のリスト
 
-	std::vector<int> m_rtTable;
-	std::vector<TutorialInfo> m_tutorialInfo;
+    CBuff* m_cBuff; // シェーダー用の定数バッファ
+    int m_cBuffH;   // 定数バッファのハンドル
 
-	CBuff* m_cBuff;
+    // 時間
+    int m_time; 
+    // インデックス
+    int m_index; 
+    int m_checkFrame; // チェックフレーム
+    int m_stampFrame; // スタンプフレーム
+    int m_uiFrame1; // UIフレーム1
+    int m_uiFrame2; // UIフレーム2
 
-	int m_cBuffH;
-	int m_time;
-	int m_index;
-	int m_checkFrame;
-	int m_stampFrame;
-	int m_uiFrame1;
-	int m_uiFrame2;
-
-	bool m_isDrawGoal;
-	bool m_isDrawClear;
+    bool m_isDrawGoal;  // ゴール描画フラグ
+    bool m_isDrawClear; // クリア描画フラグ
 };

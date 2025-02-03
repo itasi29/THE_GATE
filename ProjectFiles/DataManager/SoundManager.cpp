@@ -53,12 +53,14 @@ void SoundManager::Update()
 			// サウンドが終了していれば次の処理へ
 			if (!CheckSoundMem(info.handle)) continue;
 
+			// 距離に応じて音量を変更
 			const auto& target = info.master.lock()->GetPos();
 			float rate = 1.0f - std::min<float>((target - center).SqLength() / SOUND_DEL_SQ_DIS, 1.0f);
 			ChangePlayVolume(info.handle, rate, false);
 		}
 	}
 	
+	// 停止しているSEを削除
 	m_saveSeList.remove_if(
 		[](const auto& info)
 		{
@@ -72,7 +74,9 @@ void SoundManager::StopNowPlaySe()
 
 	for (auto& info : m_saveSeList)
 	{
+		// 再生位置の保存
 		info.savePos = GetSoundCurrentPosition(info.handle);
+		// 再生停止
 		StopSoundMem(info.handle);
 	}
 }
@@ -85,19 +89,20 @@ void SoundManager::RestartStopedSe()
 	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetSeRate() * 0.01f);
 	for (auto& info : m_saveSeList)
 	{
+		// 再生位置の設定
 		SetSoundCurrentTime(info.savePos, info.handle);
+		// 音量の変更
 		ChangeNextPlayVolumeSoundMem(volume, info.handle);
+		// 再生
 		PlaySoundMem(info.handle, DX_PLAYTYPE_BACK, false);
 	}
 }
 
 void SoundManager::PlayBgm(int soundHandle, bool isLoop, bool isSoundPosSave)
 {
-	if (soundHandle < 0)
-	{
-		soundHandle = m_nowPlayBgm;
-	}
-
+	// -1だったら現在流れているBGMにする
+	if (soundHandle < 0) soundHandle = m_nowPlayBgm;
+	// 再生中だったら終了
 	if (IsNowPlay(soundHandle)) return;
 
 	// 音量の変更
@@ -105,29 +110,23 @@ void SoundManager::PlayBgm(int soundHandle, bool isLoop, bool isSoundPosSave)
 	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetBgmRate());
 	ChangeNextPlayVolumeSoundMem(volume, soundHandle);
 
-	if (isSoundPosSave)
-	{
-		SetSoundCurrentTime(m_soundSavePos, soundHandle);
-		PlaySoundMem(soundHandle, DX_PLAYTYPE_BACK, isLoop);
-	}
-	else
-	{
-		PlaySoundMem(soundHandle, DX_PLAYTYPE_BACK, isLoop);
-	}
-
+	// 音声再生場所の場合
+	if (isSoundPosSave) SetSoundCurrentTime(m_soundSavePos, soundHandle);
+	// 再生
+	PlaySoundMem(soundHandle, DX_PLAYTYPE_BACK, isLoop);
+	// 現在再生中のBGMを保存
 	m_nowPlayBgm = soundHandle;
 }
 
 void SoundManager::PlayFadeBgm(int soundHandle, float rate, bool isLoop)
 {
-	if (soundHandle < 0)
-	{
-		soundHandle = m_nowPlayBgm;
-	}
-
+	// -1だったら現在流れているBGMにする
+	if (soundHandle < 0) soundHandle = m_nowPlayBgm;
+	// 再生中であれば
 	if (IsNowPlay(soundHandle))
 	{
-		ChangePlayVolume(m_nowPlayBgm, 1.0f, true);
+		// 音量の変更
+		ChangePlayVolume(m_nowPlayBgm, rate, true);
 		return;
 	}
 
@@ -139,6 +138,7 @@ void SoundManager::PlayFadeBgm(int soundHandle, float rate, bool isLoop)
 	// ループがONの場合はBGMが終了次第先頭に戻る
 	PlaySoundMem(soundHandle, DX_PLAYTYPE_BACK, isLoop);
 
+	// 現在再生中のBGMを保存
 	m_nowPlayBgm = soundHandle;
 }
 
@@ -149,14 +149,14 @@ void SoundManager::PlaySe(int seHandle, bool isOption)
 	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetBgmRate());
 	ChangeNextPlayVolumeSoundMem(volume, seHandle);
 
+	// 再生
 	auto err = PlaySoundMem(seHandle, DX_PLAYTYPE_BACK, true);
 	assert(err != -1);
+	// 現在再生中のSEを保存
 	m_soundHandle = seHandle;
 
-	if (!isOption)
-	{
-		m_saveSeList.emplace_back(SaveSeData{ seHandle, 0 });
-	}
+	// オプションで流して物でなればなければ保存
+	if (!isOption) m_saveSeList.emplace_back(SaveSeData{ seHandle, 0 });
 }
 
 void SoundManager::PlaySe3D(int seHandle, const std::weak_ptr<MyEngine::Collidable> master, bool isOption)
@@ -166,30 +166,25 @@ void SoundManager::PlaySe3D(int seHandle, const std::weak_ptr<MyEngine::Collidab
 	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetBgmRate());
 	ChangeNextPlayVolumeSoundMem(volume, seHandle);
 
+	// 再生
 	auto err = PlaySoundMem(seHandle, DX_PLAYTYPE_BACK, true);
 	assert(err != -1);
+	// 現在再生中のSEを保存
 	m_soundHandle = seHandle;
 
-	if (!isOption)
-	{
-		m_saveSeList.emplace_back(SaveSeData{ seHandle, 0, master });
-	}
+	// オプションで流して物でなればなければ保存
+	if (!isOption) m_saveSeList.emplace_back(SaveSeData{ seHandle, 0, master });
 }
 
 void SoundManager::StopBGM(int soundHandle, bool isSoundPosSave)
 {
-	if (soundHandle < 0)
-	{
-		soundHandle = m_nowPlayBgm;
-	}
-
+	// -1だったら現在流れているBGMにする
+	if (soundHandle < 0) soundHandle = m_nowPlayBgm;
+	// 停止
 	StopSoundMem(soundHandle);
 
 	// 音声再生場所の保存
-	if (isSoundPosSave)
-	{
-		m_soundSavePos = GetSoundCurrentPosition(soundHandle);
-	}
+	if (isSoundPosSave) m_soundSavePos = GetSoundCurrentPosition(soundHandle);
 }
 
 void SoundManager::Stop(int handle)

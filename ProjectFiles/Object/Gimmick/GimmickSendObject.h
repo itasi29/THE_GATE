@@ -4,7 +4,7 @@
 class GimmickLinkObject;
 
 /// <summary>
-/// ギミック送信オブジェクトを表すクラス
+/// ギミック送信クラス
 /// </summary>
 class GimmickSendObject : public Object3DBase
 {

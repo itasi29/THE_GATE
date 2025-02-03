@@ -4,7 +4,7 @@
 class MoveFloorManager;
 
 /// <summary>
-/// 移動床を表すクラス
+/// 移動床クラス
 /// </summary>
 class MoveFloor : public Object3DBase
 {

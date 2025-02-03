@@ -9,7 +9,7 @@ class GateManager;
 class LaserLaunchPad;
 
 /// <summary>
-/// レーザー弾を表すクラス
+/// レーザー弾クラス
 /// </summary>
 class LaserBullet : public Object3DBase
 {

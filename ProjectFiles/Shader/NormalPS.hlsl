@@ -4,6 +4,20 @@ Texture2D<float4> norm : register(t1);
 // ↑頂点シェーダから通ってくる画像(モデル本体が持っている画像)
 // ↓自分が渡している画像
 
+struct PointLight
+{
+    float3 pos;      // 位置
+    float range;     // 有効範囲
+    float intensity; // 強さ
+    float3 color;    // 色
+};
+
+cbuffer LightBuffer : register(b4)
+{
+    PointLight lights[50];
+    int lightNum;
+}
+
 struct PS_INPUT
 {
     float4 Diffuse : COLOR0; // ディフューズカラー
@@ -26,23 +40,44 @@ struct PS_OUTPUT
 
 PS_OUTPUT main(PS_INPUT input) : SV_TARGET
 {
-    PS_OUTPUT outdata;
-    
-    float3 light = normalize(float3(1, 0.5, 1));
-    
-    float3 nmap = norm.Sample(smp, input.TexCoords0).rbg;
-    nmap = nmap * 2 - 1;
+    // 法線マップから法線ベクトルを取得
+    float3 nmap = norm.Sample(smp, input.TexCoords0).rgb;
+    nmap = normalize(nmap * 2 - 1);
     float3 N = normalize(nmap.x * input.Tangent - nmap.y * input.Binormal + nmap.z * input.Normal);
     
-    const float ambient = 0.25;
-    float bright = clamp(dot(N, -light), 0.25, 1.0);
+    PS_OUTPUT o;
+    o.color = float4(N * 0.5 + 0.5, 1);
+//    return o;
+    
+    float3 finalColor = float3(0, 0, 0);
+    // 各ポイントライトからの影響を計算
+    for (int i = 0; i < lightNum; i++)
+    {
+        // ライトまでのベクトル
+        float3 lightDir = lights[i].pos - input.Position.xyz;
+        float distance = length(lightDir);
+        
+        // ライトまでの距離が有効範囲外ならスキップ
+        if (distance > lights[i].range) continue;
+        
+        // 距離による減衰
+        float attenuation = saturate(1 - distance / lights[i].range);
+        
+        // 正規化
+        lightDir = normalize(lightDir);
+        // ライトの影響を加算
+        float NdotL = dot(N, lightDir);
+        finalColor += lights[i].color * lights[i].intensity * attenuation * NdotL;
+    }
+    const float ambient = 0.35;
+    float3 ambColor = float3(ambient, ambient, ambient);
+    finalColor = saturate(finalColor + ambColor);
+    
     float4 col = tex.Sample(smp, input.TexCoords0);
     
-    // 明るさ係数
-    const float lightCoe = 2;
-    
-    outdata.color = float4(col.rgb * bright * lightCoe, col.a);
-    // 深度値
+    PS_OUTPUT outdata;
+    outdata.color = float4(col.rgb * finalColor, col.a);
+// 深度値
     float dep = input.P.z / input.P.w; // wで割ってあげないと0～1にならない
     dep = pow(dep, 20);
     outdata.depht = float4(dep, dep, dep, 1.0);

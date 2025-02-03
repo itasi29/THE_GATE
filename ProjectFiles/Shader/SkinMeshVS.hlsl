@@ -1,5 +1,3 @@
-#define DX_D3D11_COMMON_CONST_LIGHT_NUM			(6)		// 共通パラメータのライトの最大数
-
 // 構造体定義 --------------------------------------------------------------------
 
 // マテリアルパラメータ
@@ -14,52 +12,6 @@ struct DX_D3D11_CONST_MATERIAL
     float TypeParam1; // マテリアルタイプパラメータ1
     float TypeParam2; // マテリアルタイプパラメータ2
 };
-
-// フォグパラメータ
-struct DX_D3D11_VS_CONST_FOG
-{
-    float LinearAdd; // フォグ用パラメータ end / ( end - start )
-    float LinearDiv; // フォグ用パラメータ -1  / ( end - start )
-    float Density; // フォグ用パラメータ density
-    float E; // フォグ用パラメータ 自然対数の低
-
-    float4 Color; // カラー
-};
-
-// ライトパラメータ
-struct DX_D3D11_CONST_LIGHT
-{
-    int Type; // ライトタイプ( DX_LIGHTTYPE_POINT など )
-    int3 Padding1; // パディング１
-
-    float3 Position; // 座標( ビュー空間 )
-    float RangePow2; // 有効距離の２乗
-
-    float3 Direction; // 方向( ビュー空間 )
-    float FallOff; // スポットライト用FallOff
-
-    float3 Diffuse; // ディフューズカラー
-    float SpotParam0; // スポットライト用パラメータ０( cos( Phi / 2.0f ) )
-
-    float3 Specular; // スペキュラカラー
-    float SpotParam1; // スポットライト用パラメータ１( 1.0f / ( cos( Theta / 2.0f ) - cos( Phi / 2.0f ) ) )
-
-    float4 Ambient; // アンビエントカラーとマテリアルのアンビエントカラーを乗算したもの
-
-    float Attenuation0; // 距離による減衰処理用パラメータ０
-    float Attenuation1; // 距離による減衰処理用パラメータ１
-    float Attenuation2; // 距離による減衰処理用パラメータ２
-    float Padding2; // パディング２
-};
-
-// ピクセルシェーダー・頂点シェーダー共通パラメータ
-struct DX_D3D11_CONST_BUFFER_COMMON
-{
-    DX_D3D11_CONST_LIGHT Light[DX_D3D11_COMMON_CONST_LIGHT_NUM]; // ライトパラメータ
-    DX_D3D11_CONST_MATERIAL Material; // マテリアルパラメータ
-    DX_D3D11_VS_CONST_FOG Fog; // フォグパラメータ
-};
-
 
 // マクロ定義 -----------------------------------
 
@@ -93,15 +45,10 @@ struct DX_D3D11_VS_CONST_BUFFER_OTHERMATRIX
 // スキニングメッシュ用の　ローカル　→　ワールド行列
 struct DX_D3D11_VS_CONST_BUFFER_LOCALWORLDMATRIX
 {
-	float4		Matrix[ DX_D3D11_VS_CONST_WORLD_MAT_NUM*3 ] ;					// ローカル　→　ワールド行列
+	float4 mat[ DX_D3D11_VS_CONST_WORLD_MAT_NUM*3 ] ;					// ローカル　→　ワールド行列
 };
 
 
-
-cbuffer cbD3D11_CONST_BUFFER_COMMON : register(b0)
-{
-    DX_D3D11_CONST_BUFFER_COMMON g_Common;
-};
 
 // 基本パラメータ
 cbuffer cbD3D11_CONST_BUFFER_VS_BASE : register(b1)
@@ -125,11 +72,15 @@ struct VS_INPUT
 {
     float3 Position : POSITION; // 座標( ローカル空間 )
     float3 Normal : NORMAL0; // 法線( ローカル空間 )
-    float4 Diffuse : COLOR0; // ディフューズカラー
-    float4 Specular : COLOR1; // スペキュラカラー
+    float3 Tangent : TANGENT0; // 接戦ベクトル
+    float3 Binormal : BINORMAL0; // 従法線ベクトル
     float4 TexCoords0 : TEXCOORD0; // テクスチャ座標
     float4 TexCoords1 : TEXCOORD1; // サブテクスチャ座標
-
+    float4 Diffuse : COLOR0; // ディフューズカラー
+    float4 Specular : COLOR1; // スペキュラカラー
+    
+    // 法線あり
+    
 	// スキニングメッシュ
     int4 BlendIndices0 : BLENDINDICES0; // ボーン処理用 Float型定数配列インデックス０
     float4 BlendWeight0 : BLENDWEIGHT0; // ボーン処理用ウエイト値０
@@ -160,21 +111,21 @@ VS_OUTPUT main(VS_INPUT VSInput)
     int4 lBoneFloatIndex = VSInput.BlendIndices0;
     float4 lLocalWorldMatrix[3];
     // 重みづけ加算
-    lLocalWorldMatrix[0] = g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.x + 0] * VSInput.BlendWeight0.x;
-    lLocalWorldMatrix[1] = g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.x + 1] * VSInput.BlendWeight0.x;
-    lLocalWorldMatrix[2] = g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.x + 2] * VSInput.BlendWeight0.x;
+    lLocalWorldMatrix[0] = g_LocalWorldMatrix.mat[lBoneFloatIndex.x + 0] * VSInput.BlendWeight0.x;
+    lLocalWorldMatrix[1] = g_LocalWorldMatrix.mat[lBoneFloatIndex.x + 1] * VSInput.BlendWeight0.x;
+    lLocalWorldMatrix[2] = g_LocalWorldMatrix.mat[lBoneFloatIndex.x + 2] * VSInput.BlendWeight0.x;
 
-    lLocalWorldMatrix[0] += g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.y + 0] * VSInput.BlendWeight0.y;
-    lLocalWorldMatrix[1] += g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.y + 1] * VSInput.BlendWeight0.y;
-    lLocalWorldMatrix[2] += g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.y + 2] * VSInput.BlendWeight0.y;
+    lLocalWorldMatrix[0] += g_LocalWorldMatrix.mat[lBoneFloatIndex.y + 0] * VSInput.BlendWeight0.y;
+    lLocalWorldMatrix[1] += g_LocalWorldMatrix.mat[lBoneFloatIndex.y + 1] * VSInput.BlendWeight0.y;
+    lLocalWorldMatrix[2] += g_LocalWorldMatrix.mat[lBoneFloatIndex.y + 2] * VSInput.BlendWeight0.y;
 
-    lLocalWorldMatrix[0] += g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.z + 0] * VSInput.BlendWeight0.z;
-    lLocalWorldMatrix[1] += g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.z + 1] * VSInput.BlendWeight0.z;
-    lLocalWorldMatrix[2] += g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.z + 2] * VSInput.BlendWeight0.z;
+    lLocalWorldMatrix[0] += g_LocalWorldMatrix.mat[lBoneFloatIndex.z + 0] * VSInput.BlendWeight0.z;
+    lLocalWorldMatrix[1] += g_LocalWorldMatrix.mat[lBoneFloatIndex.z + 1] * VSInput.BlendWeight0.z;
+    lLocalWorldMatrix[2] += g_LocalWorldMatrix.mat[lBoneFloatIndex.z + 2] * VSInput.BlendWeight0.z;
 
-    lLocalWorldMatrix[0] += g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.w + 0] * VSInput.BlendWeight0.w;
-    lLocalWorldMatrix[1] += g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.w + 1] * VSInput.BlendWeight0.w;
-    lLocalWorldMatrix[2] += g_LocalWorldMatrix.Matrix[ lBoneFloatIndex.w + 2] * VSInput.BlendWeight0.w;
+    lLocalWorldMatrix[0] += g_LocalWorldMatrix.mat[lBoneFloatIndex.w + 0] * VSInput.BlendWeight0.w;
+    lLocalWorldMatrix[1] += g_LocalWorldMatrix.mat[lBoneFloatIndex.w + 1] * VSInput.BlendWeight0.w;
+    lLocalWorldMatrix[2] += g_LocalWorldMatrix.mat[lBoneFloatIndex.w + 2] * VSInput.BlendWeight0.w;
     
 
     // 座標計算( ローカル→ビュー→プロジェクション )
@@ -205,6 +156,19 @@ VS_OUTPUT main(VS_INPUT VSInput)
     VSOutput.Normal.x = dot(normal, lLocalWorldMatrix[0]);
     VSOutput.Normal.y = dot(normal, lLocalWorldMatrix[1]);
     VSOutput.Normal.z = dot(normal, lLocalWorldMatrix[2]);
+    VSOutput.Normal = normalize(VSOutput.Normal);
+
+    float4 tangent = float4(VSInput.Tangent, 0);
+    VSOutput.Tangent.x = dot(tangent, lLocalWorldMatrix[0]);
+    VSOutput.Tangent.y = dot(tangent, lLocalWorldMatrix[1]);
+    VSOutput.Tangent.z = dot(tangent, lLocalWorldMatrix[2]);
+    VSOutput.Tangent = normalize(VSOutput.Tangent);
+
+    float4 binormal = float4(VSInput.Binormal, 0);
+    VSOutput.Binormal.x = dot(binormal, lLocalWorldMatrix[0]);
+    VSOutput.Binormal.y = dot(binormal, lLocalWorldMatrix[1]);
+    VSOutput.Binormal.z = dot(binormal, lLocalWorldMatrix[2]);
+    VSOutput.Binormal = normalize(VSOutput.Binormal);
     
     return VSOutput;
 }

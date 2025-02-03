@@ -35,18 +35,22 @@ LaserBullet::~LaserBullet()
 
 void LaserBullet::Init(const Vec3& pos, const Vec3& dir)
 {
+	// Physicsに登録
 	OnEntryPhysics();
+	// 物理情報の設定
 	m_rigid.SetGravity(false);
 	m_rigid.SetPos(pos);
 	m_rigid.SetVelocity(dir.GetNormalized() * MOVE_SPEED);
-	
+	// コライダーの設定
 	auto col = std::dynamic_pointer_cast<MyEngine::ColliderSphere>(CreateCollider(MyEngine::ColKind::SPHERE));
 	col->isTrigger = false;
 	col->radius = COL_RADIUS;
 
+	// エフェクトの再生
 	m_effHandle = EffekseerManager::GetInstance().Play(E_LASER_BULLET);
 	m_reflectNum = 0;
 
+	// スルータグの設定
 	m_throughTag.push_back(ObjectTag::PLAYER);
 	m_throughTag.push_back(ObjectTag::GATE_BULLET);
 	m_throughTag.push_back(ObjectTag::TURRET);
@@ -62,13 +66,15 @@ void LaserBullet::End()
 
 void LaserBullet::Update()
 {
+	// 1つ前のワープ状態を保存
 	m_isPreWarp = m_isWarp;
+	// ワープ情報リセット
 	m_isWarp = false;
+
 	const auto& effMgr = EffekseerManager::GetInstance();
-	if (!effMgr.IsPlay(m_effHandle))
-	{
-		m_effHandle = EffekseerManager::GetInstance().Play(E_LASER_BULLET);
-	}
+	// エフェクトが再生されていない場合は再度再生
+	if (!effMgr.IsPlay(m_effHandle)) m_effHandle = EffekseerManager::GetInstance().Play(E_LASER_BULLET);
+	// エフェクトの情報を設定
 	effMgr.SetInfo(m_effHandle, m_rigid.GetPos(), Quaternion());
 }
 
@@ -77,8 +83,10 @@ void LaserBullet::OnCollideEnter(MyEngine::Collidable* colider, int selfIndex, i
 	MyEngine::Collidable::OnCollideEnter(colider, selfIndex, sendIndex, hitInfo);
 
 	auto tag = colider->GetTag();
-	bool isFind = std::find(m_groundTag.begin(), m_groundTag.end(), tag) != m_groundTag.end();
-	if ((isFind || tag == ObjectTag::WALL || tag == ObjectTag::NO_GATE_WALL || tag == ObjectTag::DOOR_ARCH || tag == ObjectTag::DOOR) && !m_isPreWarp && !m_isWarp)
+	// 地面または壁に当たった場合は反射
+	bool isFindGround = std::find(m_groundTag.begin(), m_groundTag.end(), tag) != m_groundTag.end();
+	bool isFindWall = std::find(m_wallTag.begin(), m_wallTag.end(), tag) != m_wallTag.end();
+	if ((isFindGround || isFindWall) && !m_isPreWarp && !m_isWarp)
 	{
 		auto col = dynamic_cast<MyEngine::ColliderBox*>(colider->GetColliderData(sendIndex));
 
@@ -108,9 +116,12 @@ void LaserBullet::OnTriggerEnter(MyEngine::Collidable* colider, int selfIndex, i
 	MyEngine::Collidable::OnTriggerEnter(colider, selfIndex, sendIndex, hitInfo);
 
 	auto tag = colider->GetTag();
+	// 起動装置に当たった場合
 	if (tag == ObjectTag::LASER_CATCHER)
 	{
+		// クリアしたことに
 		m_launchPad->OnClear();
+		// 弾の削除
 		m_launchPad->DestoryBullet();
 	}
 	else if (tag == ObjectTag::GATE)
@@ -144,8 +155,15 @@ void LaserBullet::OnTriggerStay(MyEngine::Collidable* colider, int selfIndex, in
 		// ワープ処理
 		if (gate->CheckWarp(m_rigid.GetPos()))
 		{
-			gate->OnWarp(m_rigid.GetPos(), m_rigid, false);
+			gate->OnWarp(m_rigid.GetPos(), m_rigid, false, COL_RADIUS);
 			m_isWarp = true;
+
+			auto pairGate = gate->GetPairGate();
+			// スルータグの変更
+			m_isAddTag[colider] = false;
+			m_isAddTag[pairGate.get()] = true;
+			m_throughTag.remove(gate->GetHitObjectTag());
+			m_throughTag.push_back(pairGate->GetHitObjectTag());
 		}
 	}
 }
@@ -161,15 +179,7 @@ void LaserBullet::OnTriggerExit(MyEngine::Collidable* colider, int selfIndex, in
 		{
 			// スルータグ外す
 			auto gate = dynamic_cast<Gate*>(colider);
-			auto hitTag = gate->GetHitObjectTag();
-			for (auto it = m_throughTag.begin(); it != m_throughTag.end(); ++it)
-			{
-				if (*it == hitTag)
-				{
-					m_throughTag.erase(it);
-					break;
-				}
-			}
+			m_throughTag.remove(gate->GetHitObjectTag());
 			m_isAddTag[colider] = false;
 		}
 	}

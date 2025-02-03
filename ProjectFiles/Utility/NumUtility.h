@@ -36,6 +36,7 @@ private:
 		m_psH(-1),
 		m_cBuffH(-1)
 	{
+		// 文字の切り取りリストを作成
 		m_currentList[L"."] = 10;
 		m_currentList[L":"] = 11;
 		m_currentList[L"-"] = 12;
@@ -53,12 +54,15 @@ public:
 
 	void Init()
 	{
+		// ファイルの読み込み
 		auto& fileMgr = FileManager::GetInstance();
 		m_handle = fileMgr.Load(I_NUMBERS, true)->GetHandle();
 		m_psH = fileMgr.Load(PS_NUM, true)->GetHandle();
 
+		// 定数バッファの作成
 		m_cBuffH = CreateShaderConstantBuffer(sizeof(CBuff));
 		assert(m_cBuffH != -1);
+		// 定数バッファの取得
 		auto temp = GetBufferShaderConstantBuffer(m_cBuffH);
 		m_cBuff = static_cast<CBuff*>(temp);
 		assert(m_cBuff != nullptr);
@@ -85,10 +89,7 @@ public:
 	void DrawNumber(int x, int y, float size, unsigned int color, int num, const wchar_t* const c = L"", bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0)
 	{
 		assert(-1 <= num && num < 10 && "数字が範囲外です");
-		if (num < 0)
-		{
-			num = m_currentList.at(c);
-		}
+		if (num < 0) num = m_currentList.at(c);
 
 		// 切り取り位置
 		int srcX = SRC_SIZE_X * (num % SRC_ROW_NUM);
@@ -114,6 +115,7 @@ public:
 	void DrawNumberMore(int x, int y, float size, unsigned int color, int num, int fillNum = 0, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0)
 	{
 		std::list<unsigned int> list;
+		// 負の数の場合は正に変換
 		const bool isUnder = num < 0;
 		if (isUnder) num *= -1;
 		// 一番桁から数字を取得していく
@@ -131,14 +133,18 @@ public:
 		int addSize = static_cast<int>(SRC_SIZE_X * size);
 		int count = 1;
 		x = x - static_cast<int>(addSize * list.size() * 0.5f);
+		// 描画
 		for (auto& item : list)
 		{
 			DrawNumber(x, y, size, color, item, L"", isShadow, shadowX, shadowY, shadowColor);
+			// 位置更新
 			x += addSize;
 			++count;
 		}
+		// 負の数の場合
 		if (isUnder)
 		{
+			// 先頭に"-"を追加
 			x -= addSize * count;
 			DrawNumber(x, y, size, color, -1, L"-", isShadow, shadowX, shadowY, shadowColor);
 		}

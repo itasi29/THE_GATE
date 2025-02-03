@@ -6,7 +6,7 @@ enum class GateKind;
 class GateManager;
 
 /// <summary>
-/// ゲート弾を表すクラス
+/// ゲート弾クラス
 /// </summary>
 class GateBullet final : public MyEngine::Collidable
 {

@@ -155,16 +155,21 @@ float Input::GetTriggerRate(unsigned char trigger)
 
 float Input::GetStickRate(short val)
 {
+	// スティックの入力値を取得
 	float rate = val / Game::ANALOG_STICK_RANGE;
+	// 逆回転の場合は正に変換
 	bool isReverse = rate < 0.0f;
 	if (isReverse) rate = std::abs(rate);
+	// デッドゾーンを適用
 	rate = ApplyDeadZone(rate);
+	// 逆回転の場合は負に変換
 	if (isReverse) rate *= -1;
 	return rate;
 }
 
 float Input::ApplyDeadZone(float rate)
 {
+	// デッドゾーンの適用
 	rate = (rate - Game::ANALOG_DEAD_ZONE_INSIDE) / (Game::ANALOG_DEAD_ZONE_OUTSIDE - Game::ANALOG_DEAD_ZONE_INSIDE);
 	rate = std::min<float>(std::max<float>(rate, 0.0f), 1.0f);
 

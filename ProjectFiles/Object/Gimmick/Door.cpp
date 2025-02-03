@@ -26,11 +26,13 @@ void Door::Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std::
 {
 	Object3DBase::Init(pos, scale, rot, list, isGravity);
 
+	// ファイルの読み込み
 	m_openSe = FileManager::GetInstance().Load(S_DOOR_OPEN);
 
+	// 法線をボックスコライダーの法線方向に設定
 	auto box = dynamic_cast<MyEngine::ColliderBox*>(GetColliderData(0));
-
 	m_right = box->norm;
+	// スタート位置を設定
 	m_startPos = pos;
 }
 
@@ -84,22 +86,24 @@ void Door::GimmickOffUpdate()
 
 void Door::ProcessGimmickOn()
 {
-	if (!m_isStart)
-	{
-		SoundManager::GetInstance().PlaySe3D(m_openSe->GetHandle(), shared_from_this());
-	}
+	// 開始でなければサウンドを再生
+	if (!m_isStart) SoundManager::GetInstance().PlaySe3D(m_openSe->GetHandle(), shared_from_this());
+	// 開始でないことに
 	m_isStart = false;
+	// 開いていないことに
 	m_isOpen = false;
+	// Physicsから削除
 	OnExistPhysics();
 }
 
 void Door::ProcessGimmickOff()
 {
-	if (!m_isStart)
-	{
-		SoundManager::GetInstance().PlaySe3D(m_openSe->GetHandle(), shared_from_this());
-	}
+	// 開始でなければサウンドを再生
+	if (!m_isStart) SoundManager::GetInstance().PlaySe3D(m_openSe->GetHandle(), shared_from_this());
+	// 開始でないことに
 	m_isStart = false;
+	// 閉じていないことに
 	m_isClose = false;
+	// Physicsに登録
 	OnEntryPhysics();
 }

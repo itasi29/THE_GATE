@@ -3,7 +3,7 @@ Texture2D<float4> tex : register(t0);
 Texture2D<float4> rt : register(t1);
 Texture2D<float4> dissolve : register(t2);
 
-cbuffer UserData : register(b4)
+cbuffer UserData : register(b5)
 {
     float3 center;
     float radius;

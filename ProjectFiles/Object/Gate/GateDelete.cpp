@@ -55,6 +55,7 @@ void GateDelete::Update()
 			PlayEff(m_effH2);
 		}
 	}
+	// エフェクトが終了したらもう一度再生する
 	else if (!effMgr.IsPlay(m_effH2))
 	{
 		PlayEff(m_effH2);

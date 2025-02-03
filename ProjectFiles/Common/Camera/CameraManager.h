@@ -21,7 +21,7 @@ enum class CameraKind
 };
 
 /// <summary>
-/// カメラを管理するクラス
+/// カメラ管理クラス
 /// </summary>
 class CameraManager
 {

@@ -25,9 +25,12 @@ void LaserCatcher::OnTriggerEnter(MyEngine::Collidable* colider, int selfIndex, 
 	MyEngine::Collidable::OnTriggerEnter(colider, selfIndex, sendIndex, hitInfo);
 
 	auto tag = colider->GetTag();
+	// レーザー弾だったら
 	if (tag == ObjectTag::LASER_BULLET)
 	{
+		// サウンド再生
 		SoundManager::GetInstance().PlaySe3D(m_catchSe->GetHandle(), shared_from_this());
+		// ギミックを開始
 		m_linkObj->OnGimmick();
 	}
 }

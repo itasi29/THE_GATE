@@ -2,7 +2,7 @@
 #include "FileBase.h"
 
 /// <summary>
-/// Effekseerファイルを管理するクラス
+/// Effekseerファイルクラス
 /// </summary>
 class FileEffekseer : public FileBase
 {

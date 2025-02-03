@@ -19,7 +19,7 @@ enum class EasingType
 };
 
 /// <summary>
-/// イージングを扱うクラス
+/// イージングクラス
 /// </summary>
 class Easing
 {
@@ -231,6 +231,8 @@ public:
 
         const auto& rot = Quaternion::GetQuaternion(v1, v2);
         const auto& axis = rot.GetAxis();
+
+        if (axis.SqLength() == 0.0f) return v2;
 
         return Quaternion::AngleAxis(angle, axis) * v1;
     }

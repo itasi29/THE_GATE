@@ -28,6 +28,7 @@ Gate::Gate(const std::shared_ptr<GateCamera>& camera, const std::shared_ptr<Gate
 	m_kind(kind),
 	m_hitObjTag(ObjectTag::WALL)
 {
+	// シェーダー定数バッファ作成
 	m_cbuffH = CreateShaderConstantBuffer(sizeof(UserData));
 	m_userData = static_cast<UserData*>(GetBufferShaderConstantBuffer(m_cbuffH));
 }
@@ -39,28 +40,32 @@ Gate::~Gate()
 
 void Gate::Init(ObjectTag hitObjTag, const Vec3& pos, const Vec3& norm, const Vec3& dir, const std::weak_ptr<Player>& player)
 {
+	// Physicsに登録
 	OnEntryPhysics();
 
+	// ファイル読み込み
 	auto& fileMgr = FileManager::GetInstance();
 	m_dissolveFile = fileMgr.Load(I_DISSOLVE);
 	m_warpSe = fileMgr.Load(S_WARP);
+	// 種類によってモデルを読み込む
+	int id = M_GATE_ORANGE;
+	if (m_kind == GateKind::Blue) id = M_GATE_BLUE;
+	LoadModel(id);
 
+	// 重力設定
 	m_rigid.SetGravity(false);
+	// コライダー設定
 	m_collider = std::dynamic_pointer_cast<MyEngine::ColliderCapsule>(CreateCollider(MyEngine::ColKind::CAPSULE));
 	m_collider->isTrigger = true;
 	m_collider->size = CAPSULE_SIZE;
 	m_collider->radius = RADIUS;
-	int id = M_GATE_ORANGE;
-	if (m_kind == GateKind::Blue)
-	{
-		id = M_GATE_BLUE;
-	}
-	LoadModel(id);
-	m_scale *= 0.01f * CAPSULE_SIZE;
 
+	// プレイヤー設定
 	m_player = player;
 
+	// モデル情報初期化
 	ChangePos(hitObjTag, pos, norm, dir);
+	m_scale *= 0.01f * CAPSULE_SIZE;
 }
 
 void Gate::End()
@@ -72,7 +77,9 @@ void Gate::End()
 
 void Gate::ChangePos(ObjectTag hitObjTag, const Vec3& pos, const Vec3& norm, const Vec3& dir)
 {
+	// ヒットオブジェクトタグ設定
 	m_hitObjTag = hitObjTag;
+	// 位置、法線、方向設定
 	m_norm = norm.GetNormalized();
 	m_rigid.SetPos(pos);
 	m_collider->dir = dir;
@@ -86,6 +93,7 @@ void Gate::ChangePos(ObjectTag hitObjTag, const Vec3& pos, const Vec3& norm, con
 		m_rotation = Quaternion::GetQuaternion(Vec3::Front(), dir) * m_rotation;
 	}
 
+	// シェーダに送る情報設定
 	m_userData->center = pos;
 	m_userData->dir = dir;
 	m_userData->size = CAPSULE_SIZE;
@@ -97,14 +105,14 @@ void Gate::SetCameraInfo()
 {
 	if (!m_pairGate) return;
 
+	// カメラの位置を更新
 	const auto& pos = m_rigid.GetPos();
-
 	m_camera->SetTargetPos(pos);
 	m_cameraFromPair->SetTargetPos(pos);
 
 	// ペアのゲートのY軸の法線方向に合わせて角度を取得
 	const auto& pairNorm = m_pairGate->GetNorm();
-	float vertexAngle = pairNorm.y * 90.0f;
+	const float vertexAngle = std::abs(pairNorm.y) * -1.0f * 90.0f;
 
 	// 見る方向は法線方向
 	m_camera->SetBase(m_norm, vertexAngle);
@@ -113,10 +121,7 @@ void Gate::SetCameraInfo()
 	dir.Normalize();
 	auto angle = std::acosf(Vec3::Dot(-m_norm, pairNorm)) * Game::RAD_2_DEG;
 	auto axis = Vec3::Cross(pairNorm, -m_norm);
-	if (!axis.SqLength())
-	{
-		axis = m_collider->dir;
-	}
+	if (!axis.SqLength()) axis = m_collider->dir;
 	m_cameraFromPair->SetBase(Quaternion::AngleAxis(angle, axis) * dir, vertexAngle);
 }
 
@@ -151,16 +156,18 @@ void Gate::Update()
 
 void Gate::DrawGate(int tex) const
 {
+	// シェーダーに送る情報更新
 	UpdateShaderConstantBuffer(m_cbuffH);
-	SetShaderConstantBuffer(m_cbuffH, DX_SHADERTYPE_PIXEL, 4);
+	SetShaderConstantBuffer(m_cbuffH, DX_SHADERTYPE_PIXEL, 5);
 
-	if (tex < 0)
-	{
-		tex = MV1GetTextureGraphHandle(m_modelHandle, 0);
-	}
+	// -1の場合はデフォルトのテクスチャを使用
+	if (tex < 0) tex = MV1GetTextureGraphHandle(m_modelHandle, 0);
+	// シェーダにテクスチャを設定
 	SetUseTextureToShader(1, tex);
 	SetUseTextureToShader(2, m_dissolveFile->GetHandle());
+	// 描画
 	Object3DBase::Draw();
+	// テクスチャを解除
 	SetUseTextureToShader(1, -1);
 	SetUseTextureToShader(2, -1);
 
@@ -179,7 +186,7 @@ bool Gate::CheckWarp(const Vec3& targetPos)
 	return dot < 0.0f;
 }
 
-void Gate::OnWarp(const Vec3& targetPos, MyEngine::Rigidbody& targetRigid, bool isChangeVel)
+void Gate::OnWarp(const Vec3& targetPos, MyEngine::Rigidbody& targetRigid, bool isChangeVel, float height)
 {
 	// 音鳴らす
 	SoundManager::GetInstance().PlaySe(m_warpSe->GetHandle());
@@ -193,10 +200,12 @@ void Gate::OnWarp(const Vec3& targetPos, MyEngine::Rigidbody& targetRigid, bool 
 	const auto& right = normRot * Vec3::Projection(gateToTarget, m_right);
 	const auto& up    = upRot * Vec3::Projection(gateToTarget, m_collider->dir);
 	// 修正位置の取得
-	auto fixPos = m_pairGate->GetPos() + right + up + m_pairGate->GetNorm() * 0.5f;
+	const auto& pairNorm = m_pairGate->GetNorm();
+	constexpr float MIN_FIX_SIZE = 0.5f;
+	float size = std::max<float>(MIN_FIX_SIZE, std::abs(pairNorm.y * height));
+	auto fixPos = m_pairGate->GetPos() - right + up + pairNorm * size;
 	targetRigid.SetPos(fixPos);
 	
-
 	/* 速度変換 */
 	// 速度を変更する場合
 	if (isChangeVel)

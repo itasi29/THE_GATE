@@ -4,7 +4,7 @@
 class Gate;
 
 /// <summary>
-/// ゲートカメラを管理するクラス
+/// ゲートカメラクラス
 /// </summary>
 class GateCamera : public Camera
 {

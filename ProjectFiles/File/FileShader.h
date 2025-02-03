@@ -2,7 +2,7 @@
 #include "FileBase.h"
 
 /// <summary>
-/// シェーダーファイルを管理するクラス
+/// シェーダーファイルクラス
 /// </summary>
 class FileShader : public FileBase
 {

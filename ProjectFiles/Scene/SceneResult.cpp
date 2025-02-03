@@ -161,6 +161,7 @@ void SceneResult::Init()
 
 	// 背景モデル情報を取得
 	m_stageMgr->Init(nullptr, nullptr);
+	m_stageMgr->AppLights();
 	// モデルにアニメーションを追加
 	m_anim = std::make_shared<AnimController>();
 	m_anim->Init(ANIM_INFO_PATH, m_files.at(M_PLAYER)->GetHandle(), ANIM_CLEAR);

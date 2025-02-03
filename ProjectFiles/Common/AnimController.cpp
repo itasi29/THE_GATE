@@ -40,12 +40,15 @@ AnimController::~AnimController()
 
 void AnimController::Init(const wchar_t* const path, int modelH, int id)
 {
+	// IDテーブルの読み込み
 	LoadIdTable(path);
+	// アニメーションの初期化
 	m_updateFunc = &AnimController::NormalUpdate;
 	m_modelH = modelH;
 	auto index = MV1GetAnimIndex(m_modelH, m_idTable.at(id).name.c_str());
 	assert(index != -1 && "存在しないアニメーション名です");
 	m_nowId = id;
+	// アニメーションのアタッチ
 	m_nowAttachIndex = MV1AttachAnim(modelH, index);
 }
 
@@ -57,14 +60,18 @@ void AnimController::Update(float speed, float rate)
 
 bool AnimController::Change(int id, bool isTopStart, bool isStopEnd, bool isUnique, bool isBlendChange, float blendSpeed)
 {
+	// アニメーション番号を取得
 	auto index = MV1GetAnimIndex(m_modelH, m_idTable.at(id).name.c_str());
+	// 存在しないアニメーション名の場合はエラー
 	if (index == -1)
 	{
 		assert(false && "存在しないアニメーション名です");
 		return false;
 	}
 
+	// 同じアニメーションの場合は変更しない
 	if (m_nowAnimIndex == index) return false;
+	// 変更処理
 	m_nowAnimIndex = index;
 	m_isLoop = false;
 	m_preId = m_nowId;
@@ -72,22 +79,17 @@ bool AnimController::Change(int id, bool isTopStart, bool isStopEnd, bool isUniq
 	m_isPreUnique = m_isUnique;
 	m_isStopEnd = isStopEnd;
 	m_isUnique = isUnique;
-
 	m_nowId = id;
-	if (isBlendChange)
-	{
-		BlendChange(index, blendSpeed);
-	}
-	else
-	{
-		NoBlendChange(index);
-	}
 
-	if (isTopStart)
-	{
-		MV1SetAttachAnimTime(m_modelH, m_nowAttachIndex, 0.0f);
-	}
+	// ブレンドの変更有りの場合
+	if (isBlendChange)	BlendChange(index, blendSpeed);
+	// ブレンドの変更無しの場合
+	else				NoBlendChange(index);
 
+	// アニメーション再生位置の初期化
+	if (isTopStart) MV1SetAttachAnimTime(m_modelH, m_nowAttachIndex, 0.0f);
+
+	// 変更が行われたことに
 	return true;
 }
 

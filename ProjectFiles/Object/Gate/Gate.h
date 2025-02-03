@@ -15,7 +15,7 @@ class FileBase;
 class GateCamera;
 
 /// <summary>
-/// ゲートを表すクラス
+/// ゲートクラス
 /// </summary>
 class Gate : public Object3DBase
 {
@@ -102,7 +102,8 @@ public:
     /// <param name="targetPos">ターゲットの位置</param>
     /// <param name="targetRigid">ターゲットのリジッドボディ</param>
     /// <param name="isChangeVel">速度を変更するかどうか</param>
-    void OnWarp(const Vec3& targetPos, MyEngine::Rigidbody& targetRigid, bool isChangeVel);
+	/// <param name="height">モデルの高さ</param>
+    void OnWarp(const Vec3& targetPos, MyEngine::Rigidbody& targetRigid, bool isChangeVel, float height);
 
     /// <summary>
     /// ゲートの種類を取得する

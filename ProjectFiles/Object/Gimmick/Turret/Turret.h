@@ -9,7 +9,7 @@ class AnimController;
 class FileBase;
 
 /// <summary>
-/// タレットを表すクラス
+/// タレットクラス
 /// </summary>
 class Turret : public Object3DBase
 {

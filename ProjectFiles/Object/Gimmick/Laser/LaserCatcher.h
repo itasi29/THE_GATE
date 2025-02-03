@@ -9,7 +9,7 @@ class GimmickLinkObject;
 class FileBase;
 
 /// <summary>
-/// レーザーキャッチャーを表すクラス
+/// レーザー起動装置クラス
 /// </summary>
 class LaserCatcher : public GimmickSendObject
 {

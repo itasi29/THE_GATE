@@ -99,6 +99,8 @@ namespace
 	constexpr unsigned int COLOR_NOT_ACTIVE = 0x888888;	// 無効文字カラー
 
 	/* その他 */
+	constexpr int HIT_STOP_FRAME = 3;	// ヒットストップフレーム
+	constexpr float HIT_BACK_POWER = 0.2f;	// ヒットバック力
 	constexpr float RUN_FOV_ANGLE = 61.0f;	// 走る際のカメラの角度
 	constexpr int ANIM_IDLE_NORMAL_RATE = 16;	// ノーマルアイドルアニメーション確率
 	constexpr int ANIM_IDLE_RELAX_1_RATE = 2;	// リラックス１アイドルアニメーション確率
@@ -126,10 +128,10 @@ Player::Player(const std::shared_ptr<PlayerCamera>& camera, const std::shared_pt
 	m_isDeath(false),
 	m_isRecever(false),
 	m_isGround(false),
-	m_isCanCatch(false),
-	m_isCatch(false),
+	m_isCanHold(false),
+	m_isHold(false),
 	m_isCanWarp(false),
-	m_isWarp(false),
+	m_isWarpRange(false),
 	m_isChangeNear(false)
 {
 }
@@ -167,30 +169,41 @@ void Player::AsyncInit()
 
 void Player::Init(const Vec3& pos, const Vec3& dir, bool isOneHand)
 {
+	// アニメーション初期化
 	m_anim = std::make_shared<AnimController>();
 	m_anim->Init(ANIM_INFO_PATH, m_modelHandle, ANIM_IDLE);
 
+	// Physicsに登録
 	OnEntryPhysics();
+	// 重力適用
 	m_rigid.SetGravity(true);
+	// モデル初期化
 	m_pivot = MODEL_PIVOT;
 	m_scale *= MODEL_SIZE_SCALE;
 
+	// 中心コライダー設定
 	m_centerCol = std::dynamic_pointer_cast<MyEngine::ColliderCapsule>(CreateCollider(MyEngine::ColKind::CAPSULE));
 	m_centerCol->isTrigger = true;
 	m_centerCol->radius = CENTER_COL_RADIUS;
 	m_centerCol->size = CENTER_COL_SIZE;
 	m_centerCol->dir = Vec3::Up();
+	// モデルコライダー設定
 	auto col2 = std::dynamic_pointer_cast<MyEngine::ColliderCapsule>(CreateCollider(MyEngine::ColKind::CAPSULE));
 	col2->radius = MODEL_COL_RADIUS;
 	col2->size = MODEL_COL_SIZE;
 	col2->dir = Vec3::Up();
-
+	// ハンドコライダー設定
 	m_handCol = std::make_shared<MyEngine::ColliderSphere>();
 	m_handCol->radius = HAND_RADIUS;
 	m_handCol->isTrigger = true;
 
+	// 片手ステージかどうか
 	m_isOneHand = isOneHand;
 
+	// カメラの上方向を固定
+	m_camera->SetUpFixed(true);
+
+	// リスタートと共通の処理を行う
 	Restart(pos, dir);
 }
 
@@ -208,13 +221,15 @@ void Player::Restart(const Vec3& pos, const Vec3& dir)
 	m_rotation = m_nextRot;
 	// 速度初期化
 	m_rigid.SetVelocity(Vec3());
+	// スルータグ初期化
+	m_throughTag.clear();
 
 	// ものを持っていれば離す
-	if (m_isCatch)
+	if (m_isHold)
 	{
 		m_handObj->EndHand();
 		m_handCol = nullptr;
-		m_isCatch = false;
+		m_isHold = false;
 	}
 
 	// 体力系初期化
@@ -246,15 +261,21 @@ void Player::Update()
 	RotationUpdate();
 	AnimUpdate();
 	CameraUpdate();
-
+	// 中心のサイズを変更
 	m_centerCol->size = m_rigid.GetVelocity().y * CENTER_COL_SIZE_UP + CENTER_COL_SIZE;
+#ifdef _DEBUG
+	printf("現在プレイヤーがスルーするタグ: %d個\n", (int)m_throughTag.size());
+	for (auto& tag : m_throughTag) printf("　%s\n", Tags::TAG_NAME.at(tag));
+#endif
 }
 
 void Player::DrawGun() const
 {
 	if (m_isDeath) return;
 
+	// 一人称としておく
 	bool isTps = true;
+	// カメラがある場合はカメラから3人称か一人称かを取得
 	if (m_camera)
 	{
 		auto& cInfo = m_camera->GetInfo();
@@ -320,8 +341,8 @@ void Player::DrawGun() const
 		scale = Vec3(size);
 	}
 
+	// モデルに適用
 	auto mat = Matrix4x4::Scale(scale) * Matrix4x4::Rot(rot) * Matrix4x4::Pos(pos);
-
 	const auto handle = m_files.at(M_GUN)->GetHandle();
 	MV1SetMatrix(handle, mat.GetMATRIX());
 	MV1DrawModel(handle);
@@ -377,8 +398,8 @@ void Player::DrawPadUI() const
 	DrawPadUI(y, m_isGround, I_PAD_A, L"ジャンプ");
 	// 物持つ
 	y -= DRAW_PAD_Y_INTERVAL;
-	if (m_isCatch)	DrawPadUI(y, m_isCanCatch, I_PAD_B, L"離す");
-	else			DrawPadUI(y, m_isCanCatch, I_PAD_B, L"掴む");
+	if (m_isHold)	DrawPadUI(y, m_isCanHold, I_PAD_B, L"離す");
+	else			DrawPadUI(y, m_isCanHold, I_PAD_B, L"掴む");
 	// 左ゲート
 	const bool isShot = m_shotInteval <= 0;
 	y -= DRAW_PAD_Y_INTERVAL;
@@ -393,6 +414,7 @@ void Player::DrawPadUI() const
 
 void Player::DrawDamageFillter() const
 {
+	// 合成量を取得
 	float rate = 1.0f - m_hp / static_cast<float>(MAX_HP);
 	int blend = static_cast<int>(255 * rate);
 	SetDrawBlendMode(DX_BLENDMODE_ADD, blend);
@@ -402,6 +424,9 @@ void Player::DrawDamageFillter() const
 
 void Player::OnDamage(int damage, const Vec3& hitDir)
 {
+#ifdef _DEBUG
+	if (Input::GetInstance().IsPress(KEY_INPUT_S)) return;
+#endif
 	if (m_isDeath) return;
 
 	// 減少HPが現在のHP未満なら代入する
@@ -411,18 +436,20 @@ void Player::OnDamage(int damage, const Vec3& hitDir)
 	}
 	m_shakeHpBarFrame = SHKE_HP_BAR_FRAME;
 
+	// HP減少
 	m_hp -= damage;
+	// HPが0以下になったら死亡
 	if (m_hp <= 0)
 	{
 		OnDeath();
 		m_hp = 0;
 		return;
 	}
+	// 回復待機フレームをリセット
 	m_receverFrame = RECEVER_WAIT_FRAME;
 	m_isRecever = true;
 
-	constexpr float HIT_BACK_POWER = 0.2f;
-
+	// ダメージを受けた方向にヒットバック
 	auto vel = hitDir * HIT_BACK_POWER;
 	vel.y = m_rigid.GetVelocity().y;
 	m_rigid.SetVelocity(vel);
@@ -515,7 +542,8 @@ void Player::OnTriggerStay(MyEngine::Collidable* colider, int selfIndex, int sen
 				auto gate = dynamic_cast<Gate*>(colider);
 				m_throughTag.emplace_back(gate->GetHitObjectTag());
 				m_isAddTag[colider] = true;
-				m_isWarp = true;
+				m_isWarpRange = true;
+				// 一番近いゲートの位置を取得
 				m_gatePos = colider->GetPos();
 			}
 		}
@@ -525,7 +553,7 @@ void Player::OnTriggerStay(MyEngine::Collidable* colider, int selfIndex, int sen
 			// ワープ判定
 			if (gate->CheckWarp(m_rigid.GetPos()))
 			{
-				gate->OnWarp(m_rigid.GetPos(), m_rigid, true);
+				gate->OnWarp(m_rigid.GetPos(), m_rigid, true, MODEL_COL_SIZE);
 
 				auto pairGate = gate->GetPairGate();
 				m_camera->OnWarp(-gate->GetNorm(), pairGate->GetNorm(), m_rigid.GetPos());
@@ -533,10 +561,11 @@ void Player::OnTriggerStay(MyEngine::Collidable* colider, int selfIndex, int sen
 				if (m_handObj) m_handObj->OnPlayerWarp();
 
 				// スルータグの変更
-				if (m_isAddTag[colider]) m_throughTag.pop_back();
 				m_isAddTag[colider] = false;
-				m_throughTag.push_back(pairGate->GetHitObjectTag());
 				m_isAddTag[pairGate.get()] = true;
+				m_throughTag.remove(gate->GetHitObjectTag());
+				m_throughTag.push_back(pairGate->GetHitObjectTag());
+				// 一番近いゲートの位置を取得
 				m_gatePos = pairGate->GetPos();
 			}
 		}
@@ -548,28 +577,16 @@ void Player::OnTriggerExit(MyEngine::Collidable* colider, int selfIndex, int sen
 	MyEngine::Collidable::OnTriggerExit(colider, selfIndex, sendIndex, hitInfo);
 
 	const auto tag = colider->GetTag();
-	if (tag == ObjectTag::GATE && selfIndex == static_cast<int>(ColIndex::CENTER))
+	if (tag == ObjectTag::GATE)
 	{
 		if (m_isAddTag[colider])
 		{
 			// スルータグ外す
 			auto gate = dynamic_cast<Gate*>(colider);
-			auto hitTag = gate->GetHitObjectTag();
-			for (auto it = m_throughTag.begin(); it != m_throughTag.end(); ++it)
-			{
-				if (*it == hitTag)
-				{
-					m_throughTag.erase(it);
-					break;
-				}
-			}
+			m_throughTag.remove(gate->GetHitObjectTag());
 			m_isAddTag[colider] = false;
 
-			for (auto& isAdd : m_isAddTag)
-			{
-				if (isAdd.second) return;
-			}
-			m_isWarp = false;
+			m_isWarpRange = false;
 		}
 	}
 }
@@ -586,8 +603,8 @@ void Player::HandUpdate()
 	int count = 0;
 	auto res = phsyics.CheckObject(pos, m_rigid, m_handCol.get(), count, 1, false, {}, { ObjectTag::HAND_OBJ });
 	// 持てるオブジェクトがある場合
-	m_isCanCatch = !res.empty();
-	if (m_isCanCatch)
+	m_isCanHold = !res.empty();
+	if (m_isCanHold)
 	{
 		auto& input = Input::GetInstance();
 		// オブジェクトを持つor離す
@@ -598,7 +615,7 @@ void Player::HandUpdate()
 	}
 
 	// オブジェクトを持っている場合
-	if (m_isCatch)
+	if (m_isHold)
 	{
 		// オブジェクトの位置を持つ位置に更新
 		m_handObj->SetPos(m_rigid.GetPos() + m_handCol->center);
@@ -668,13 +685,17 @@ void Player::HpBarUpdate()
 void Player::RotationUpdate()
 {
 	if (!m_camera) return;
+	// 三人称視点の場合
 	const auto& cInfo = m_camera->GetInfo();
 	if (cInfo.isTps)
 	{
+		// 次の回転方向に徐々に回転
 		m_rotation = Easing::Slerp(m_rotation, m_nextRot, 0.2f);
 	}
+	// 一人称視点の場合
 	else
 	{
+		// カメラの向きに回転
 		m_nextRot = Quaternion::GetQuaternion(Vec3::Back(), cInfo.front);
 		m_rotation = m_nextRot;
 	}
@@ -682,14 +703,18 @@ void Player::RotationUpdate()
 
 void Player::AnimUpdate()
 {
+	// 歩き状態の場合
 	if (m_nowState == PlayerState::WALK)
 	{
+		// スピードによってアニメーションの速度を変更
 		auto sqSpeed = m_rigid.GetVelocity().SqLength();
 		auto rate = (sqSpeed / (WALK_SPEED * WALK_SPEED)) * 0.7f + 0.3f;
 		m_anim->Update(rate);
 	}
+	// それ以外の場合
 	else
 	{
+		// そのままアニメーションを更新
 		m_anim->Update();
 	}
 }
@@ -698,20 +723,22 @@ void Player::CameraUpdate()
 {
 	if (!m_camera) return;
 
+	// カメラの位置を更新
 	const auto& cInfo = m_camera->GetInfo();
-	const auto& cameraPos = m_rigid.GetPos() + LOOK_PIVOT;// -cInfo.front * 1.125f;
+	const auto& cameraPos = m_rigid.GetPos() + LOOK_PIVOT;
 	m_camera->Update(cameraPos);
 
 	m_isChangeNear = false;
 	float n = -1.0f;
 	// ワープ可能範囲にいる場合
-	if (m_isWarp)
+	if (m_isWarpRange)
 	{
 		// ゲートとの距離が近くなった時Nearを変更する
 		auto vec = m_gatePos - m_rigid.GetPos();
 		m_isChangeNear = vec.SqLength() < 6.25f;
 		if (m_isChangeNear) n = 0.1f;
 	}
+	// ニアを変更
 	m_camera->SetNearFar(n, -1.0f);
 }
 
@@ -929,6 +956,7 @@ void Player::OnIdle()
 {
 	// 速度ゼロ
 	m_rigid.SetVelocity(Vec3());
+	// アニメーション・ステート変更
 	m_anim->Change(ANIM_IDLE);
 	m_updateFunc = &Player::IdleUpdate;
 	m_nowState = PlayerState::IDLE;
@@ -937,6 +965,7 @@ void Player::OnIdle()
 void Player::OnWalk()
 {
 	SoundManager::GetInstance().PlaySe3D(m_files.at(S_WALK)->GetHandle(), shared_from_this());
+	// アニメーション・ステート変更
 	m_anim->Change(ANIM_WALK);
 	m_updateFunc = &Player::WalkUpdate;
 	m_nowState = PlayerState::WALK;
@@ -945,7 +974,9 @@ void Player::OnWalk()
 void Player::OnRun()
 {
 	//	SoundManager::GetInstance().PlaySe3D(m_files.at(S_WALK)->GetHandle(), shared_from_this());
+	// カメラのFOVを変更
 	m_camera->SetFov(RUN_FOV_ANGLE);
+	// アニメーション・ステート変更
 	m_anim->Change(ANIM_RUN);
 	m_updateFunc = &Player::RunUpdate;
 	m_nowState = PlayerState::RUN;
@@ -955,11 +986,15 @@ void Player::OnJump()
 {
 	if (!m_isGround) return;
 
+	// ジャンプ力を加える
 	auto vel = m_rigid.GetVelocity();
 	vel.y = JUMP_POWER;
 	m_rigid.SetVelocity(vel);
+	// ジャンプ中移動待機フレームをリセット
 	m_stayAerialMove = STAY_AERIAL_MOVE_FRAME;
+	// 地面から離れたことに
 	m_isGround = false;
+	// アニメーション・ステート変更
 	m_anim->Change(ANIM_JUMP, true, true);
 	m_updateFunc = &Player::JumpUpdate;
 	m_nowState = PlayerState::JUMP;
@@ -967,7 +1002,9 @@ void Player::OnJump()
 
 void Player::OnAerial()
 {
+	// 地面から離れたことに
 	m_isGround = false;
+	// アニメーション・ステート変更
 	m_anim->Change(ANIM_AERIAL);
 	m_updateFunc = &Player::AerialUpdate;
 	m_nowState = PlayerState::AERIAL;
@@ -978,12 +1015,14 @@ void Player::OnLanding()
 	if (m_isGround) return;
 
 	SoundManager::GetInstance().PlaySe3D(m_files.at(S_LANDING)->GetHandle(), shared_from_this());
+	// 地面についたことに
 	m_isGround = true;
 	// 重量停止状態でないなら速度を0にする
 	if (m_rigid.GetStayGravityFrame() < 0)
 	{
 		m_rigid.SetVelocity(Vec3());
 	}
+	// アニメーション・ステート変更
 	m_anim->Change(ANIM_LANDING, true, true);
 	m_updateFunc = &Player::LandingUpdate;
 	m_nowState = PlayerState::LANDING;
@@ -991,10 +1030,10 @@ void Player::OnLanding()
 
 void Player::OnHit()
 {
-	constexpr int HIT_STOP_FRAME = 3;
-	m_hitStopFrame = HIT_STOP_FRAME;
-
 	SoundManager::GetInstance().PlaySe3D(m_files.at(S_DAMAGE)->GetHandle(), shared_from_this());
+	// ヒットストップフレームを設定
+	m_hitStopFrame = HIT_STOP_FRAME;
+	// アニメーション・ステート変更
 	m_anim->Change(ANIM_HIT, true, true, false);
 	m_updateFunc = &Player::HitUpdate;
 	m_nowState = PlayerState::HIT;
@@ -1004,8 +1043,11 @@ void Player::OnDeath()
 {
 	if (m_isDeath) return;
 
+	// 死亡したことに
 	m_isDeath = true;
+	// 速度を0に
 	m_rigid.SetVelocity(Vec3());
+	// アニメーション・ステート変更
 	m_anim->Change(ANIM_DEATH, true, true);
 	m_updateFunc = &Player::DeathUpdate;
 	m_nowState = PlayerState::DEATH;
@@ -1051,24 +1093,30 @@ void Player::OnShot()
 
 void Player::OnHand(MyEngine::Collidable* obj)
 {
-	if (m_isCatch)
+	// 既に持っているオブジェクトがある場合
+	if (m_isHold)
 	{
+		// 離す
 		m_handObj->EndHand();
 		m_handObj = nullptr;
 	}
+	// 持っていない場合
 	else
 	{
+		// 掴む
 		m_handObj = dynamic_cast<HandObject*>(obj);
 		m_handObj->OnHand();
 	}
 
-	m_isCatch = !m_isCatch;
+	// 持っている状態を反転
+	m_isHold = !m_isHold;
 }
 
 void Player::DrawPadUI(int y, bool isActive, int imageId, const wchar_t* const str) const
 {
 	const int fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, FONT_SIZE_PAD);
 	unsigned int color;
+	// 色をアクティブか非アクティブかで変更
 	if (isActive)	color = COLOR_ACTIVE;
 	else			color = COLOR_NOT_ACTIVE;
 

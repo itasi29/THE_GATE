@@ -33,7 +33,7 @@ using StageDataTable_t = std::unordered_map<std::wstring, StageData>;
 using StageNameTable_t = std::vector<std::wstring>;
 
 /// <summary>
-/// ステージデータを管理するクラス
+/// ステージデータ管理クラス
 /// </summary>
 class StageDataManager final
 {

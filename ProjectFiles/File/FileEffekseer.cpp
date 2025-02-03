@@ -1,4 +1,4 @@
-#include "FileEffekseer.h"
+﻿#include "FileEffekseer.h"
 #include <EffekseerForDXLib.h>
 
 FileEffekseer::FileEffekseer(FileManager& mgr) :

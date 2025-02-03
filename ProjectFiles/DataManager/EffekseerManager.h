@@ -8,7 +8,7 @@ class Quaternion;
 class FileBase;
 
 /// <summary>
-/// Effekseerを使用してエフェクトを管理するクラス
+/// Effekseer管理クラス
 /// </summary>
 class EffekseerManager final
 {

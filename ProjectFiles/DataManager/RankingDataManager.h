@@ -4,7 +4,7 @@
 #include <array>
 
 /// <summary>
-/// ランキングデータを管理するクラス
+/// ランキングデータ管理クラス
 /// </summary>
 class RankingDataManager final
 {

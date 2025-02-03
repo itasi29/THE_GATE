@@ -38,6 +38,7 @@ void Novel::Skip()
 {
 	if (m_isEnd) return;
 
+	// 現在位置を最後尾に
 	m_current = static_cast<int>(m_str.size());
 	m_isEnd = true;
 }
@@ -47,10 +48,12 @@ void Novel::Update(const int interval)
 	if (m_isEnd) return;
 
 	++m_frame;
+	// 一定間隔経ったら次の文字へ
 	if (m_frame > interval)
 	{
 		m_frame = 0;
 		++m_current;
+		// 文字列の最後に達したら終了
 		if (m_current >= m_str.size())
 		{
 			m_isEnd = true;
@@ -65,13 +68,36 @@ void Novel::Draw(int spaceWidthNum, int startY, unsigned int color) const
 	// 空白サイズ
 	const int space = INTERVAL_X * spaceWidthNum;
 
+	int x = space;
+	int y = startY;
+	int count = 0;
 	// 1文字ずつ描画
 	for (int i = 0; i < m_current; ++i)
 	{
-		const auto& c = m_str.at(i);
-		const int x = (i % num) * INTERVAL_X + space;
-		const int y = (i / num) * INTERVAL_Y + startY;
-		DrawFormatString(x, y, color, L"%c", c);
+		const auto& indent = m_str.substr(i, 2);
+		// 改行
+		if (indent == L"\\n")
+		{
+			x = space;
+			y += INTERVAL_Y;
+			count = 0;
+			++i;
+			continue;
+		}
+		else
+		{
+			const auto& c = m_str.at(i);
+			DrawFormatString(x, y, color, L"%c", c);
+			x += INTERVAL_X;
+			++count;
+			// 行末に達したら改行
+			if (count >= num)
+			{
+				x = space;
+				y += INTERVAL_Y;
+				count = 0;
+			}
+		}
 	}
 }
 

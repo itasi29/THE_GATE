@@ -2,6 +2,7 @@
 #include "SceneDebug.h"
 #include <DxLib.h>
 #include <string>
+#include "Files.h"
 #include "SceneManager.h"
 #include "SceneTitle.h"
 #include "SceneStageSelect.h"
@@ -13,6 +14,7 @@
 
 namespace
 {
+	// シーン名
 	std::wstring NAME[] =
 	{
 		L"Title",
@@ -34,10 +36,12 @@ SceneDebug::SceneDebug() :
 
 void SceneDebug::AsyncInit()
 {
+	m_files[B_TITLE] = FileManager::GetInstance().Load(B_TITLE);
 }
 
 void SceneDebug::Init()
 {
+	m_scnMgr.ChangeBgmH(m_files.at(B_TITLE)->GetHandle());
 }
 
 void SceneDebug::End()

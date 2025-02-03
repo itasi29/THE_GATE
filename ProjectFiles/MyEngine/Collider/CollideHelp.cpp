@@ -303,7 +303,7 @@ Vec3 MyEngine::FixBoxToSphere(const Vec3& primaryPos, const Vec3& secondaryPos, 
     }
     else
     {
-        fixPos = secondaryPos + hitInfo.fixDir * 0.01f;
+        fixPos = secondaryPos + hitInfo.fixDir * 0.05f;
     }
     return fixPos;
 }
@@ -328,7 +328,7 @@ Vec3 MyEngine::FixBoxToCapsule(const Vec3& primaryPos, const Vec3& secondaryPos,
     }
     else
     {
-        fixPos = secondaryPos + hitInfo.fixDir * 0.01f;
+        fixPos = secondaryPos + hitInfo.fixDir * 0.05f;
     }
     return fixPos;
 }

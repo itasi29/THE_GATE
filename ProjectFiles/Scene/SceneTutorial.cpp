@@ -225,6 +225,7 @@ void SceneTutorial::Init()
 	m_scnMgr.ChangeBgmH(m_files.at(B_MAIN)->GetHandle());
 	// 初期化(同期)
 	m_stageMgr->Init(m_player.get(), m_gateMgr.get());
+	m_stageMgr->AppLights();
 	m_gateMgr->Init(m_player);
 	SoundManager::GetInstance().SetSeCenter(m_player);
 	m_player->Init(m_stageMgr->GetCheckPoint(), m_stageMgr->GetCheckPointDir(), StageDataManager::GetInstance().IsOneHand(STAGE_NAME));
@@ -508,10 +509,10 @@ void SceneTutorial::ChangeTutorial()
 	// ノベルデータがある場合
 	if (info.isDrawNovel)
 	{
-		// プレイヤーを停止
-		m_player->OnStop();
-		// ノベルを始める
-		NovelManager::GetInstance().Start(info.novelId);
+		//// プレイヤーを停止
+		//m_player->OnStop();
+		//// ノベルを始める
+		//NovelManager::GetInstance().Start(info.novelId);
 	}
 	// フレーム初期化
 	m_checkFrame = 0;
@@ -571,6 +572,7 @@ void SceneTutorial::DrawUI() const
 		// ゲートUI
 		DrawGateUI();
 	}
+	return;
 	// チュートリアルUI
 	DrawTutorialClear();
 	DrawTutorialGoal();
@@ -715,6 +717,7 @@ void SceneTutorial::DrawTutorialNovel() const
 
 void SceneTutorial::DrawTutorialDestination() const
 {
+	return;
 	auto& info = m_tutorialInfo.at(m_index);
 	if (!info.isDrawDestination) return;
 

@@ -64,21 +64,26 @@ void PlayerCamera::Update(const Vec3& playerPos)
 			m_info.right = TURN_QUATERNION * m_info.right;
 		}
 	}
+	// ターンをしていない場合ターンフラグを立てれるように
 	else if (input.IsTriggerd(Command::BTN_TURN_CAMERA))
 	{
 		m_frame = TURN_FRAME;
 		m_isTurn = true;
 	}
 
+	// MEMO: 3人称視点はバグが多いためRelease版では無効化
+#ifdef _DEBUG
 	// FPS、TPS切り替え
 	if (input.IsTriggerd(Command::BTN_CHANGE_VIEW))
 	{
 		m_info.isTps = !m_info.isTps;
 	}
+#endif
 }
 
 void PlayerCamera::OnWarp(const Vec3& preVelDir, const Vec3& newVelDir, const Vec3& pos)
 {
+	// プレイヤーの速度方向を元に回転
 	const auto& rotBase = Quaternion::GetQuaternion(preVelDir, newVelDir);
 	const auto& euler = Quaternion::GetEuler(rotBase);
 	const auto& rot = Quaternion::AngleAxis(euler.t1.y, Vec3::Up());

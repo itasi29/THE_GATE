@@ -8,7 +8,7 @@ namespace MyEngine
 }
 
 /// <summary>
-/// BGM,SEの再生を管理するシステム
+/// サウンド管理システム
 /// </summary>
 class SoundManager
 {

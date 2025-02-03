@@ -93,13 +93,15 @@ void Camera::AppInfo()
 {
 	SetCameraNearFar(m_info.n, m_info.f);
 	SetupCamera_Perspective(m_info.fov);
+	auto upVec = Vec3::Up().VGet();
+	if (!m_info.isUpFixed) upVec = Vec3::Cross(m_info.look, m_info.right).VGet();
 	if (m_info.isTps)
 	{
-		SetCameraPositionAndTarget_UpVecY(m_info.cameraPos.VGet(), m_info.targetPos.VGet());
+		SetCameraPositionAndTargetAndUpVec(m_info.cameraPos.VGet(), m_info.targetPos.VGet(), upVec);
 	}
 	else
 	{
-		SetCameraPositionAndTarget_UpVecY(m_info.targetPos.VGet(), (m_info.targetPos + m_info.look * CAMERA_DISTANCE).VGet());
+		SetCameraPositionAndTargetAndUpVec(m_info.targetPos.VGet(), (m_info.targetPos + m_info.look * CAMERA_DISTANCE).VGet(), upVec);
 	}
 }
 

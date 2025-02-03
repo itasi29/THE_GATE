@@ -92,7 +92,6 @@ void RankingDataManager::Initialize()
 		auto& list = m_localData[name];
 		for (int j = 0; j < RANKING_DATA_NUM; ++j)
 		{
-//			list[j] = -1;
 			list[j] = 3600 * (j + 1);
 		}
 	}

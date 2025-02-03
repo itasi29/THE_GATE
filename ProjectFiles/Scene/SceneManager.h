@@ -13,88 +13,146 @@ enum class SceneKind;
 class SceneManager
 {
 private:
-	SceneManager();
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    SceneManager();
 
-	SceneManager(const SceneManager& mgr) = delete;
-	void operator= (const SceneManager& mgr) = delete;
+	SceneManager(const SceneManager&) = delete;
+	SceneManager(const SceneManager&&) = delete;
+	SceneManager operator= (const SceneManager&) = delete;
+	SceneManager operator= (const SceneManager&&) = delete;
 
 public:
-	virtual ~SceneManager();
+    /// <summary>
+    /// デストラクタ
+    /// </summary>
+    virtual ~SceneManager();
 
-	static SceneManager& GetInstance();
+    /// <summary>
+    /// インスタンスを取得
+    /// </summary>
+    /// <returns>SceneManagerのインスタンス</returns>
+    static SceneManager& GetInstance();
 
-	void Init();
-	void Update();
-	void Draw() const;
-	void End();
+    /// <summary>
+    /// 初期化処理
+    /// </summary>
+    void Init();
 
-	/// <summary>
-	/// シーンの変更
-	/// </summary>
-	void Change(const std::shared_ptr<SceneBase>& next);
+    /// <summary>
+    /// 更新処理
+    /// </summary>
+    void Update();
 
-	/// <summary>
-	/// 流すBgmを変更する
-	/// </summary>
-	/// <param name="handle">流すBgmのハンドル</param>
-	void ChangeBgmH(int handle);
+    /// <summary>
+    /// 描画処理
+    /// </summary>
+    void Draw() const;
 
-	/// <summary>
-	/// オプションを開く
-	/// </summary>
-	/// <param name="openScene">開いたシーンの種類</param>
-	/// <param name="scene">シーン内で必要な処理がある場合に渡す用</param>
-	void OpenOption(SceneKind openScene, SceneBase* scene = nullptr);
-	/// <summary>
-	/// オプションorポーズを閉じる
-	/// </summary>
-	void CloseOption();
+    /// <summary>
+    /// 終了処理
+    /// </summary>
+    void End();
 
-	/// <summary>
-	/// オプションを開いているか
-	/// </summary>
-	/// <returns>true: 開いている /false: 開いていない</returns>
-	bool IsOpenOption() const { return m_option != nullptr; }
-	/// <summary>
-	/// フェードが終了したフレーム化
-	/// </summary>
-	/// <returns>true: 終了したフレーム /false: それ以外のフレーム</returns>
-	bool IsFadeEndFrame() const { return m_isFadeEndFrame; }
-	/// <summary>
-	/// 現在のシーンの種類を取得
-	/// </summary>
-	/// <returns>シーンの種類</returns>
-	SceneKind GetNowSceneKind() const;
+    /// <summary>
+    /// シーンの変更
+    /// </summary>
+    /// <param name="next">次のシーン</param>
+    void Change(const std::shared_ptr<SceneBase>& next);
+
+    /// <summary>
+    /// 流すBgmを変更する
+    /// </summary>
+    /// <param name="handle">流すBgmのハンドル</param>
+    void ChangeBgmH(int handle);
+
+    /// <summary>
+    /// オプションを開く
+    /// </summary>
+    /// <param name="openScene">開いたシーンの種類</param>
+    /// <param name="scene">シーン内で必要な処理がある場合に渡す用</param>
+    void OpenOption(SceneKind openScene, SceneBase* scene = nullptr);
+
+    /// <summary>
+    /// オプションorポーズを閉じる
+    /// </summary>
+    void CloseOption();
+
+    /// <summary>
+    /// オプションを開いているか
+    /// </summary>
+    /// <returns>true: 開いている /false: 開いていない</returns>
+    bool IsOpenOption() const { return m_option != nullptr; }
+
+    /// <summary>
+    /// フェードが終了したフレームか
+    /// </summary>
+    /// <returns>true: 終了したフレーム /false: それ以外のフレーム</returns>
+    bool IsFadeEndFrame() const { return m_isFadeEndFrame; }
+
+    /// <summary>
+    /// 現在のシーンの種類を取得
+    /// </summary>
+    /// <returns>シーンの種類</returns>
+    SceneKind GetNowSceneKind() const;
 
 private:
-	using UpdateFunc_t = void(SceneManager::*)();
-	void NormalUpdate();
-	void FadeOut();
-	void FileLoadingUpdate();
-	void FadeIn();
+    using UpdateFunc_t = void(SceneManager::*)();
+    /// <summary>
+    /// 通常の更新処理
+    /// </summary>
+    void NormalUpdate();
 
-	using DrawFunc_t = void(SceneManager::*)() const;
-	void DrawNormal() const;
-	void DrawFade() const;
-	void FileLoadingDraw() const;
+    /// <summary>
+    /// フェードアウト処理
+    /// </summary>
+    void FadeOut();
+
+    /// <summary>
+    /// ファイル読み込み中の更新処理
+    /// </summary>
+    void FileLoadingUpdate();
+
+    /// <summary>
+    /// フェードイン処理
+    /// </summary>
+    void FadeIn();
+
+    using DrawFunc_t = void(SceneManager::*)() const;
+    /// <summary>
+    /// 通常の描画処理
+    /// </summary>
+    void DrawNormal() const;
+
+    /// <summary>
+    /// フェード中の描画処理
+    /// </summary>
+    void DrawFade() const;
+
+    /// <summary>
+    /// ファイル読み込み中の描画処理
+    /// </summary>
+    void FileLoadingDraw() const;
 
 private:
-	std::shared_ptr<SceneBase> m_option;
-	std::shared_ptr<SceneBase> m_scene;
-	std::shared_ptr<SceneBase> m_nextScene;
+    UpdateFunc_t m_updateFunc;  // 更新関数ポインタ
+    DrawFunc_t m_drawFunc;      // 描画関数ポインタ
 
-	std::unordered_map<int, std::shared_ptr<FileBase>> m_files;
+    std::shared_ptr<SceneBase> m_option;    // オプションシーン
+    std::shared_ptr<SceneBase> m_scene;     // 現在のシーン
+    std::shared_ptr<SceneBase> m_nextScene; // 次のシーン
 
-	UpdateFunc_t m_updateFunc;
-	DrawFunc_t m_drawFunc;
+    // ファイル保存リスト
+    std::unordered_map<int, std::shared_ptr<FileBase>> m_files; 
 
-	// 流しているBGMのハンドル
-	int m_bgmH;
+    // 流しているBGMのハンドル
+    int m_bgmH; 
 
-	// フェードアウトに使うもの
-	float m_count;
-	float m_angleSpeed;
-
-	bool m_isFadeEndFrame;
+    // フェードアウトに使うカウント
+    float m_count; 
+    // フェードアウトに使う角度速度
+    float m_angleSpeed; 
+    // フェードが終了したフレームかどうか
+    bool m_isFadeEndFrame; 
 };
-

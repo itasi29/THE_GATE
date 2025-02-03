@@ -10,7 +10,7 @@ class GimmickLinkObject;
 class FileBase;
 
 /// <summary>
-/// ボタンを表すクラス
+/// ボタンクラス
 /// </summary>
 class Button : public GimmickSendObject
 {

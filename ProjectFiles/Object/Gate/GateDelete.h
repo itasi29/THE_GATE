@@ -4,7 +4,7 @@
 class GateManager;
 
 /// <summary>
-/// ゲート削除オブジェクトを表すクラス
+/// ゲート削除クラス
 /// </summary>
 class GateDelete : public Object3DBase
 {

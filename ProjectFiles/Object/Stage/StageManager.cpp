@@ -2,7 +2,9 @@
 #include <list>
 #include "Utility.h"
 #include "StringUtility.h"
+#include "DebugDraw.h"
 #include "Files.h"
+#include "Application.h"
 #include "StageDataManager.h"
 #include "SaveDataManager.h"
 #include "AFile.h"
@@ -27,6 +29,7 @@ namespace
 		GIMMICK,
 		MOVE_FLOOR,
 		CP,
+		LIGHT,
 	};
 
 	const wchar_t* const BASE_PATH = L"Data/Stage/";
@@ -35,6 +38,7 @@ namespace
 	const wchar_t* const FLOOR_MOVE_INFO_PATH = L"FloorMove/FloorMoveInfo";
 	const wchar_t* const CHECK_POINT_INFO_PATH = L"CheckPoint/CheckPointInfo";
 	const wchar_t* const MODEL_ID_INFO_PATH = L"StageModelId/StageModelIdInfo";
+	const wchar_t* const LIGHT_INFO_PATH = L"Lights/LightsInfo";
 	const wchar_t* const EXTENSION = L".loc";
 
 	const std::unordered_map<std::string, ObjectTag> OBJECT_TAG =
@@ -106,6 +110,7 @@ StageManager::StageManager(const wchar_t* const stageName) :
 
 StageManager::~StageManager()
 {
+	
 }
 
 void StageManager::AsyncInit()
@@ -127,8 +132,13 @@ void StageManager::AsyncInit()
 	std::wostringstream cp;
 	cp << BASE_PATH << CHECK_POINT_INFO_PATH << stageNo << EXTENSION;
 	m_afiles.push_back(std::make_shared<AFile>(cp.str().c_str()));
+	// ライト
+	std::wostringstream light;
+	light << BASE_PATH << LIGHT_INFO_PATH << stageNo << EXTENSION;
+	m_afiles.push_back(std::make_shared<AFile>(light.str().c_str()));
 	// モデル読み込み
 	std::list<int> loadList;
+	// 非同期読み込みを無効に
 	SetUseASyncLoadFlag(false);
 	std::wostringstream modelId;
 	modelId << BASE_PATH << MODEL_ID_INFO_PATH << stageNo << EXTENSION;
@@ -137,6 +147,7 @@ void StageManager::AsyncInit()
 	FileRead_read(&size, sizeof(size), handle);
 	for (int i = 0; i < size; ++i)
 	{
+		// タグ読み込み
 		uint8_t tagSize;
 		FileRead_read(&tagSize, sizeof(uint8_t), handle);
 		std::string tag;
@@ -145,14 +156,15 @@ void StageManager::AsyncInit()
 
 		// GateDeleteはスキップする
 		if (tag == "GateDelete") continue;
+		// ロードリストに追加
 		loadList.emplace_back(MODEL_ID.at(tag));
 	}
+	FileRead_close(handle);
+	// 非同期読み込みを有効に
 	SetUseASyncLoadFlag(true);
 	auto& fileMgr = FileManager::GetInstance();
-	for (const auto& id : loadList)
-	{
-		m_files.push_back(fileMgr.Load(id));
-	}
+	// ファイル読み込み
+	for (const auto& id : loadList) m_files.push_back(fileMgr.Load(id));
 }
 
 void StageManager::Init(Player* player, GateManager* gateMgr)
@@ -161,6 +173,7 @@ void StageManager::Init(Player* player, GateManager* gateMgr)
 	LoadGimmickLinkInfo();
 	LoadFloorMoveInfo();
 	LoadCheckPoint();
+	LoadLightInfo();
 
 	for (auto& info : m_afiles) info->Close();
 	m_afiles.clear();
@@ -185,12 +198,26 @@ void StageManager::Update()
 void StageManager::Draw() const
 {
 	for (const auto& obj : m_objs)	obj->Draw();
+#ifdef _DEBUG
+	auto& debug = MyEngine::DebugDraw::GetInstance();
+	for (int i = 0; i < m_lightPos.size(); ++i)
+	{
+#if true
+		debug.DrawSphere(m_lightPos[i], 1.0f, 0xffff00, false);
+		debug.DrawSphere(m_lightPos[i], m_lightRange[i], 0x00ffff, false);
+#else
+		DrawSphere3D(m_lightPos[i].VGet(), 1.0f, 16, 0xffff00, 0, false);
+		DrawSphere3D(m_lightPos[i].VGet(), m_lightRange[i], 16, 0x00ffff, 0, false);
+#endif
+	}
+#endif
 }
 
 void StageManager::End()
 {
 	for (auto& obj : m_objs)		obj->End();
 	for (auto& cp : m_checkPoints)	cp->End();
+	delete[] m_lights;
 }
 
 void StageManager::UpdateCheckPoint(int checkNo)
@@ -217,6 +244,11 @@ bool StageManager::CheckClear()
 void StageManager::AddObject(std::shared_ptr<Object3DBase> object)
 {
 	m_objs.emplace_back(object);
+}
+
+void StageManager::AppLights() const
+{
+	Application::GetInstance().SetLightBuffer(m_lights, m_lightNum);
 }
 
 const Vec3& StageManager::GetCheckPoint() const
@@ -399,20 +431,46 @@ void StageManager::LoadCheckPoint()
 		file->Read(&radius, sizeof(float));
 		file->Read(&respawnDir, sizeof(Vec3));
 
+		// CP作成
 		auto obj = std::make_shared<CheckPoint>(*this, i);
 		obj->Init(pos, dir, size, radius, respawnDir);
 
+		// リンクがある場合
 		bool isLink;
 		file->Read(&isLink, sizeof(bool));
 		if (isLink)
 		{
+			// リンクオブジェクト番号取得
 			int linkNo;
 			file->Read(&linkNo, sizeof(int));
+			// リンクオブジェクト設定
 			auto link = dynamic_cast<GimmickLinkObject*>(m_objs.at(linkNo).get());
 			obj->SetLinkObj(link);
 		}
 
 		m_checkPoints.emplace_back(obj);
+	}
+}
+
+void StageManager::LoadLightInfo()
+{
+	auto& file = m_afiles.at(AFileKind::LIGHT);
+	// ライト数取得
+	file->Read(&m_lightNum, sizeof(int));
+	// ライト作成
+	m_lights = new Light[m_lightNum];
+	// データ読み込み
+	for (int i = 0; i < m_lightNum; ++i)
+	{
+		auto& light = m_lights[i];
+		file->Read(&light.pos, sizeof(Vec3));
+		file->Read(&light.range, sizeof(float));
+		file->Read(&light.intensity, sizeof(float));
+		file->Read(light.color, sizeof(float) * 3);
+#ifdef _DEBUG
+		m_lightPos.emplace_back(light.pos);
+		m_lightRange.emplace_back(light.range);
+#endif
 	}
 }
 

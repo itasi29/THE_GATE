@@ -5,7 +5,7 @@ class StageManager;
 class GimmickLinkObject;
 
 /// <summary>
-/// チェックポイントを表すクラス
+/// チェックポイントクラス
 /// </summary>
 class CheckPoint : public MyEngine::Collidable
 {
@@ -58,6 +58,6 @@ private:
     // リンクオブジェクト
     GimmickLinkObject* m_link;
 
-	// 方向
+	// リスポーン時カメラ方向
 	Vec3 m_respawnDir;
 };

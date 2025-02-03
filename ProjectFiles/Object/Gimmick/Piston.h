@@ -2,7 +2,7 @@
 #include "GimmickLinkObject.h"
 
 /// <summary>
-/// ピストンを表すクラス
+/// ピストンクラス
 /// </summary>
 class Piston : public GimmickLinkObject
 {

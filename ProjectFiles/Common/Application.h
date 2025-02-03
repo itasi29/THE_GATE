@@ -1,5 +1,20 @@
 ﻿#pragma once
 #include <cstdio>
+#include "Vec3.h"
+
+struct Light
+{
+    Vec3 pos;
+    float range;
+    float intensity;
+    float color[3];
+};
+struct LightBuffer
+{
+	Light lights[50];
+    int num;
+	float dummy[3];
+};
 
 /// <summary>
 /// アプリケーション全体を管理するクラス
@@ -43,6 +58,18 @@ public:
     /// </summary>
     void OnEnd() { m_isEnd = true; }
 
+    /// <summary>
+	/// ライトバッファーを設定する
+    /// </summary>
+    /// <param name="ligths">ライトの情報</param>
+    /// <param name="lightNum">ライトの数</param>
+    void SetLightBuffer(Light* ligths, int lightNum);
+	/// <summary>
+	/// ライトバッファーのハンドルを取得
+	/// </summary>
+	/// <returns>ライトバッファーハンドル</returns>
+	int GetLigthBufferH() const { return m_lightBufferH; }
+
 private:
     /// <summary>
     /// マネージャーの初期化
@@ -60,6 +87,11 @@ private:
 #endif
 
 private:
+    // ライトバッファーハンドル
+	int m_lightBufferH;
+	// ライトバッファー
+	LightBuffer* m_lightBuffer;
+
     // ゲーム終了フラグ
     bool m_isEnd;      
     // FullWindowsフラグ

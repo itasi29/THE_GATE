@@ -2,7 +2,7 @@
 #include "Object3DBase.h"
 
 /// <summary>
-/// ガラスを表すクラス
+/// ガラスクラス
 /// </summary>
 class Glass : public Object3DBase
 {

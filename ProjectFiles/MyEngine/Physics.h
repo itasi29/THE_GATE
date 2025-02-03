@@ -13,7 +13,7 @@ namespace MyEngine
     class Collidable;
 
     /// <summary>
-    /// 物理エンジンを管理するクラス
+    /// 物理管理クラス
     /// </summary>
     class Physics final
     {
@@ -31,6 +31,9 @@ namespace MyEngine
             TriggerExit
         };
 
+        /// <summary>
+		/// 判定チェックリスト情報
+        /// </summary>
         struct CheckList
         {
             std::shared_ptr<Collidable> primary;
@@ -38,6 +41,9 @@ namespace MyEngine
             bool isSamePriority = false;
         };
 
+        /// <summary>
+        /// 判定リスト情報
+        /// </summary>
         struct CheckData
         {
             std::shared_ptr<Collidable> primary;
@@ -46,6 +52,9 @@ namespace MyEngine
             int secondaryIndex;
         };
 
+        /// <summary>
+        /// 通知情報
+        /// </summary>
         struct SendInfo
         {
             std::weak_ptr<Collidable> own;
@@ -55,6 +64,9 @@ namespace MyEngine
             CollideHitInfo hitInfo;
         };
 
+        /// <summary>
+        /// 通知選択情報
+        /// </summary>
         struct OnCollideInfoData
         {
             std::weak_ptr<Collidable> own;
@@ -65,6 +77,9 @@ namespace MyEngine
             OnCollideInfoKind kind;
         };
 
+        /// <summary>
+        /// 当たった情報
+        /// </summary>
         struct HitObjectInfo
         {
             Collidable* col;

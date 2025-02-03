@@ -8,12 +8,13 @@
 
 namespace
 {
+	// レンダーターゲット種類
 	enum class RTKind
 	{
-		GATE_A_TEX,
-		GATE_B_TEX,
-		TEMP_1,
-		TEMP_2,
+		GATE_A_TEX,	// ゲートAのテクスチャ
+		GATE_B_TEX,	// ゲートBのテクスチャ
+		TEMP_1,		// 保存用テクスチャ1
+		TEMP_2,		// 保存用テクスチャ2
 		MAX,
 	};
 }
@@ -50,11 +51,9 @@ void SceneHelp::DrawModel(const std::shared_ptr<GateManager>& gateMgr, const std
 	// -値の場合はバックスクリーンに設定
 	if (drawRt < 0) drawRt = DX_SCREEN_BACK;
 
+	// ゲートマネージャーがある場合、両方のゲートがある場合だけゲートからの描画を行う
 	bool isDrawGate = false;
-	if (gateMgr)
-	{
-		isDrawGate = gateMgr->IsCreateBothGates();
-	}
+	if (gateMgr) isDrawGate = gateMgr->IsCreateBothGates();
 
 	// 両方のゲートを生成していた場合
 	if (isDrawGate)
@@ -67,19 +66,14 @@ void SceneHelp::DrawModel(const std::shared_ptr<GateManager>& gateMgr, const std
 		DrawGateBlend(gateMgr, cameraMgr, stageMgr, player, rtGateB, CameraKind::GATE_B, CameraKind::GATE_B_FROM_A, func);
 
 		// ゲート内の景色を張り付けてプレイヤーから見た景色を描画
-		DrawModelBlend(gateMgr, cameraMgr, stageMgr, player, drawRt, rtGateA, rtGateB, mainCamera, cameraMgr->GetCamera(CameraKind::PLAYER)->IsTps(), func);
+		DrawModelBlend(gateMgr, cameraMgr, stageMgr, player, drawRt, rtGateA, rtGateB, mainCamera, cameraMgr->GetCamera(CameraKind::PLAYER)->IsTps(), true, func);
 	}
 	// していない場合
 	else
 	{
 		// プレイヤーから見た景色をそのまま描画
-		DrawModelBlend(gateMgr, cameraMgr, stageMgr, player, drawRt, -1, -1, mainCamera, cameraMgr->GetCamera(CameraKind::PLAYER)->IsTps(), func);
+		DrawModelBlend(gateMgr, cameraMgr, stageMgr, player, drawRt, -1, -1, mainCamera, cameraMgr->GetCamera(CameraKind::PLAYER)->IsTps(), true, func);
 	}
-
-	// エフェクトの描画
-	auto& effMgr = EffekseerManager::GetInstance();
-	effMgr.SyncCamera();
-	effMgr.Draw();
 }
 
 void SceneHelp::DrawGateBlend(const std::shared_ptr<GateManager>& gateMgr, const std::shared_ptr<CameraManager>& cameraMgr, const std::shared_ptr<StageManager>& stageMgr, const std::shared_ptr<Player>& player, int rt, CameraKind gate, CameraKind gateFrom, std::function<void()> func) const
@@ -124,10 +118,10 @@ void SceneHelp::DrawGateBlend(const std::shared_ptr<GateManager>& gateMgr, const
 		}
 	}
 	// ゲートからの画面を描画してあげる
-	DrawModelBlend(gateMgr, cameraMgr, stageMgr, player, rt, rtTemp2, rtTemp2, gate, true, func);
+	DrawModelBlend(gateMgr, cameraMgr, stageMgr, player, rt, rtTemp2, rtTemp2, gate, true, true, func);
 }
 
-void SceneHelp::DrawModelBlend(const std::shared_ptr<GateManager>& gateMgr, const std::shared_ptr<CameraManager>& cameraMgr, const std::shared_ptr<StageManager>& stageMgr, const std::shared_ptr<Player>& player, int rt, int tex1, int tex2, CameraKind kind, bool isPlayerDraw, std::function<void()> func) const
+void SceneHelp::DrawModelBlend(const std::shared_ptr<GateManager>& gateMgr, const std::shared_ptr<CameraManager>& cameraMgr, const std::shared_ptr<StageManager>& stageMgr, const std::shared_ptr<Player>& player, int rt, int tex1, int tex2, CameraKind kind, bool isPlayerDraw, bool isEffDraw, std::function<void()> func) const
 {
 	// 使用RTの決定
 	SetDrawScreen(rt);
@@ -151,4 +145,12 @@ void SceneHelp::DrawModelBlend(const std::shared_ptr<GateManager>& gateMgr, cons
 
 	// 独自関数があれば実行
 	if (func) func();
+
+	// エフェクトの描画
+	if (isEffDraw)
+	{
+		auto& effMgr = EffekseerManager::GetInstance();
+		effMgr.SyncCamera();
+		effMgr.Draw();
+	}
 }
