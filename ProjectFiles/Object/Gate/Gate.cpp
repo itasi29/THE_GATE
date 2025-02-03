@@ -182,7 +182,6 @@ bool Gate::CheckWarp(const Vec3& targetPos)
 	// ゲートから対象に向くベクトルとゲートの法線の内積が-になったらワープ可能
 	const auto& gateTotarget = targetPos - (m_rigid.GetPos() + m_collider->center);
 	auto dot = Vec3::Dot(m_norm, gateTotarget);
-	auto a = dot * Game::RAD_2_DEG;
 	return dot < 0.0f;
 }
 

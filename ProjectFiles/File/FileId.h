@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #define M_WALL  0
 #define M_ROOF  1
@@ -33,7 +33,7 @@
 #define M_CHAIR  30
 #define M_TORPEDO  31
 #define PS_PIXEL  32
-#define PS_GATE_POS  33
+#define PS_GATE  33
 #define PS_NUM  34
 #define PS_DISSOLVE  35
 #define VS_VERTEX  36

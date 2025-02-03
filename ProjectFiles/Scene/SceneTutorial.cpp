@@ -180,7 +180,7 @@ void SceneTutorial::AsyncInit()
 {
 	// ファイルの読み込み
 	auto& fileMgr = FileManager::GetInstance();
-	m_files[PS_GATE_POS]				= fileMgr.Load(PS_GATE_POS);
+	m_files[PS_GATE]					= fileMgr.Load(PS_GATE);
 	m_files[I_TIME_BAR]					= fileMgr.Load(I_TIME_BAR);
 	m_files[I_LOOK_SITE]				= fileMgr.Load(I_LOOK_SITE);
 	m_files[I_CREATE_GATE_ORANGE]		= fileMgr.Load(I_CREATE_GATE_ORANGE);
@@ -509,10 +509,10 @@ void SceneTutorial::ChangeTutorial()
 	// ノベルデータがある場合
 	if (info.isDrawNovel)
 	{
-		//// プレイヤーを停止
-		//m_player->OnStop();
-		//// ノベルを始める
-		//NovelManager::GetInstance().Start(info.novelId);
+		// プレイヤーを停止
+		m_player->OnStop();
+		// ノベルを始める
+		NovelManager::GetInstance().Start(info.novelId);
 	}
 	// フレーム初期化
 	m_checkFrame = 0;
@@ -572,7 +572,6 @@ void SceneTutorial::DrawUI() const
 		// ゲートUI
 		DrawGateUI();
 	}
-	return;
 	// チュートリアルUI
 	DrawTutorialClear();
 	DrawTutorialGoal();

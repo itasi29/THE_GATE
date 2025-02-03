@@ -496,7 +496,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\GatePosPS.hlsl" />
+    <FxCompile Include="Shader\GatePS.hlsl" />
     <FxCompile Include="Shader\NormalPS.hlsl" />
     <FxCompile Include="Shader\SkinMeshVS.hlsl" />
     <FxCompile Include="Shader\NormalVS.hlsl" />

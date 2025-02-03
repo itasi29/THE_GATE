@@ -16,6 +16,7 @@ namespace MyEngine
 	struct CollideHitInfo;
 }
 
+// プレイヤーの状態
 enum class PlayerState
 {
 	IDLE,

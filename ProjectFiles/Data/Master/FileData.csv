@@ -31,7 +31,7 @@
 0,Data/Model/Chair.mv1
 0,Data/Model/Torpedo.mv1
 1,Data/Shader/NormalPS.pso
-1,Data/Shader/GatePosPS.pso
+1,Data/Shader/GatePS.pso
 1,Data/Shader/NumPS.pso
 1,Data/Shader/DissolvePS.pso
 2,Data/Shader/NormalVS.vso
@@ -86,7 +86,7 @@
 3,Data/Image/StageSelect/StageImage3.png
 3,Data/Image/StageSelect/StageImage4.png
 3,Data/Image/StageSelect/StageImage5.png
-3,Data/Image/StageSelect/StageImage.png
+3,Data/Image/StageSelect/StageImage6.png
 3,Data/Image/StageSelect/StageImage7.png
 3,Data/Image/StageSelect/StageImage8.png
 3,Data/Image/StageSelect/StageImage.png

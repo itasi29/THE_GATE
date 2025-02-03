@@ -42,9 +42,8 @@ NovelManager& NovelManager::GetInstance()
 
 void NovelManager::Load()
 {
-
 	auto& fileMgr = FileManager::GetInstance();
-	const auto& table = FileManager::GetInstance().LoadCsv(PATH);
+	const auto& table = fileMgr.LoadCsv(PATH);
 	for (auto& item : table) 
 	{
 		Info info;
@@ -59,6 +58,7 @@ void NovelManager::Load()
 		info.isGraph = static_cast<bool>(std::stoi(item.at(static_cast<int>(FileIndex::IS_GRAPH))));
 		if (info.isGraph)
 		{
+			// 画像IDを取得
 			info.graphId = std::stoi(item.at(static_cast<int>(FileIndex::GRAPH_ID)));
 			m_files[info.graphId] = fileMgr.Load(info.graphId);
 		}
