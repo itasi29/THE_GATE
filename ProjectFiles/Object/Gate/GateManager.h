@@ -34,8 +34,8 @@ public:
     /// コンストラクタ
     /// </summary>
     /// <param name="cameraMgr">カメラマネージャー</param>
-    /// <param name="stageName">ステージ名</param>
-    GateManager(const std::shared_ptr<CameraManager>& cameraMgr, const wchar_t* const stageName);
+    /// <param name="stageNo">ステージ番号</param>
+    GateManager(const std::shared_ptr<CameraManager>& cameraMgr, const int stageNo);
 
     /// <summary>
     /// デストラクタ
@@ -128,7 +128,7 @@ private:
 
 private:
     // ステージ名
-    const wchar_t* const m_stageName;  
+    const int m_stageNo;
 
     // カメラマネージャー
     std::shared_ptr<CameraManager> m_cameraMgr;  

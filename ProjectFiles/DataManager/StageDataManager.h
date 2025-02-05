@@ -29,7 +29,7 @@ struct StageData
     ObjectTag gateTag;  // ゲートのタグ
 };
 
-using StageDataTable_t = std::unordered_map<std::wstring, StageData>;
+using StageDataTable_t = std::vector<StageData>;
 using StageNameTable_t = std::vector<std::wstring>;
 
 /// <summary>
@@ -74,27 +74,27 @@ public:
     /// <summary>
     /// 自動生成ゲートの座標を取得する
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <returns>座標</returns>
-    const Vec3& GetGatePos(const wchar_t* const stageName) const { return m_dataTable.at(stageName).gatePos; }
+    const Vec3& GetGatePos(int stageNo) const { return m_dataTable.at(stageNo).gatePos; }
     /// <summary>
     /// 自動生成ゲートの法線を取得する
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <returns>法線</returns>
-    const Vec3& GetGateNorm(const wchar_t* const stageName) const { return m_dataTable.at(stageName).gateNorm; }
+    const Vec3& GetGateNorm(int stageNo) const { return m_dataTable.at(stageNo).gateNorm; }
     /// <summary>
     /// 自動生成ゲートの上向きを取得する
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <returns>上向き</returns>
-    const Vec3& GetGateDir(const wchar_t* const stageName) const { return m_dataTable.at(stageName).gateDir; }
+    const Vec3& GetGateDir(int stageNo) const { return m_dataTable.at(stageNo).gateDir; }
     /// <summary>
     /// 自動生成ゲートの触れているタグを取得する
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <returns>タグ</returns>
-    const ObjectTag& GetGateObjectTag(const wchar_t* const stageName) const { return m_dataTable.at(stageName).gateTag; }
+    const ObjectTag& GetGateObjectTag(int stageNo) const { return m_dataTable.at(stageNo).gateTag; }
     /// <summary>
     /// ステージ番号を取得する
     /// </summary>
@@ -104,23 +104,23 @@ public:
     /// <summary>
     /// ランクタイムを取得する
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <param name="kind">ランクの種類</param>
     /// <returns>ランクタイム</returns>
-    int GetTimeRank(const wchar_t* const stageName, const RankKind& kind) const { return m_dataTable.at(stageName).rankTime.at(kind); }
+    int GetTimeRank(int stageNo, const RankKind& kind) const { return m_dataTable.at(stageNo).rankTime.at(kind); }
     /// <summary>
     /// ランクを取得
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <param name="time">タイム</param>
     /// <returns>ランク</returns>
-    RankKind GetRank(const wchar_t* const stageName, int time) const;
+    RankKind GetRank(int stageNo, int time) const;
     /// <summary>
     /// ワープゲート銃片手ステージフラグ
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <returns>true:片手ステージ /false:両手ステージ</returns>
-    bool IsOneHand(const wchar_t* const stageName) const { return m_dataTable.at(stageName).isOneHnad; }
+    bool IsOneHand(int stageNo) const { return m_dataTable.at(stageNo).isOneHnad; }
 
 private:
     // ステージデータのテーブル

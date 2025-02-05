@@ -116,7 +116,7 @@
 3,Data/Image/Tutorial/ButtonExpo1.png
 3,Data/Image/Tutorial/HandExpo0.png
 3,Data/Image/Tutorial/HandExpo1.png
-3,Data/Image/Turotiral/EnergyExpo.png
+3,Data/Image/Tutorial/EnergyExpo.png
 3,Data/Image/Main/NowHpBar.png
 3,Data/Image/Main/HitHpBar.png
 3,Data/Image/Main/BaseHpBar.png
@@ -141,6 +141,7 @@
 3,Data/Image/Tutorial/Test3.png
 4,Data/Sound/Se/Player/Landing.mp4
 4,Data/Sound/Se/Player/Walk.mp3
+4,Data/Sound/Se/Player/Run.mp3
 4,Data/Sound/Se/Player/Shot.mp3
 4,Data/Sound/Se/Player/Damage.mp3
 4,Data/Sound/Se/Gate/Open.mp3
@@ -149,6 +150,7 @@
 4,Data/Sound/Se/Gimmick/DoorOpen.mp3
 4,Data/Sound/Se/Gimmick/EnergyShot.mp3
 4,Data/Sound/Se/Gimmick/EnergyCatch.mp3
+4,Data/Sound/Se/Gimmick/EnergyClear.mp3
 4,Data/Sound/Se/UI/Cancel.mp3
 4,Data/Sound/Se/UI/Decide.mp3
 4,Data/Sound/Se/UI/Move.mp3
@@ -163,3 +165,4 @@
 5,Data/Effekseer/MuzzleFlash.efk
 5,Data/Effekseer/GateDelete.efk
 5,Data/Effekseer/LaserBullet.efk
+5,Data/Effekseer/EnergyClear.efk

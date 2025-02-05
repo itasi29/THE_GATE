@@ -149,8 +149,9 @@ private:
     // 入力の記憶
     InputData_t m_padstate;     // 現在の入力
     InputData_t m_prePadstate;  // 直前の入力
-    InputTriggerData_t m_trigger;
-    std::unordered_map<const char*, int> m_repeatFrame;
+	InputTriggerData_t m_trigger;   // トリガーデータ
+    // リピート用のフレーム
+	std::unordered_map<const char*, int> m_repeatFrame; 
 
 #ifdef _DEBUG
     char m_keystate[256];       // 現在のキー入力状態

@@ -39,12 +39,12 @@ void RankingDataManager::Load()
 		auto stageNum = stageDataMgr.GetStageNum();
 		for (int i = 0; i < stageNum; ++i)
 		{
-			const auto& name = stageDataMgr.GetStageName(i);
-			auto& list = m_localData[name];
+			std::array<int, RANKING_DATA_NUM> list;
 			for (int j = 0; j < RANKING_DATA_NUM; ++j)
 			{
 				FileRead_read(&list[j], sizeof(int), handle);
 			}
+			m_localData.push_back(list);
 		}
 		FileRead_close(handle);
 	}
@@ -63,20 +63,17 @@ void RankingDataManager::Save() const
 		return;
 	}
 
-	for (auto& list : m_localData)
+	for (auto& time : m_localData)
 	{
-		for (auto& time : list.second)
-		{
-			fwrite(&time, sizeof(int), 1, fp);
-		}
+		fwrite(&time, sizeof(int), 1, fp);
 	}
 }
 
-bool RankingDataManager::CheckRankingUpdate(const wchar_t* const stageName, int clearTime)
+bool RankingDataManager::CheckRankingUpdate(int stageNo, int clearTime)
 {
 	bool isUpdate = false;
 
-	if (CheckRankingUpdate(m_localData.at(stageName), clearTime)) isUpdate = true;
+	if (CheckRankingUpdate(m_localData.at(stageNo), clearTime)) isUpdate = true;
 //	if (CheckRankingUpdate(m_onlineData.at(stageName), clearTime)) isUpdate = true;
 
     return isUpdate;
@@ -85,11 +82,13 @@ bool RankingDataManager::CheckRankingUpdate(const wchar_t* const stageName, int 
 void RankingDataManager::Initialize()
 {
 	auto& stageDataMgr = StageDataManager::GetInstance();
-	auto stageNum = stageDataMgr.GetStageNum();
+	// ステージ数を取得(タイトル・リザルトの数分減らす)
+	auto stageNum = stageDataMgr.GetStageNum() - 2;
+	// 初期化
+	m_localData.resize(stageNum);
 	for (int i = 0; i < stageNum; ++i)
 	{
-		const auto& name = stageDataMgr.GetStageName(i);
-		auto& list = m_localData[name];
+		auto& list = m_localData[i];
 		for (int j = 0; j < RANKING_DATA_NUM; ++j)
 		{
 			list[j] = 3600 * (j + 1);

@@ -27,9 +27,9 @@ public:
     /// <summary>
     /// コンストラクタ
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <param name="clearTime">クリア時間</param>
-    SceneResult(const wchar_t* const stageName, const int clearTime);
+    SceneResult(const int stageNo, const int clearTime);
 
     /// <summary>
     /// デストラクタ
@@ -134,7 +134,7 @@ private:
 
 private:
     // ステージ名
-    const wchar_t* const m_stageName; 
+    const int m_stageNo; 
     // クリア時間
     const int m_clearTime; 
 

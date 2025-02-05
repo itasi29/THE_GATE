@@ -149,6 +149,3 @@ private:
     // 停止フラグ
     bool m_isStop;  
 };
-
-
-

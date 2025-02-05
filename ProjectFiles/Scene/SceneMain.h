@@ -31,8 +31,8 @@ public:
     /// <summary>
     /// コンストラクタ
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
-    SceneMain(const wchar_t* const stageName);
+    /// <param name="stageNo">ステージ番号</param>
+    SceneMain(const int stageNo);
 
     /// <summary>
     /// デストラクタ
@@ -133,8 +133,8 @@ private:
 
     // レンダーターゲットのテーブル
     std::vector<int> m_rtTable; 
-    // ステージ名
-    const wchar_t* const m_stageName; 
+    // ステージ番号
+    const int m_stageNo;
     // シェーダー用の定数バッファ
     CBuff* m_cBuff; 
 

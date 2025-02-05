@@ -5,15 +5,15 @@
 struct Light
 {
     Vec3 pos;
-    float range;
-    float intensity;
-    float color[3];
+    float range = 0.0f;
+    float intensity = 0.0f;
+    float color[3] = { 0.0f };
 };
 struct LightBuffer
 {
 	Light lights[50];
-    int num;
-	float dummy[3];
+    int num = 0;
+    float dummy[3] = { 0.0f };
 };
 
 /// <summary>
@@ -87,10 +87,10 @@ private:
 #endif
 
 private:
-    // ライトバッファーハンドル
-	int m_lightBufferH;
 	// ライトバッファー
 	LightBuffer* m_lightBuffer;
+    // ライトバッファーハンドル
+	int m_lightBufferH;
 
     // ゲーム終了フラグ
     bool m_isEnd;      

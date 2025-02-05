@@ -102,7 +102,7 @@ namespace
 	const VECTOR CAMERA_DIR = VGet(10.0f, 0.0f, 0.0f);
 
 	/* 背景モデル情報 */
-	const wchar_t* const STAGE_NAME = L"Result";							// ステージ名
+	constexpr int STAGE_NO = 11;							// ステージ名
 	const wchar_t* const ANIM_INFO_PATH = L"Data/Master/AnimPlayer.csv";	// アニメーションパス
 	constexpr float MODEL_SCALE = 0.075f;	// モデルサイズ
 	const Vec3 MODEL_POS = Vec3(-116.0f, 0.0f, 36.0f);	// モデル座標
@@ -110,9 +110,9 @@ namespace
 	const Matrix4x4 MODEL_MAT = Matrix4x4::Scale(MODEL_SCALE) * Matrix4x4::Rot(MODEL_ROT) * Matrix4x4::Pos(MODEL_POS);	// 上3つを行列情報に変換
 }
 
-SceneResult::SceneResult(const wchar_t* const stageName, const int clearTime) :
+SceneResult::SceneResult(const int stageNo, const int clearTime) :
 	SceneBase(SceneKind::CLEAR),
-	m_stageName(stageName),
+	m_stageNo(stageNo),
 	m_clearTime(clearTime),
 	m_processFunc(&SceneResult::TimeUpdate),
 	m_moveCount{ 0 },
@@ -146,7 +146,7 @@ void SceneResult::AsyncInit()
 	m_psH = fileMgr.GetPS(M_PLAYER);
 	m_vsH = fileMgr.GetVS(M_PLAYER);
 	// マネージャー生成
-	m_stageMgr = std::make_shared<StageManager>(STAGE_NAME);
+	m_stageMgr = std::make_shared<StageManager>(STAGE_NO);
 	m_stageMgr->AsyncInit();
 }
 
@@ -155,7 +155,7 @@ void SceneResult::Init()
 	m_scnMgr.ChangeBgmH(m_files.at(B_RESULT)->GetHandle());
 
 	// クリア時間が10位に入ったか
-	m_isRankingUpdate = RankingDataManager::GetInstance().CheckRankingUpdate(m_stageName, m_clearTime);
+	m_isRankingUpdate = RankingDataManager::GetInstance().CheckRankingUpdate(m_stageNo - 1, m_clearTime);
 	// 入っていなければランキング更新のスタンプ既にしていることに
 	if (!m_isRankingUpdate) m_isRankingStamped = true;
 
@@ -392,7 +392,7 @@ void SceneResult::DrawRank() const
 	if (!m_isAllMoved) return;
 
 	auto& stageDataMgr = StageDataManager::GetInstance();
-	const auto rank = stageDataMgr.GetRank(m_stageName, m_clearTime);
+	const auto rank = stageDataMgr.GetRank(m_stageNo, m_clearTime);
 
 	DrawStamp(DRAW_RANK_X, DRAW_RANK_Y, FILE_RANK.at(rank), FILE_SIZE_RANK, FILE_SIZE_RANK_LARGE, FILE_SIZE_RANK_LARGE_2, FILE_SIZE_RANK_SMALL, m_count, m_isRankStamped);
 }

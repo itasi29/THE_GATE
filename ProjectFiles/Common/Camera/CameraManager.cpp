@@ -9,13 +9,20 @@ CameraManager::CameraManager()
 	for (int i = 0; i < static_cast<int>(CameraKind::MAX); ++i)
 	{
 		auto& camera = m_cameras[i];
-		if (i == static_cast<int>(CameraKind::PLAYER))
+		// プレイヤーカメラとして生成
+		if (i <= static_cast<int>(CameraKind::PLAYER))
 		{
 			camera = std::make_shared<PlayerCamera>();
 		}
-		else
+		// ゲートカメラとして生成
+		else if (i <= static_cast<int>(CameraKind::GATE_B_FROM_A))
 		{
 			camera = std::make_shared<GateCamera>();
+		}
+		// 通常カメラとして生成
+		else
+		{
+			camera = std::make_shared<Camera>();
 		}
 	}
 }

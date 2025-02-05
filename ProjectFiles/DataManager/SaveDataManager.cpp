@@ -13,7 +13,6 @@ namespace
 	// セーブデータのパス
 	const char* const FILE_PATH = "Data/SaveData/SaveData.dat";
 
-	
 	constexpr int MAX_BGM_RATE = 100;	// 最大BGM割合
 	constexpr int MAX_SE_RATE = 100;	// 最大SE割合
 	constexpr int MAX_CAMERA_SENS = 100;	// 最大カメラ感度
@@ -73,8 +72,9 @@ void SaveDataManager::Save() const
 	fwrite(&m_bgmVolume, sizeof(int), 1, fp);
 	// SEの音量を書き込み
 	fwrite(&m_seVolume, sizeof(int), 1, fp);
+	// ステージ数取得(タイトル・リザルト数分減らす)
 	auto& stageDataMgr = StageDataManager::GetInstance();
-	const auto& stageNum = stageDataMgr.GetStageNum();
+	const auto& stageNum = stageDataMgr.GetStageNum() - 2;
 	for (const auto& data : m_dataTable)
 	{
 		// カメラの感度を書き込み
@@ -86,11 +86,11 @@ void SaveDataManager::Save() const
 		// クリア情報の書き込み
 		for (int i = 0; i < stageNum; ++i)
 		{
-			const auto& name = stageDataMgr.GetStageName(i);
 			// クリア情報の書き込み
-			fwrite(&data.isClear.at(name), sizeof(bool), 1, fp);
+			bool isClear = data.isClear.at(i);
+			fwrite(&isClear, sizeof(bool), 1, fp);
 			// ステージクリアタイムを書き込み
-			fwrite(&data.clearTime.at(name), sizeof(int), 1, fp);
+			fwrite(&data.clearTime.at(i), sizeof(int), 1, fp);
 		}
 	}
 
@@ -105,26 +105,17 @@ void SaveDataManager::Initialized(int no)
 	data.isExist = false;
 	// プレイ時間の初期化
 	data.totalTime = 0;
-	// ステージ数分繰り返す
+	// ステージ数分繰り返す(タイトル・リザルト数分減らす)
 	auto& stageDataMgr = StageDataManager::GetInstance();
-	const auto& stageNum = stageDataMgr.GetStageNum();
+	const auto& stageNum = stageDataMgr.GetStageNum() - 2;
+	// クリア情報の初期化
+	data.isClear.clear();
+	data.clearTime.clear();
 	for (int i = 0; i < stageNum; ++i)
 	{
-		// ステージ名取得
-		const auto& name = stageDataMgr.GetStageName(i);
-		// クリア情報の初期化
-		data.isClear[name] = false;
-		data.clearTime[name] = 99 * 3600 + 59 * 60 + 59;
+		data.isClear.push_back(false);
+		data.clearTime.push_back(99 * 3600 + 59 * 60 + 59);
 	}
-}
-
-void SaveDataManager::UpdateTime(const wchar_t* const stageName)
-{
-	auto& data = m_dataTable.at(m_useSaveNo);
-	// データが存在することに
-	data.isExist = true;
-	// トータルタイムの更新
-	++data.totalTime;
 }
 
 void SaveDataManager::ChangeBgmRate(int changeSize)
@@ -143,14 +134,18 @@ void SaveDataManager::ChangeCameraSens(int changeSize)
 	m_dataTable.at(m_useSaveNo).cameraSens = std::min<int>(std::max<int>(m_dataTable.at(m_useSaveNo).cameraSens + changeSize, 0), 100);
 }
 
-void SaveDataManager::OnClear(const wchar_t* const stageName, int clearTime)
+void SaveDataManager::OnClear(int stageNo, int clearTime)
 {
 	auto& data = m_dataTable.at(m_useSaveNo);
 
 	// クリア時間が保存されているプレイ時間を超えている場合は更新
-	if (data.clearTime.at(stageName) > clearTime) data.clearTime.at(stageName) = clearTime;
+	if (data.clearTime.at(stageNo) > clearTime) data.clearTime.at(stageNo) = clearTime;
 	// クリアしたことに
-	data.isClear.at(stageName) = true;
+	data.isClear.at(stageNo) = true;
+	// データが存在することに
+	data.isExist = true;
+	// トータルタイムの更新
+	data.totalTime += clearTime;
 }
 
 int SaveDataManager::GetSaveDataNum() const
@@ -160,34 +155,24 @@ int SaveDataManager::GetSaveDataNum() const
 
 int SaveDataManager::GetClearStageNum(int saveNo) const
 {
-	bool isFirst = true;
 	int count = 0;
-	for (auto& isClear : m_dataTable.at(saveNo).isClear)
+	for (const auto& isClear : m_dataTable.at(saveNo).isClear)
 	{
-		// 最初はタイトルデータなので飛ばす
-		if (isFirst)
-		{
-			isFirst = false;
-			continue;
-		}
 		// クリアしていなければ抜ける
-		if (!isClear.second) break;
+		if (!isClear) break;
 		// カウント増加
 		++count;
 	}
 	return count;
 }
 
-bool SaveDataManager::IsReleaseStage(const wchar_t* const stageName) const
+bool SaveDataManager::IsReleaseStage(int stageNo) const
 {
 	auto& stageDataMgr = StageDataManager::GetInstance();
-	// ステージ番号取得
-	int no = stageDataMgr.GetStageNo(stageName);
-	// ステージが1以下なら解放していることに(0番はタイトルの情報)
-	if (no <= 1) return true;
+	// ステージが1未満なら解放していることに(0番はタイトルの情報)
+	if (stageNo < 1) return true;
 	// それ以外は一つ前のステージがクリアしていたら解放していることにする
-	const auto& name = stageDataMgr.GetStageName(no - 1);
-	return m_dataTable.at(m_useSaveNo).isClear.at(name);
+	return m_dataTable.at(m_useSaveNo).isClear.at(stageNo - 1);
 }
 
 void SaveDataManager::LoadFile(int handle)
@@ -199,8 +184,8 @@ void SaveDataManager::LoadFile(int handle)
 	// SEの音量を読み込み
 	FileRead_read(&m_seVolume, sizeof(int), handle);
 
-	// ステージ数取得
-	const auto& stageNum = stageDataMgr.GetStageNum();
+	// ステージ数取得(タイトル・リザルト分減らす)
+	const auto& stageNum = stageDataMgr.GetStageNum() - 2;
 	for (int i = 0; i < SAVE_DATA_NUM; ++i)
 	{
 		SaveData data;
@@ -210,16 +195,17 @@ void SaveDataManager::LoadFile(int handle)
 		FileRead_read(&data.isExist, sizeof(bool), handle);
 		// プレイ時間の読み込み
 		FileRead_read(&data.totalTime, sizeof(int), handle);
+		// サイズ分確保
+		data.isClear.resize(stageNum);
+		data.clearTime.resize(stageNum);
 		for (int j = 0; j < stageNum; ++j)
 		{
-			// ステージ名取得
-			const auto& name = stageDataMgr.GetStageName(j);
 			// クリア情報読み込み
 			bool isClear;
 			FileRead_read(&isClear, sizeof(bool), handle);
-			data.isClear[name] = isClear;
+			data.isClear[j] = isClear;
 			// ステージクリアタイム読み込み
-			FileRead_read(&data.clearTime[name], sizeof(int), handle);
+			FileRead_read(&data.clearTime[j], sizeof(int), handle);
 		}
 
 		m_dataTable.emplace_back(data);

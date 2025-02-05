@@ -78,8 +78,7 @@ void SceneDebug::Update(bool isFade)
 			}
 			else
 			{
-				auto stageName = stageDataMgr.GetStageName(m_stageNo + 1);
-				next = std::make_shared<SceneMain>(stageName);
+				next = std::make_shared<SceneMain>(m_stageNo + 1);
 			}
 		}
 		else if (static_cast<SceneKind>(m_next) == SceneKind::TUTORIAL)
@@ -88,8 +87,7 @@ void SceneDebug::Update(bool isFade)
 		}
 		else if (static_cast<SceneKind>(m_next) == SceneKind::CLEAR)
 		{
-			auto stageName = stageDataMgr.GetStageName(m_stageNo);
-			next = std::make_shared<SceneResult>(stageName, 3600 * 12 + 60 * 34 + 56);
+			next = std::make_shared<SceneResult>(m_stageNo + 1, 3600 * 12 + 60 * 34 + 56);
 			
 		}
 

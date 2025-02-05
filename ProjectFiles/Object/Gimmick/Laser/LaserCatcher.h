@@ -34,6 +34,11 @@ public:
     /// <param name="isGravity">重力を使用するかどうか</param>
     void Init(const Vec3& pos, const Vec3& scale, const Quaternion& rot, std::list<Tuple<MyEngine::ColKind, MyEngine::ColliderBase*>> list, bool isGravity) override;
 
+	/// <summary>
+	/// 更新処理
+	/// </summary>
+	void Update() override;
+
     /// <summary>
     /// トリガー侵入時の処理
     /// </summary>
@@ -46,4 +51,9 @@ public:
 private:
     // キャッチサウンドエフェクト
     std::shared_ptr<FileBase> m_catchSe;  
+    // プレイ中のクリアエフェクトハンドル
+	int m_playClearEffH;
+
+    // クリアしたかどうか
+    bool m_isClear;
 };

@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include <unordered_map>
 #include <vector>
 #include <string>
 
@@ -8,11 +7,11 @@
 /// </summary>
 struct SaveData
 {
-    bool isExist = false;                            // セーブデータが存在するか
-    int totalTime = 0;                               // 総プレイ時間
-	int cameraSens = 0; 						     // カメラ感度
-    std::unordered_map<std::wstring, bool> isClear;  // ステージクリア状況
-    std::unordered_map<std::wstring, int> clearTime; // ステージクリア時間
+    bool isExist = false;       // セーブデータが存在するか
+    int totalTime = 0;          // 総プレイ時間
+	int cameraSens = 0; 		// カメラ感度
+    std::vector<bool> isClear;  // ステージクリア状況
+    std::vector<int> clearTime; // ステージクリア時間
 };
 
 using SaveDataTable_t = std::vector<SaveData>;
@@ -62,11 +61,6 @@ public:
     void DecideUseSaveNo(int no) { m_useSaveNo = no; }
 
     /// <summary>
-    /// 総プレイ時間の更新
-    /// </summary>
-    /// <param name="stageName">ステージ名</param>
-    void UpdateTime(const wchar_t* const stageName);
-    /// <summary>
 	/// BGMの音量を変更
     /// </summary>
     /// <param name="changeSize">変更サイズ</param>
@@ -85,9 +79,9 @@ public:
     /// <summary>
     /// ステージをクリアしたことにする
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <param name="clearTime">クリアタイム</param>
-    void OnClear(const wchar_t* const stageName, int clearTime);
+    void OnClear(int stageNo, int clearTime);
 
 	/// <summary>
 	/// BGMの割合を取得
@@ -140,9 +134,9 @@ public:
     /// <summary>
     /// ステージのクリア時間を取得
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <returns>クリア時間</returns>
-    int GetStageClearTime(const wchar_t* const stageName) const { return m_dataTable.at(m_useSaveNo).clearTime.at(stageName); }
+    int GetStageClearTime(int stageNo) const { return m_dataTable.at(m_useSaveNo).clearTime.at(stageNo); }
     /// <summary>
     /// セーブデータが存在するか
     /// </summary>
@@ -152,15 +146,15 @@ public:
     /// <summary>
     /// ステージをクリアしているか
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <returns>true: クリアしている/ false: クリアしていない</returns>
-    bool IsClear(const wchar_t* const stageName) const { return m_dataTable.at(m_useSaveNo).isClear.at(stageName); }
+    bool IsClear(int stageNo) const { return m_dataTable.at(m_useSaveNo).isClear.at(stageNo); }
     /// <summary>
     /// ステージを解放しているか
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <returns>true: 解放している/ false: 解放していない</returns>
-    bool IsReleaseStage(const wchar_t* const stageName) const;
+    bool IsReleaseStage(int stageNo) const;
 
 private:
     /// <summary>

@@ -53,7 +53,7 @@ void StageDataManager::Load()
 		const auto& wName = StringUtility::StringToWString(name);
 		m_nameTable.push_back(wName);
 
-		auto& data = m_dataTable[wName];
+		StageData data;
 		data.rankTime[RankKind::S] = StringUtility::CsvToTime(info[StageDataCsv::TIME_S]);
 		data.rankTime[RankKind::A] = StringUtility::CsvToTime(info[StageDataCsv::TIME_A]);
 		data.rankTime[RankKind::B] = StringUtility::CsvToTime(info[StageDataCsv::TIME_B]);
@@ -65,6 +65,7 @@ void StageDataManager::Load()
 			data.gateDir = StringUtility::CsvToVec3(info[StageDataCsv::GATE_DIR]);
 			data.gateTag = GATE_TAG_TABLE.at(info[StageDataCsv::GATE_TAG]);
 		}
+		m_dataTable.push_back(data);
 	}
 }
 
@@ -79,11 +80,11 @@ int StageDataManager::GetStageNo(const wchar_t* const stageName) const
 	return -1;
 }
 
-RankKind StageDataManager::GetRank(const wchar_t* const stageName, int time) const
+RankKind StageDataManager::GetRank(int stageNo, int time) const
 {
 	for (auto& rank : ORDER)
 	{
-		const auto& info = m_dataTable.at(stageName).rankTime.at(rank);
+		const auto& info = m_dataTable.at(stageNo).rankTime.at(rank);
 		// タイムがランクタイム未満なら達成していることとし、現在のランクを返す
 		if (time <= info) return rank;
 	}

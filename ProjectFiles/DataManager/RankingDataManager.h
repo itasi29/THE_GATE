@@ -42,18 +42,18 @@ public:
     /// <summary>
     /// ランキングの更新確認
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <param name="clearTime">クリアタイム</param>
     /// <returns>true:更新した/ false:更新していない</returns>
-    bool CheckRankingUpdate(const wchar_t* const stageName, int clearTime);
+    bool CheckRankingUpdate(int stageNo, int clearTime);
 
     /// <summary>
     /// ランキングタイムの取得
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <param name="rankingNo">ランキング番号</param>
     /// <returns>ランキングタイム</returns>
-    int GetTime(const wchar_t* const stageName, int rankingNo) { return m_localData.at(stageName).at(rankingNo); }
+    int GetTime(const int stageNo, int rankingNo) { return m_localData.at(stageNo).at(rankingNo); }
 
 private:
     /// <summary>
@@ -70,7 +70,7 @@ private:
     bool CheckRankingUpdate(std::array<int, RANKING_DATA_NUM>& list, int clearTime);
 
 private:
-    using RankingData_t = std::unordered_map<std::wstring, std::array<int, RANKING_DATA_NUM>>;
+    using RankingData_t = std::vector<std::array<int, RANKING_DATA_NUM>>;
     RankingData_t m_localData;  // ローカルのランキングデータ
 //  RankingData_t m_onlineData; // オンラインのランキングデータ
 };

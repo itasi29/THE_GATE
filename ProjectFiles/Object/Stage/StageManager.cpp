@@ -98,8 +98,10 @@ namespace
 	};
 }
 
-StageManager::StageManager(const wchar_t* const stageName) :
-	m_stageName(stageName),
+StageManager::StageManager(const int stageNo) :
+	m_lights(nullptr),
+	m_lightNum(0),
+	m_stageNo(stageNo),
 	m_nowCp(0),
 	m_isClear(false)
 {
@@ -115,33 +117,32 @@ StageManager::~StageManager()
 
 void StageManager::AsyncInit()
 {
-	auto stageNo = StageDataManager::GetInstance().GetStageNo(m_stageName);
 	// オブジェクト
 	std::wostringstream object;
-	object << BASE_PATH << MODEL_INFO_PATH << stageNo << EXTENSION;
+	object << BASE_PATH << MODEL_INFO_PATH << m_stageNo << EXTENSION;
 	m_afiles.push_back(std::make_shared<AFile>(object.str().c_str()));
 	// ギミック
 	std::wostringstream gimmick;
-	gimmick << BASE_PATH << GIMMICK_INFO_PATH << stageNo << EXTENSION;
+	gimmick << BASE_PATH << GIMMICK_INFO_PATH << m_stageNo << EXTENSION;
 	m_afiles.push_back(std::make_shared<AFile>(gimmick.str().c_str()));
 	// 動く床
 	std::wostringstream move;
-	move << BASE_PATH << FLOOR_MOVE_INFO_PATH << stageNo << EXTENSION;
+	move << BASE_PATH << FLOOR_MOVE_INFO_PATH << m_stageNo << EXTENSION;
 	m_afiles.push_back(std::make_shared<AFile>(move.str().c_str()));
 	// チェックポイント
 	std::wostringstream cp;
-	cp << BASE_PATH << CHECK_POINT_INFO_PATH << stageNo << EXTENSION;
+	cp << BASE_PATH << CHECK_POINT_INFO_PATH << m_stageNo << EXTENSION;
 	m_afiles.push_back(std::make_shared<AFile>(cp.str().c_str()));
 	// ライト
 	std::wostringstream light;
-	light << BASE_PATH << LIGHT_INFO_PATH << stageNo << EXTENSION;
+	light << BASE_PATH << LIGHT_INFO_PATH << m_stageNo << EXTENSION;
 	m_afiles.push_back(std::make_shared<AFile>(light.str().c_str()));
 	// モデル読み込み
 	std::list<int> loadList;
 	// 非同期読み込みを無効に
 	SetUseASyncLoadFlag(false);
 	std::wostringstream modelId;
-	modelId << BASE_PATH << MODEL_ID_INFO_PATH << stageNo << EXTENSION;
+	modelId << BASE_PATH << MODEL_ID_INFO_PATH << m_stageNo << EXTENSION;
 	int handle = FileRead_open(modelId.str().c_str());
 	int size = 0;
 	FileRead_read(&size, sizeof(size), handle);

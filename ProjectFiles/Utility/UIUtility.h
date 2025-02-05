@@ -439,6 +439,37 @@ public:
 	}
 
 	/// <summary>
+	/// 文字をぶるぶるさせながら描画(左基準)
+	/// </summary>
+	/// <param name="x">左端</param>
+	/// <param name="y">Y中心</param>
+	/// <param name="color">文字カラー</param>
+	/// <param name="str">文字列</param>
+	/// <param name="fontSize">フォントサイズ</param>
+	/// <param name="shakeSize">揺れる大きさ</param>
+	/// <param name="isShadow">true: 影有り /false:影無し</param>
+	/// <param name="shadowY">影のX位置</param>
+	/// <param name="shadowX">影のY位置</param>
+	/// <param name="shadowColor">影の色(def = 0(黒))</param>
+	/// <param name="rate">フォントサイズ調整係数</param>
+	static void DrawShakeStrLeft(int x, int y, unsigned int color, const std::wstring& str, int fontSize, int shakeSize, bool isShadow = false, int shadowX = 2, int shadowY = 2, unsigned int shadowColor = 0, float rate = 0.4f)
+	{
+		auto fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, fontSize);
+		y -= static_cast<int>(fontSize * 0.5f);
+		int addX = static_cast<int>(fontSize * rate * 2);
+		float addCount = 180.0f / str.size();
+		for (const auto& c : str)
+		{
+			auto& rand = Random::GetInstance();
+			int randX = rand.GetRand(-shakeSize, shakeSize);
+			int randY = rand.GetRand(-shakeSize, shakeSize);
+			if (isShadow) DrawFormatStringToHandle(x + randX + shadowX, y + randY + shadowY, shadowColor, fontH, L"%c", c);;
+			DrawFormatStringToHandle(x + randX, y + randY, color, fontH, L"%c", c);
+			x += addX;
+		}
+	}
+
+	/// <summary>
 	/// 文字列とフレームを同時に描画
 	/// </summary>
 	/// <param name="data">UIMoveData</param>

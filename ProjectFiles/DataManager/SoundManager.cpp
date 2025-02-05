@@ -50,6 +50,7 @@ void SoundManager::Update()
 		{
 			// オブジェクトの距離によって音を変更しない場合次の処理へ
 			if (info.master.expired()) continue;
+
 			// サウンドが終了していれば次の処理へ
 			if (!CheckSoundMem(info.handle)) continue;
 
@@ -85,14 +86,30 @@ void SoundManager::RestartStopedSe()
 {
 	m_isStop = false;
 
+	Vec3 center = Vec3();
+	// Seの中心とするものがある場合、中心を取得
+	if (!m_seCenter.expired()) center = m_seCenter.lock()->GetPos();
+
 	auto& saveDataMgr = SaveDataManager::GetInstance();
-	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetSeRate() * 0.01f);
+	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetSeRate());
 	for (auto& info : m_saveSeList)
 	{
 		// 再生位置の設定
 		SetSoundCurrentTime(info.savePos, info.handle);
-		// 音量の変更
-		ChangeNextPlayVolumeSoundMem(volume, info.handle);
+		// オブジェクトの距離によって音を変更しない場合
+		if (info.master.expired())
+		{
+			// そのままの音量に
+			ChangeNextPlayVolumeSoundMem(volume, info.handle);
+		}
+		else
+		{
+			// 距離に応じて音量を変更
+			const auto& target = info.master.lock()->GetPos();
+			float rate = 1.0f - std::min<float>((target - center).SqLength() / SOUND_DEL_SQ_DIS, 1.0f);
+			ChangeNextPlayVolumeSoundMem(static_cast<int>(volume * rate), info.handle);
+		}
+		
 		// 再生
 		PlaySoundMem(info.handle, DX_PLAYTYPE_BACK, false);
 	}
@@ -146,7 +163,7 @@ void SoundManager::PlaySe(int seHandle, bool isOption)
 {
 	// 音量の変更
 	auto& saveDataMgr = SaveDataManager::GetInstance();
-	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetBgmRate());
+	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetSeRate());
 	ChangeNextPlayVolumeSoundMem(volume, seHandle);
 
 	// 再生
@@ -163,7 +180,7 @@ void SoundManager::PlaySe3D(int seHandle, const std::weak_ptr<MyEngine::Collidab
 {
 	// 音量の変更
 	auto& saveDataMgr = SaveDataManager::GetInstance();
-	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetBgmRate());
+	int volume = static_cast<int>(VOLUME_VAL * saveDataMgr.GetSeRate());
 	ChangeNextPlayVolumeSoundMem(volume, seHandle);
 
 	// 再生

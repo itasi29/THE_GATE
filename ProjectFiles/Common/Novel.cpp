@@ -1,5 +1,6 @@
 ﻿#include "Novel.h"
 #include <DxLib.h>
+#include <cassert>
 #include "Game.h"
 #include "Font.h"
 
@@ -84,6 +85,7 @@ void Novel::Draw(int spaceWidthNum, int startY, unsigned int color) const
 			++i;
 			continue;
 		}
+		// 文字描画
 		else
 		{
 			const auto& c = m_str.at(i);
@@ -131,6 +133,7 @@ void Novel::Draw(int spaceWidthNum, int startY, unsigned int color, int fontSize
 			++i;
 			continue;
 		}
+		// 文字描画
 		else
 		{
 			const auto& c = m_str.at(i);
@@ -150,5 +153,6 @@ void Novel::Draw(int spaceWidthNum, int startY, unsigned int color, int fontSize
 
 void Novel::DrawGraph(int x, int y, float size, int handle)
 {
-	DrawRotaGraph(x, y, size, 0.0f, handle, true);
+	auto err = DrawRotaGraph(x, y, size, 0.0f, handle, true);
+	assert(err != -1 && "グラフ読み込みに失敗しています");
 }

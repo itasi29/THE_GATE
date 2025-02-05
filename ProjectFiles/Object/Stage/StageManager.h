@@ -38,8 +38,8 @@ public:
     /// <summary>
     /// コンストラクタ
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
-    StageManager(const wchar_t* const stageName);
+    /// <param name="stageNo">ステージ番号</param>
+    StageManager(const int stageNo);
 
     /// <summary>
     /// デストラクタ
@@ -183,8 +183,8 @@ private:
 	std::vector<float> m_lightRange;
 #endif
 
-    // ステージ名
-    const wchar_t* const m_stageName;
+    // ステージ番号
+    const int m_stageNo;
 
     // 現在のチェックポイント番号
     int m_nowCp;  

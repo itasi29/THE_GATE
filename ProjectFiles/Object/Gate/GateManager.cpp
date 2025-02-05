@@ -42,11 +42,11 @@ namespace
 	};
 }
 
-GateManager::GateManager(const std::shared_ptr<CameraManager>& cameraMgr, const wchar_t* const stageName) :
+GateManager::GateManager(const std::shared_ptr<CameraManager>& cameraMgr, const int stageNo) :
 	m_cameraMgr(cameraMgr),
 	m_gateOrange(nullptr),
 	m_gateBlue(nullptr),
-	m_stageName(stageName),
+	m_stageNo(stageNo),
 	m_lastShotKind(GateKind::Orange)
 {
 	m_isCreate[GateKind::Orange] = false;
@@ -197,13 +197,13 @@ void GateManager::CreateGateOnTerrain()
 {
 	auto& stageDataMgr = StageDataManager::GetInstance();
 	// 片手ステージでないなら終了
-	if (!stageDataMgr.IsOneHand(m_stageName)) return;
+	if (!stageDataMgr.IsOneHand(m_stageNo)) return;
 
 	// 必要データ取得
-	const auto& tag = stageDataMgr.GetGateObjectTag(m_stageName);
-	const auto& pos = stageDataMgr.GetGatePos(m_stageName);
-	const auto& norm = stageDataMgr.GetGateNorm(m_stageName);
-	const auto& dir = stageDataMgr.GetGateDir(m_stageName);
+	const auto& tag = stageDataMgr.GetGateObjectTag(m_stageNo);
+	const auto& pos = stageDataMgr.GetGatePos(m_stageNo);
+	const auto& norm = stageDataMgr.GetGateNorm(m_stageNo);
+	const auto& dir = stageDataMgr.GetGateDir(m_stageNo);
 	// ゲート生成
 	CreateGate(m_gateBlue, GateKind::Blue, tag, pos, norm, dir);
 }

@@ -103,7 +103,7 @@ namespace
 	constexpr int WAVE_SIZE_DEATH_UI = 16;				// 文字ウェーブの大きさ
 	constexpr float WAVE_SPEED_DEATH_UI = 2.0f;			// 文字ウェーブのスピード
 	// 死亡UIの描画位置
-	constexpr int DRAW_DEATH_UI_FRAME_X = 490;
+	constexpr int DRAW_DEATH_UI_FRAME_X = 380;
 	constexpr int DRAW_DEATH_UI_FRAME_Y = 450;
 
 	/* リスタート用 */
@@ -115,11 +115,11 @@ namespace
 	constexpr float COLOR_FIRE_B = 0.59f;
 }
 
-SceneMain::SceneMain(const wchar_t* const stageName) :
+SceneMain::SceneMain(const int stageNo) :
 	SceneBase(SceneKind::MAIN),
 	m_updateFunc(&SceneMain::MainUpdate),
 	m_drawFunc(&SceneMain::DrawMain),
-	m_stageName(stageName),
+	m_stageNo(stageNo),
 	m_cBuff(nullptr),
 	m_cBuffH(-1),
 	m_time(0),
@@ -161,9 +161,9 @@ void SceneMain::AsyncInit()
 	m_cBuff = static_cast<CBuff*>(GetBufferShaderConstantBuffer(m_cBuffH));
 
 	// マネージャー生成
-	m_stageMgr = std::make_shared<StageManager>(m_stageName);
+	m_stageMgr = std::make_shared<StageManager>(m_stageNo);
 	m_cameraMgr = std::make_shared<CameraManager>();
-	m_gateMgr = std::make_shared<GateManager>(m_cameraMgr, m_stageName);
+	m_gateMgr = std::make_shared<GateManager>(m_cameraMgr, m_stageNo);
 	// プレイヤー生成
 	m_player = std::make_shared<Player>(std::dynamic_pointer_cast<PlayerCamera>(m_cameraMgr->GetCamera(CameraKind::PLAYER)), m_gateMgr);
 	// 初期化(非同期)
@@ -182,7 +182,7 @@ void SceneMain::Init()
 	m_stageMgr->AppLights();
 	m_gateMgr->Init(m_player);
 	SoundManager::GetInstance().SetSeCenter(m_player);
-	m_player->Init(m_stageMgr->GetCheckPoint(), m_stageMgr->GetCheckPointDir(), StageDataManager::GetInstance().IsOneHand(m_stageName));
+	m_player->Init(m_stageMgr->GetCheckPoint(), m_stageMgr->GetCheckPointDir(), StageDataManager::GetInstance().IsOneHand(m_stageNo));
 	m_cBuff->fireRed	= COLOR_FIRE_R;
 	m_cBuff->fireGreen	= COLOR_FIRE_G;
 	m_cBuff->fireBlue	= COLOR_FIRE_B;
@@ -255,13 +255,12 @@ void SceneMain::MainUpdate()
 	m_stageMgr->Update();
 	m_player->Update();
 	// 時間更新
-	saveDataMgr.UpdateTime(m_stageName);
 	++m_time;
 	// クリア処理
 	if (m_stageMgr->CheckClear())
 	{
-		saveDataMgr.OnClear(m_stageName, m_time);
-		auto next = std::make_shared<SceneResult>(m_stageName, m_time);
+		saveDataMgr.OnClear(m_stageNo - 1, m_time);
+		auto next = std::make_shared<SceneResult>(m_stageNo, m_time);
 		m_scnMgr.Change(next);
 		return;
 	}
@@ -374,7 +373,7 @@ void SceneMain::DrawExistUI() const
 	else										handle = m_files.at(I_NOT_CREATE_GATE_ORANGE)->GetHandle();
 	DrawRotaGraphFast(DRAW_CREATE_GATE_ORANGE_X, DRAW_CREATE_GATE_ORANGE_Y, FILE_SIZE_CREATE_GATE, DRAW_CREATE_GATE_ANGLE, handle, true);
 	// 片手ステージなら
-	if (stageDataMgr.IsOneHand(m_stageName))
+	if (stageDataMgr.IsOneHand(m_stageNo))
 	{
 		constexpr int DRAW_CREATE_GATE_ONE_HAND_X = 610;
 		constexpr int DRAW_CREATE_GATE_ONE_HAND_Y = 330;

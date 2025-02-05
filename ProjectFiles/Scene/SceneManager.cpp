@@ -175,6 +175,10 @@ void SceneManager::NormalUpdate()
 		return;
 	}
 #endif
+	// BGMが切れたら再度再生
+	auto& sndMgr = SoundManager::GetInstance();
+	if (!sndMgr.IsNowPlay(m_bgmH)) sndMgr.PlayBgm(m_bgmH);
+	// シーンの更新
 	m_scene->Update(false);
 	m_isFadeEndFrame = false;
 }

@@ -33,7 +33,8 @@ namespace
 	// メニュー選択
 	enum class MenuCurrent : int
 	{
-		SELECT_SAVE,
+		NEW_GAME,
+		CONTINUE,
 		RANKING,
 		OPOTION,
 		END,
@@ -49,21 +50,22 @@ namespace
 
 	/* ロゴ */
 	constexpr int DRAW_LOGO_X = 160;		// 描画位置(x)
-	constexpr int DRAW_LOGO_Y = 300;				// 描画位置(y)
+	constexpr int DRAW_LOGO_Y = 244;				// 描画位置(y)
 	constexpr float FILE_SIZE_LOGO = 1.0f;			// 画像サイズ
 
 	/* メニュー */
 	// 描画位置
 	constexpr int DRAW_MENU_STR_X = 80;				// 文字描画位置(x)
-	constexpr int DRAW_MENU_FRAME_X = 180;			// フレーム描画位置(y)
-	constexpr int DRAW_MENU_Y = 450;				// 描画位置(x)
+	constexpr int DRAW_MENU_FRAME_X = 180;			// フレーム描画位置(x)
+	constexpr int DRAW_MENU_Y = 386;				// 描画位置(y)
 	constexpr int DRAW_MENU_Y_INTERVAL = 64;		// 描画間隔(y)
 	constexpr float FILE_SIZE_MENU_FRAME = 1.0f;	// フレーム描画サイズ
 	constexpr int FONT_SIZE_MENU = 36;				// 文字フォントサイズ
 	// 文字列
 	const std::vector<std::wstring> STR_MENU =
 	{
-		L"スタート",
+		L"ニューゲーム",
+		L"ロード",
 		L"ランキング",
 		L"オプション",
 		L"エンド",
@@ -109,21 +111,6 @@ namespace
 	constexpr float FILE_SIZE_SAVE_INFO_WINDOW = 1.0f;
 	constexpr int FONT_SIZE_SAVE_INFO = 28;		// 文字フォントサイズ
 
-	/* データ決定 */
-	// 文字列
-	const std::vector<std::wstring> STR_DECIDE =
-	{
-		L"続きから",
-		L"初めから",
-	};
-	constexpr int DRAW_DECIDE_X = 718;	// 基準描画位置(x)
-	constexpr int DRAW_DECIDE_Y = 482;	// 基準描画位置(y)
-	constexpr int DRAW_DECIDE_Y_INTERVAL = 40;	// 描画間隔(y)
-	constexpr int DRAW_SUB_DECIDE_STR_X = -80;	// 文字列差分描画位置(x)
-	constexpr int DRAW_SUB_DECIDE_STR_Y = 0;	// 文字列差分描画位置(y)
-	constexpr float FILE_SIZE_DECIDE_FRAME = 0.875f;	// フレーム画像サイズ
-	constexpr int FONT_SIZE_DECIDE = 28;	// 決定フォントサイズ
-
 	/* ランキング */
 	constexpr int DRAW_SUB_RANKING_ARROW_X = 256;		// 矢印差分描画位置(x)
 	constexpr int DRAW_SUB_RANKING_ARROW_Y = 240;		// 矢印差分描画位置(y)
@@ -164,6 +151,13 @@ namespace
 	constexpr unsigned int COLOR_PAD = 0xffffff;	// 文字カラー
 	constexpr int DRAW_PAD_Y_INTERVAL = 36;		// 描画間隔
 
+	/* 続けるエラー系 */
+	constexpr int DRAW_ERROR_Y = 450;
+	constexpr int DRAW_ERROR_WINDOW_X = 468;
+	constexpr int DRAW_ERROR_ARM_X = 316;
+	constexpr int DRAW_ERROR_ARM_FRAME_X = 366;
+	constexpr int DRAW_ERROR_STR_X = 358;
+
 	/* その他 */
 	constexpr float SPEED_FRAME_FADE = 0.02f;	// フレームの点滅速度
 	constexpr int ALPHA_SIZE_FRAME = 48;		// フレームの点滅サイズ
@@ -171,8 +165,12 @@ namespace
 	constexpr unsigned int COLOR_SELECT = 0xffffff;
 	// 未選択文字カラー
 	constexpr unsigned int COLOR_NOT_SELECT = 0x888888;
+	// エラー文字カラー
+	constexpr unsigned int COLOR_ERROR = 0xff0000;
 	// 文字ウェーブの大きさ
 	constexpr int STR_WAVE_SIZE = 4;
+	// エラー揺れるサイズ
+	constexpr int SHAKE_SIZE_ERROR = 4;
 	// ウェーブスピード
 	constexpr float STR_WAVE_SPEED = 2.0f;
 	// フェードにかかるフレーム
@@ -205,12 +203,12 @@ namespace
 
 	// ステージ数
 	constexpr int STAGE_NUM = 3;
-	// ステージ名
-	std::vector<std::wstring> STAGE_NAME = 
+	// ステージ番号
+	std::vector<int> STAGE_NO = 
 	{ 
-		L"Title", 
-		L"Stage4", 
-		L"Stage8"
+		0, 
+		5, 
+		9
 	};
 	// ステージ変更までのフレーム
 	constexpr int STAGE_CHANGE_FRAME = 5000;
@@ -233,7 +231,6 @@ SceneTitle::SceneTitle() :
 	m_cameraRt2(-1),
 	m_menuCurrent(0),
 	m_saveDataNo(0),
-	m_decideCurrent(0),
 	m_rankingCurrent(0),
 	m_fadeSaveInfoFrame(0),
 	m_fadeSaveNoFrame(0),
@@ -241,10 +238,14 @@ SceneTitle::SceneTitle() :
 	m_cameraFrame(0),
 	m_stageChangeFrame(0),
 	m_stageIndex(0),
+	m_erroeCount(0),
 	m_stageFade(0.0f),
 	m_isFadeSaveNo(false),
 	m_isNowSelectMenu(true),
 	m_isNowSelectSaveData(false),
+	m_isNewData(false),
+	m_isError(false),
+	m_isErrorShake(false),
 	m_isStageChangeFade(false)
 {
 }
@@ -299,7 +300,7 @@ void SceneTitle::AsyncInit()
 	// マネージャー生成
 	for (int i = 0; i < STAGE_NUM; ++i)
 	{
-		m_stageMgrs.push_back(std::make_shared<StageManager>(STAGE_NAME[i].c_str()));
+		m_stageMgrs.push_back(std::make_shared<StageManager>(STAGE_NO.at(i)));
 	}
 	m_cameraMgr = std::make_shared<CameraManager>();
 	// 初期化(非同期)
@@ -313,7 +314,6 @@ void SceneTitle::Init()
 	m_mainUI			= UIMoveData::Make(DRAW_MENU_FRAME_X, DRAW_MENU_Y);
 	m_saveUI			= UIMoveData::Make(DRAW_SAVE_FRAME_X, DRAW_SAVE_FRAME_Y);
 	m_saveInfoUI		= UIMoveData::Make(DRAW_SAVE_INFO_X, DRAW_SAVE_INFO_Y);
-	m_decideUI			= UIMoveData::Make(DRAW_DECIDE_X, DRAW_DECIDE_Y);
 	m_rankingUI			= UIMoveData::Make(Game::CENTER_X, Game::CENTER_Y + DRAW_RANKING_OUT_VAL);
 	for (auto& mgr : m_stageMgrs) mgr->Init(nullptr, nullptr);
 	m_stageMgrs.at(m_stageIndex)->AppLights();
@@ -347,11 +347,21 @@ void SceneTitle::Update(bool isFade)
 {
 	// ウェーブ更新
 	++m_uiCount;
+	// エラー処理
+	if (m_isErrorShake)
+	{
+		// エラー描画フレーム
+		constexpr int ERROR_COUNT = 30;
+		++m_erroeCount;
+		if (m_erroeCount > ERROR_COUNT)
+		{
+			m_isErrorShake = false;
+		}
+	}
 	// UI更新
 	m_mainUI->Update(MOVE_SPEED, EasingType::LERP);
 	m_saveUI->Update(MOVE_SPEED, EasingType::LERP);
 	m_saveInfoUI->Update(MOVE_SPEED, EasingType::LERP);
-	m_decideUI->Update(MOVE_SPEED, EasingType::LERP);
 	m_rankingUI->Update(MOVE_SPEED, EasingType::LERP);
 	// ステージ更新
 	StageUpdate();
@@ -428,17 +438,19 @@ void SceneTitle::Draw() const
 			SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
 		}
 		// アーム＆ウィンドウ
-		DrawRotaGraphFast(DRAW_SAVE_X + DRAW_SUB_SAVE_ARM_X, DRAW_SAVE_Y + DRAW_SUB_SAVE_ARM_Y, FILE_SIZE_SAVE_ARM, 0.0f, m_files.at(I_SAVE_ARM)->GetHandle(), true);
-		DrawRotaGraphFast(DRAW_SAVE_X + DRAW_SUB_SAVE_ARM_FRAME_X, DRAW_SAVE_Y, FILE_SIZE_SAVE_ARM_FRAME, 0.0f, m_files.at(I_SAVE_ARM_FRAME)->GetHandle(), true);
-		DrawRotaGraphFast(DRAW_SAVE_X, DRAW_SAVE_Y, FILE_SIZE_SAVE_WINDOW, 0.0f, m_files.at(I_SAVE_WINDOW)->GetHandle(), true);
+		int subY = 0;
+		if (m_isNewData) subY = DRAW_SAVE_Y_INTERVAL;
+		DrawRotaGraphFast(DRAW_SAVE_X + DRAW_SUB_SAVE_ARM_X,		DRAW_SAVE_Y + DRAW_SUB_SAVE_ARM_Y - subY, FILE_SIZE_SAVE_ARM, 0.0f, m_files.at(I_SAVE_ARM)->GetHandle(), true);
+		DrawRotaGraphFast(DRAW_SAVE_X + DRAW_SUB_SAVE_ARM_FRAME_X,  DRAW_SAVE_Y - subY, FILE_SIZE_SAVE_ARM_FRAME, 0.0f, m_files.at(I_SAVE_ARM_FRAME)->GetHandle(), true);
+		DrawRotaGraphFast(DRAW_SAVE_X,								DRAW_SAVE_Y - subY, FILE_SIZE_SAVE_WINDOW, 0.0f, m_files.at(I_SAVE_WINDOW)->GetHandle(), true);
 		// フレーム
 		if (m_isNowSelectSaveData && isFadeEnd) SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
-		DrawRotaGraphFast(m_saveUI->x, m_saveUI->y, FILE_SIZE_SAVE_FRAME, 0.0f, frameH, true);
+		DrawRotaGraphFast(m_saveUI->x, m_saveUI->y - subY, FILE_SIZE_SAVE_FRAME, 0.0f, frameH, true);
 		if (isFadeEnd) SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 		// 文字列
 		for (int i = 0; i < SaveDataManager::GetInstance().GetSaveDataNum(); ++i)
 		{
-			int y = DRAW_SAVE_Y + DRAW_SUB_SAVE_STR_Y + DRAW_SAVE_Y_INTERVAL * i;
+			int y = DRAW_SAVE_Y + DRAW_SUB_SAVE_STR_Y + DRAW_SAVE_Y_INTERVAL * i - subY;
 			// 選択中の場合、ウェーブ描画
 			if (m_saveDataNo == i && m_isNowSelectSaveData)	UIUtility::DrawWaveStrLeft(DRAW_SAVE_X + DRAW_SUB_SAVE_STR_X, y, COLOR_SELECT, STR_SAVE.at(i), FONT_SIZE_SAVE, m_uiCount * STR_WAVE_SPEED, STR_WAVE_SIZE, true);
 			// 未選択の場合、通常描画
@@ -518,6 +530,8 @@ void SceneTitle::SelectMenuUpdate()
 		m_stageFade = 0.0f;
 		m_isStageChangeFade = true;
 		m_cBuff->frame = 0.0f;
+		// エラーしていないことに
+		m_isError = false;
 	}
 	--m_fadeSaveInfoFrame;
 
@@ -525,9 +539,9 @@ void SceneTitle::SelectMenuUpdate()
 	// 決定
 	if (input.IsTriggerd(Command::BTN_OK))
 	{
-		SoundManager::GetInstance().PlaySe(m_files.at(S_DECIDE)->GetHandle());
-		// スタート
-		if (m_menuCurrent == static_cast<int>(MenuCurrent::SELECT_SAVE))
+		bool isPlaySe = true;
+		// ニューゲーム
+		if (m_menuCurrent == static_cast<int>(MenuCurrent::NEW_GAME))
 		{
 			// 1つもセーブデータが存在しない場合
 			auto& saveDataMgr = SaveDataManager::GetInstance();
@@ -541,8 +555,31 @@ void SceneTitle::SelectMenuUpdate()
 			{
 				// セーブデータ選択に移動
 				OnSelectSaveData();
+				m_isNewData = true;
 				// Window関係のものを不透明に
 				m_fadeSaveInfoFrame = std::max<int>(m_fadeSaveInfoFrame, 0);
+			}
+		}
+		// 続きから
+		else if (m_menuCurrent == static_cast<int>(MenuCurrent::CONTINUE))
+		{
+			auto& saveDataMgr = SaveDataManager::GetInstance();
+			// 1つもセーブデータが存在する場合に限り変更
+			if (saveDataMgr.IsExist(0))
+			{
+				// セーブデータ選択に移動
+				OnSelectSaveData();
+				m_isNewData = false;
+				// Window関係のものを不透明に
+				m_fadeSaveInfoFrame = std::max<int>(m_fadeSaveInfoFrame, 0);
+			}
+			// ない場合はエラーに
+			else
+			{
+				m_erroeCount = 0;
+				m_isError = true;
+				m_isErrorShake = true;
+				SoundManager::GetInstance().PlaySe(m_files.at(S_CANCEL)->GetHandle());
 			}
 		}
 		// ランキングを開く
@@ -561,6 +598,8 @@ void SceneTitle::SelectMenuUpdate()
 			auto& app = Application::GetInstance();
 			app.OnEnd();
 		}
+
+		if (isPlaySe) SoundManager::GetInstance().PlaySe(m_files.at(S_DECIDE)->GetHandle());
 	}
 }
 
@@ -599,6 +638,8 @@ void SceneTitle::SelectSaveDataUpdate()
 		m_uiCount = 0;
 		m_fadeSaveNoFrame = 0;
 		m_isFadeSaveNo = true;
+		// エラーしていないことに
+		m_isError = false;
 		// 位置の変更
 		m_saveUI->ChangeVertical(DRAW_SAVE_FRAME_Y + DRAW_SAVE_Y_INTERVAL * m_saveDataNo, -1, true);
 		m_saveInfoUI->ChangeVertical(DRAW_SAVE_INFO_Y + DRAW_SAVE_INFO_Y_INTERVAL * m_saveDataNo, -1, true);
@@ -615,74 +656,46 @@ void SceneTitle::SelectSaveDataUpdate()
 	// 決定
 	if (input.IsTriggerd(Command::BTN_OK))
 	{
-		SoundManager::GetInstance().PlaySe(m_files.at(S_DECIDE)->GetHandle());
+		auto& sndMgr = SoundManager::GetInstance();
 		auto& saveDataMgr = SaveDataManager::GetInstance();
-		// セーブデータが存在する場合
-		if (saveDataMgr.IsExist(m_saveDataNo))
+		// ニューゲームの場合
+		if (m_isNewData)
 		{
-			// セーブデータ決定に移動
-			OnDecideSaveData();
-			m_decideCurrent = 0;
-		}
-		// 存在しない場合
-		else
-		{
+			// 新しくデータを作成
+			saveDataMgr.Initialized(m_saveDataNo);
 			// ゲームスタート
 			OnStart();
+			sndMgr.PlaySe(m_files.at(S_DECIDE)->GetHandle());
 		}
-		
+		// ロードの場合
+		else
+		{
+			// セーブデータが存在する場合ハスタート
+			if (saveDataMgr.IsExist(m_saveDataNo))
+			{
+				// ゲームスタート
+				OnStart();
+				sndMgr.PlaySe(m_files.at(S_DECIDE)->GetHandle());
+			}
+			// 存在しない場合はエラー
+			else
+			{
+				m_erroeCount = 0;
+				m_isError = true;
+				m_isErrorShake = true;
+				sndMgr.PlaySe(m_files.at(S_CANCEL)->GetHandle());
+			}
+		}
 	}
 	// キャンセル
 	else if (input.IsTriggerd(Command::BTN_CANCEL))
 	{
 		SoundManager::GetInstance().PlaySe(m_files.at(S_CANCEL)->GetHandle());
+		m_isError = false;
 		// メニュー選択に戻る
 		OnSelectMenu();
 		// Window関係のものを透明に
 		m_fadeSaveInfoFrame = std::min<int>(m_fadeSaveInfoFrame, FADE_FRAME_SAVE_INFO);
-	}
-}
-
-void SceneTitle::DecideSaveDataUpdate()
-{
-	bool isMove = false;
-	if (CursorUtility::CursorUp<DecideCurrent>(m_decideCurrent, DecideCurrent::MAX, Command::BTN_UP, true, REPEATE_INTERVAL)) isMove = true;
-	if (CursorUtility::CursorDown<DecideCurrent>(m_decideCurrent, DecideCurrent::MAX, Command::BTN_DOWN, true, REPEATE_INTERVAL)) isMove = true;
-	{
-		m_decideUI->ChangeVertical(DRAW_DECIDE_Y + DRAW_DECIDE_Y_INTERVAL * m_decideCurrent);
-		SoundManager::GetInstance().PlaySe(m_files.at(S_CURSOR_MOVE)->GetHandle());
-		m_uiCount = 0;
-	}
-	// フェード更新
-	++m_fadeSaveInfoFrame;
-
-	auto& input = Input::GetInstance();
-	// 決定
-	if (input.IsTriggerd(Command::BTN_OK))
-	{
-		SoundManager::GetInstance().PlaySe(m_files.at(S_DECIDE)->GetHandle());
-		// 続きから
-		if (m_decideCurrent == static_cast<int>(DecideCurrent::CONTINU))
-		{
-			// ゲームスタート
-			OnStart();
-		}
-		// 初めから
-		else if (m_decideCurrent == static_cast<int>(DecideCurrent::DELETE_DATA))
-		{
-			// 初期化
-			auto& saveDataMgr = SaveDataManager::GetInstance();
-			saveDataMgr.Initialized(m_saveDataNo);
-			// ゲームスタート
-			OnStart();
-		}
-	}
-	// キャンセル
-	else if (input.IsTriggerd(Command::BTN_CANCEL))
-	{
-		SoundManager::GetInstance().PlaySe(m_files.at(S_CANCEL)->GetHandle());
-		// セーブデータ選択に移動
-		OnSelectSaveData();
 	}
 }
 
@@ -719,30 +732,33 @@ void SceneTitle::OnSelectSaveData()
 	m_isNowSelectSaveData = true;
 }
 
-void SceneTitle::OnDecideSaveData()
-{
-	m_state = State::DECIDE_SAVE_DATA;
-	// メンバ関数変更
-	m_updateFunc = &SceneTitle::DecideSaveDataUpdate;
-	m_drawFunc = &SceneTitle::DrawDecideSaveData;
-	// カウント初期化
-	m_uiCount = 0;
-	m_isNowSelectSaveData = false;
-}
-
 void SceneTitle::DrawSelectMenu() const
 {
-	if (m_fadeSaveInfoFrame < 0) return;
-	const float rate = m_fadeSaveInfoFrame / static_cast<float>(FADE_FRAME_SAVE_INFO);
-	const int alpha = static_cast<int>(Game::ALPHA_VAL * rate);
-	SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
-	// アーム＆ウィンドウ
-	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_X, m_saveInfoUI->y + DRAW_SUB_SAVE_INFO_ARM_Y, FILE_SIZE_SAVE_INFO_ARM, 0.0f, m_files.at(I_DECIDE_ARM)->GetHandle(), true);
-	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_FRAME_X, m_saveInfoUI->y, FILE_SIZE_SAVE_INFO_ARM_FRAME, 0.0f, m_files.at(I_DECIDE_ARM_FRAME)->GetHandle(), true);
-	DrawRotaGraphFast(DRAW_SAVE_INFO_X, m_saveInfoUI->y, FILE_SIZE_SAVE_INFO_WINDOW, 0.0f, m_files.at(I_DECIDE_WINDOW)->GetHandle(), true);
-	// セーブデータ情報描画
-	DrawSaveInfo(m_saveDataNo);
-	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+	if (m_fadeSaveInfoFrame < 0)
+	{
+		const float rate = m_fadeSaveInfoFrame / static_cast<float>(FADE_FRAME_SAVE_INFO);
+		const int alpha = static_cast<int>(Game::ALPHA_VAL * rate);
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
+		// アーム＆ウィンドウ
+		int subY = 0;
+		if (m_isNewData) subY = DRAW_SUB_SAVE_ARM_Y;
+		DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_X,		 m_saveInfoUI->y + DRAW_SUB_SAVE_INFO_ARM_Y - subY, FILE_SIZE_SAVE_INFO_ARM,		0.0f, m_files.at(I_DECIDE_ARM)->GetHandle(), true);
+		DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_FRAME_X, m_saveInfoUI->y - subY,							FILE_SIZE_SAVE_INFO_ARM_FRAME,  0.0f, m_files.at(I_DECIDE_ARM_FRAME)->GetHandle(), true);
+		DrawRotaGraphFast(DRAW_SAVE_INFO_X,									 m_saveInfoUI->y - subY,							FILE_SIZE_SAVE_INFO_WINDOW,		0.0f, m_files.at(I_DECIDE_WINDOW)->GetHandle(), true);
+		// セーブデータ情報描画
+		DrawSaveInfo(m_saveDataNo);
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+	}
+	// エラー描画
+	if (m_isError)
+	{
+		DrawRotaGraphFast(DRAW_ERROR_WINDOW_X, DRAW_ERROR_Y, FILE_SIZE_SAVE_INFO_WINDOW, 0.0f, m_files.at(I_DECIDE_WINDOW)->GetHandle(), true);
+		DrawRotaGraphFast(DRAW_ERROR_ARM_FRAME_X, DRAW_ERROR_Y, FILE_SIZE_SAVE_INFO_ARM_FRAME, 0.0f, m_files.at(I_DECIDE_ARM_FRAME)->GetHandle(), true);
+		DrawRotaGraphFast(DRAW_ERROR_ARM_X, DRAW_ERROR_Y, FILE_SIZE_SAVE_INFO_ARM, 0.0f, m_files.at(I_DECIDE_ARM)->GetHandle(), true);
+
+		if (m_isErrorShake) UIUtility::DrawShakeStrLeft(DRAW_ERROR_STR_X, DRAW_ERROR_Y, COLOR_ERROR, L"データが存在しません", FONT_SIZE_SAVE_INFO, SHAKE_SIZE_ERROR, true);
+		else				UIUtility::DrawShadowStrLeft(DRAW_ERROR_STR_X, DRAW_ERROR_Y, 2, 2, COLOR_ERROR, L"データが存在しません", FONT_SIZE_SAVE_INFO);
+	}
 }
 
 void SceneTitle::DrawRanking() const
@@ -766,7 +782,7 @@ void SceneTitle::DrawRanking() const
 		int y = startY + DRAW_SUB_RANKING_INFO_Y_INTERVAL * i;
 		// N位描画
 		DrawRotaGraphFast(m_rankingUI->x + DRAW_SUB_RANKING_RANKING_X, y, 1.0f, 0.0f, m_files.at(I_RANKING_FIRST + i)->GetHandle(), true);
-		auto timeFrame = rnkMgr.GetTime(stageName, i);
+		auto timeFrame = rnkMgr.GetTime(m_rankingCurrent, i);
 		// 記録がない場合
 		if (timeFrame < 0)
 		{
@@ -775,7 +791,7 @@ void SceneTitle::DrawRanking() const
 		// 記録がある場合
 		else
 		{
-			const auto& rank = stageDataMgr.GetRank(stageName, timeFrame);
+			const auto& rank = stageDataMgr.GetRank(m_rankingCurrent, timeFrame);
 			const auto& path = RANK_FILE_PATH.at(rank);
 			DrawRotaGraphFast(m_rankingUI->x + DRAW_SUB_RANKING_RANK_X, y, FILE_SIZE_RANKING_RANK, 0.0f, m_files.at(path)->GetHandle(), true);
 			TimeUtility::DrawTime(m_rankingUI->x + DRAW_SUB_RANKING_TIME_X, y, timeFrame, FILE_SIZE_RANKING_INFO, COLOR_RANKING_DATA, true);
@@ -800,57 +816,50 @@ void SceneTitle::DrawSelectSaveData() const
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
 	}
 	// アーム＆ウィンドウ
-	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_X,		 m_saveInfoUI->y + DRAW_SUB_SAVE_INFO_ARM_Y, FILE_SIZE_SAVE_INFO_ARM,		0.0f, m_files.at(I_DECIDE_ARM)->GetHandle(), true);
-	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_FRAME_X, m_saveInfoUI->y,							 FILE_SIZE_SAVE_INFO_ARM_FRAME, 0.0f, m_files.at(I_DECIDE_ARM_FRAME)->GetHandle(), true);
-	DrawRotaGraphFast(DRAW_SAVE_INFO_X,									 m_saveInfoUI->y,							 FILE_SIZE_SAVE_INFO_WINDOW,	0.0f, m_files.at(I_DECIDE_WINDOW)->GetHandle(), true);
+	int subY = 0;
+	if (m_isNewData) subY = DRAW_SAVE_Y_INTERVAL;
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_X,		 m_saveInfoUI->y + DRAW_SUB_SAVE_INFO_ARM_Y - subY, FILE_SIZE_SAVE_INFO_ARM,		0.0f, m_files.at(I_DECIDE_ARM)->GetHandle(), true);
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_FRAME_X, m_saveInfoUI->y - subY,							FILE_SIZE_SAVE_INFO_ARM_FRAME, 0.0f, m_files.at(I_DECIDE_ARM_FRAME)->GetHandle(), true);
+	DrawRotaGraphFast(DRAW_SAVE_INFO_X,									 m_saveInfoUI->y - subY,							FILE_SIZE_SAVE_INFO_WINDOW,	0.0f, m_files.at(I_DECIDE_WINDOW)->GetHandle(), true);
 	// セーブデータ情報描画
 	DrawSaveInfo(m_saveDataNo);
 	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
-}
-
-void SceneTitle::DrawDecideSaveData() const
-{
-	const float rate = std::cosf(m_uiCount * SPEED_FRAME_FADE);
-	const float halfSize = ALPHA_SIZE_FRAME * 0.5f;
-	const int alpha = static_cast<int>(Game::ALPHA_VAL - halfSize + halfSize * rate);
-	// アーム＆ウィンドウ
-	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_X,		 m_saveInfoUI->y + DRAW_SUB_SAVE_INFO_ARM_Y, FILE_SIZE_SAVE_INFO_ARM,		0.0f, m_files.at(I_DECIDE_ARM)->GetHandle(), true);
-	DrawRotaGraphFast(DRAW_SAVE_INFO_X + DRAW_SUB_SAVE_INFO_ARM_FRAME_X, m_saveInfoUI->y,							 FILE_SIZE_SAVE_INFO_ARM_FRAME, 0.0f, m_files.at(I_DECIDE_ARM_FRAME)->GetHandle(), true);
-	DrawRotaGraphFast(DRAW_SAVE_INFO_X,									 m_saveInfoUI->y,							 FILE_SIZE_SAVE_INFO_WINDOW,	0.0f, m_files.at(I_DECIDE_WINDOW)->GetHandle(), true);
-	// フレーム
-	int addY = DRAW_SAVE_INFO_Y_INTERVAL * m_saveDataNo;
-	SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
-	DrawRotaGraphFast(m_decideUI->x, m_decideUI->y + addY, FILE_SIZE_DECIDE_FRAME, 0.0f, m_files.at(I_FRAME)->GetHandle(), true);
-	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
-	// 文字列
-	for (int i = 0; i < STR_DECIDE.size(); ++i)
-	{
-		int y = DRAW_DECIDE_Y + DRAW_SUB_DECIDE_STR_Y + DRAW_DECIDE_Y_INTERVAL * i + addY;
-		// 選択中の場合、ウェーブ描画
-		if (m_decideCurrent == i)	UIUtility::DrawWaveStrLeft(m_decideUI->x + DRAW_SUB_DECIDE_STR_X, y, COLOR_SELECT, STR_DECIDE.at(i), FONT_SIZE_DECIDE, m_uiCount * STR_WAVE_SPEED, STR_WAVE_SIZE, true);
-		// 未選択の場合、通常描画
-		else						UIUtility::DrawShadowStrLeft(m_decideUI->x + DRAW_SUB_DECIDE_STR_X, y, 2, 2, COLOR_NOT_SELECT, STR_DECIDE.at(i), FONT_SIZE_DECIDE);
-	}
 }
 
 void SceneTitle::DrawSaveInfo(int saveNo) const
 {
 	auto& saveDataMgr = SaveDataManager::GetInstance();
 	const auto fontH = FontManager::GetInstance().GetHandle(FONT_KAISOTAI, FONT_SIZE_SAVE_INFO);
+
+	int subY = 0;
+	if (m_isNewData) subY = DRAW_SAVE_Y_INTERVAL;
+	// セーブデータが存在する場合
 	if (saveDataMgr.IsExist(saveNo))
 	{
+		// 情報の書き込み
 		auto& stageDataMgr = StageDataManager::GetInstance();
 		const auto time = saveDataMgr.GetTotalTime(saveNo);
 		const auto clearNo = saveDataMgr.GetClearStageNum(saveNo);
-		const auto stageNum = stageDataMgr.GetStageNum() - 1;
-		TimeUtility::DrawTimeLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y + DRAW_SAVE_INFO_TIME_Y, time, FONT_SIZE_SAVE_INFO, COLOR_SELECT, L"プレイ時間：", nullptr, true);
+		const auto stageNum = stageDataMgr.GetStageNum() - 2;
+		TimeUtility::DrawTimeLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y + DRAW_SAVE_INFO_TIME_Y - subY, time, FONT_SIZE_SAVE_INFO, COLOR_SELECT, L"プレイ時間：", nullptr, true);
 		std::wostringstream oss;
 		oss << L"クリア数　：" << clearNo << L" / " << stageNum;
-		UIUtility::DrawShadowStrLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y + DRAW_SAVE_INFO_CLEAR_NUM_Y, 2, 2, COLOR_SELECT, oss.str(), FONT_SIZE_SAVE_INFO);
+		UIUtility::DrawShadowStrLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y + DRAW_SAVE_INFO_CLEAR_NUM_Y - subY, 2, 2, COLOR_SELECT, oss.str(), FONT_SIZE_SAVE_INFO);
 	}
+	// 存在しない場合
 	else
 	{
-		UIUtility::DrawShadowStrLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y, 2, 2, COLOR_SELECT, L"データが存在しません", FONT_SIZE_SAVE_INFO);
+		// エラー時
+		if (m_isError)
+		{
+			if (m_isErrorShake) UIUtility::DrawShakeStrLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y - subY, COLOR_ERROR, L"データが存在しません", FONT_SIZE_SAVE_INFO, SHAKE_SIZE_ERROR, true);
+			else				UIUtility::DrawShadowStrLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y - subY, 2, 2, COLOR_ERROR, L"データが存在しません", FONT_SIZE_SAVE_INFO);
+		}
+		// 通常時
+		else
+		{
+			UIUtility::DrawShadowStrLeft(m_saveInfoUI->x + DRAW_SUB_SAVE_INFO_STR_X, m_saveInfoUI->y - subY, 2, 2, COLOR_SELECT, L"データが存在しません", FONT_SIZE_SAVE_INFO);
+		}
 	}
 }
 

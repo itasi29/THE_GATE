@@ -139,9 +139,9 @@ void SceneStageSelect::Update(bool isFade)
 	// 全ステージクリアにする
 	if (input.IsTriggerd(KEY_INPUT_C))
 	{
-		for (int i = 1; i < StageDataManager::GetInstance().GetStageNum() - 1; ++i)
+		for (int i = 0; i < StageDataManager::GetInstance().GetStageNum() - 2; ++i)
 		{
-			SaveDataManager::GetInstance().OnClear(StageDataManager::GetInstance().GetStageName(i), 12*3600+34*60+56);
+			SaveDataManager::GetInstance().OnClear(i, 12*3600+34*60+56);
 		}
 		return;
 	}
@@ -156,7 +156,6 @@ void SceneStageSelect::Draw() const
 {
 	auto& stageDataMgr = StageDataManager::GetInstance();
 	auto& fontMgr = FontManager::GetInstance();
-	auto stageNum = stageDataMgr.GetStageNum();
 	const auto& stageName = stageDataMgr.GetStageName(m_selectCurrent + 1);
 #ifdef _DEBUG
 	printf("セーブデータ番号:%d\n", SaveDataManager::GetInstance().GetUseSaveNo() + 1);
@@ -178,9 +177,9 @@ void SceneStageSelect::Draw() const
 	// ステージ名描画
 	UIUtility::DrawWaveStr(Game::CENTER_X, DRAW_OBI_Y, 0xffffff, stageName, 36, m_count * WAVE_SPEED, 16);
 	// ステージフレーム描画
-	DrawStageFrame(stageNum);
+	DrawStageFrame();
 
-	DrawRankTime(stageName);
+	DrawRankTime(m_selectCurrent);
 	// PadUI描画
 	DrawPadUI();
 }
@@ -234,6 +233,7 @@ void SceneStageSelect::SelectUpdate()
 			{
 				// 元の場所に戻す
 				m_selectCurrent += STAGE_LINE_NUM;
+				isCursorMove = false;
 			}
 		}
 	}
@@ -255,7 +255,9 @@ void SceneStageSelect::SelectUpdate()
 			// 押された瞬間でないなら
 			else
 			{
+				// 元の場所に戻す
 				m_selectCurrent -= STAGE_LINE_NUM;
+				isCursorMove = false;
 			}
 		}
 	}
@@ -302,43 +304,69 @@ void SceneStageSelect::SelectUpdate()
 	}
 #else
 	// 左右移動(行を変えない)
-	if (input.IsTriggerd(Command::BTN_RIGHT))
+
+	// 右移動
+	if (input.IsRepeat(Command::BTN_RIGHT, kind, REPEATE_INTERVAL))
 	{
-		// 現在の行での位置を取得
-		auto temp = m_selectCurrent % STAGE_LINE_NUM;
-		// 最大数を列数にする
-		int max = STAGE_LINE_NUM;
-		// 最後の行の場合
-		if (stageNum - m_selectCurrent < STAGE_LINE_NUM)
+		// 現在の行までの数値を取得
+		int Row = (m_selectCurrent / STAGE_LINE_NUM) * STAGE_LINE_NUM;
+		// 現在の行での数値を取得
+		int now = m_selectCurrent - Row;
+		// 最大列数
+		int maxLine = std::min<int>(STAGE_LINE_NUM, stageNum - Row) - 1;
+
+		isCursorMove = true;
+		++now;
+		// 最大列数を超えた場合
+		if (now > maxLine)
 		{
-			// 最大値を最後の行の列数にする
-			max = (stageNum - (m_selectCurrent / STAGE_LINE_NUM) * STAGE_LINE_NUM);
+			// 押された瞬間なら
+			if (kind == RepeatKind::TRIGGER)
+			{
+				// 左端に戻す
+				now = 0;
+			}
+			// 押された瞬間でないなら
+			else
+			{
+				// 1つ前の位置に戻す
+				--now;
+				isCursorMove = false;
+			}
 		}
-		// 現在の位置を引き
-		m_selectCurrent -= temp;
-		// その行の列数で計算して
-		temp = (temp + 1) % max;
-		// 求めた分だけ足す
-		m_selectCurrent += temp;
+		// カーソル位置の更新
+		m_selectCurrent = Row + now;
 	}
-	if (input.IsTriggerd(Command::BTN_LEFT))
+	if (input.IsRepeat(Command::BTN_LEFT, kind, REPEATE_INTERVAL))
 	{
-		// 現在の行での位置を取得
-		auto temp = m_selectCurrent % STAGE_LINE_NUM;
-		// 最大数を列数にする
-		int max = STAGE_LINE_NUM;
-		// 最後の行の場合
-		if (stageNum - m_selectCurrent < STAGE_LINE_NUM)
+		// 現在の行までの数値を取得
+		int Row = (m_selectCurrent / STAGE_LINE_NUM) * STAGE_LINE_NUM;
+		// 現在の行での数値を取得
+		int now = m_selectCurrent - Row;
+		// 最大列数
+		int maxLine = std::min<int>(STAGE_LINE_NUM, stageNum - Row) - 1;
+
+		isCursorMove = true;
+		--now;
+		// 0未満になった場合
+		if (now < 0)
 		{
-			// 最大値を最後の行の列数にする
-			max = (stageNum - (m_selectCurrent / STAGE_LINE_NUM) * STAGE_LINE_NUM);
+			// 押された瞬間なら
+			if (kind == RepeatKind::TRIGGER)
+			{
+				// 右端に戻す
+				now = maxLine;
+			}
+			// 押された瞬間でないなら
+			else
+			{
+				// 1つ後の位置に戻す
+				++now;
+				isCursorMove = false;
+			}
 		}
-		// 現在の位置を引き
-		m_selectCurrent -= temp;
-		// その行の列数で計算して
-		temp = (max + temp - 1) % max;
-		// 求めた分だけ足す
-		m_selectCurrent += temp;
+		// カーソル位置の更新
+		m_selectCurrent = Row + now;
 	}
 #endif
 	// 移動していたらSEを鳴らす
@@ -347,16 +375,15 @@ void SceneStageSelect::SelectUpdate()
 	// 決定
 	if (input.IsTriggerd(Command::BTN_OK))
 	{
-		const auto& stageName = stageDataMgr.GetStageName(m_selectCurrent + 1);
 		const auto& saveDataMgr = SaveDataManager::GetInstance();
 		// ステージ解放されている場合
-		if (saveDataMgr.IsReleaseStage(stageName))
+		if (saveDataMgr.IsReleaseStage(m_selectCurrent))
 		{
 			// スタート
 			sndMgr.PlaySe(m_files.at(S_DECIDE)->GetHandle());
 			std::shared_ptr<SceneBase> next;
 			if (m_selectCurrent == 0)	next = std::make_shared<SceneTutorial>();
-			else						next = std::make_shared<SceneMain>(stageName);
+			else						next = std::make_shared<SceneMain>(m_selectCurrent + 1);
 			m_scnMgr.Change(next);
 		}
 		// 解放されていない場合
@@ -375,19 +402,20 @@ void SceneStageSelect::SelectUpdate()
 	}
 }
 
-void SceneStageSelect::DrawStageFrame(int stageNum) const
+void SceneStageSelect::DrawStageFrame() const
 {
+	// ステージ数(タイトル・リザルト分減らす)
+	int stageNum = StageDataManager::GetInstance().GetStageNum() - 2;
 	int id;
 	float scale;
-	for (int i = 1; i < stageNum - 1; ++i)
+	for (int i = 0; i < stageNum; ++i)
 	{
-		int x = DRAW_STAGE_X + DRAW_STAGE_INTERVAL * ((i - 1) % STAGE_LINE_NUM);
-		int y = DRAW_STAGE_Y + DRAW_STAGE_INTERVAL * ((i - 1) / STAGE_LINE_NUM);
+		int x = DRAW_STAGE_X + DRAW_STAGE_INTERVAL * (i % STAGE_LINE_NUM);
+		int y = DRAW_STAGE_Y + DRAW_STAGE_INTERVAL * (i / STAGE_LINE_NUM);
 
-		const auto& stageName = StageDataManager::GetInstance().GetStageName(i);
-		bool isSelect = (i == m_selectCurrent + 1);
+		bool isSelect = i == m_selectCurrent;
 		// ステージ解放されている場合
-		if (SaveDataManager::GetInstance().IsReleaseStage(stageName))
+		if (SaveDataManager::GetInstance().IsReleaseStage(i))
 		{
 			// 現在選んでいる場合
 			if (isSelect)	id = I_STAGE_SELECT_FRAME;
@@ -409,16 +437,16 @@ void SceneStageSelect::DrawStageFrame(int stageNum) const
 	}
 }
 
-void SceneStageSelect::DrawRankTime(const wchar_t* const stageName) const
+void SceneStageSelect::DrawRankTime(const int stageNo) const
 {
-	DrawRankTime(DRAW_RANK_Y, DRAW_RANK_X, DRAW_RANK_TIME_X, stageName, RankKind::S, I_RANK_S);
-	DrawRankTime(DRAW_RANK_Y + DRAW_RANK_Y_INTERVAL, DRAW_RANK_X + DRAW_RANK_X_INTERVAL, DRAW_RANK_TIME_X + DRAW_RANK_X_INTERVAL, stageName, RankKind::A, I_RANK_A);
-	DrawRankTime(DRAW_RANK_Y + DRAW_RANK_Y_INTERVAL * 2, DRAW_RANK_X + DRAW_RANK_X_INTERVAL * 2, DRAW_RANK_TIME_X + DRAW_RANK_X_INTERVAL * 2, stageName, RankKind::B, I_RANK_B);
+	DrawRankTime(DRAW_RANK_Y, DRAW_RANK_X, DRAW_RANK_TIME_X, stageNo, RankKind::S, I_RANK_S);
+	DrawRankTime(DRAW_RANK_Y + DRAW_RANK_Y_INTERVAL, DRAW_RANK_X + DRAW_RANK_X_INTERVAL, DRAW_RANK_TIME_X + DRAW_RANK_X_INTERVAL, stageNo, RankKind::A, I_RANK_A);
+	DrawRankTime(DRAW_RANK_Y + DRAW_RANK_Y_INTERVAL * 2, DRAW_RANK_X + DRAW_RANK_X_INTERVAL * 2, DRAW_RANK_TIME_X + DRAW_RANK_X_INTERVAL * 2, stageNo, RankKind::B, I_RANK_B);
 }
 
-void SceneStageSelect::DrawRankTime(int y, int graphX, int strX, const wchar_t* const stageName, RankKind rank, int rankId) const
+void SceneStageSelect::DrawRankTime(int y, int graphX, int strX, const int stageNo, RankKind rank, int rankId) const
 {
-	const int time = StageDataManager::GetInstance().GetTimeRank(stageName, rank);
+	const int time = StageDataManager::GetInstance().GetTimeRank(stageNo, rank);
 	DrawRotaGraphFast(graphX, y, FILE_SIZE_RANK, 0.0f, m_files.at(rankId)->GetHandle(), true);
 	TimeUtility::DrawTimeLeft(strX, y - DRAW_RANK_TIME_Y_SUB, time, FONT_SIZE_RANK_TIME, COLOR_RANK_TIME, nullptr, nullptr, true, SHADOW_POS_RANK_TIME, SHADOW_POS_RANK_TIME, SHADOW_COLOR_RANK_TIME);
 }

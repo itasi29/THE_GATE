@@ -276,10 +276,14 @@ void SceneOption::Init()
 	// UIMoveData作成
 	m_mainUI = UIMoveData::Make(DRAW_MAIN_FRAME_X, DRAW_MAIN_Y);
 	m_subUI = UIMoveData::Make(DRAW_SUB_FRAME_X, DRAW_SUB_Y);
+	// サウンドの一時停止
+	SoundManager::GetInstance().StopNowPlaySe();
 }
 
 void SceneOption::End()
 {
+	// 停止していたサウンドを再生
+	SoundManager::GetInstance().RestartStopedSe();
 }
 
 void SceneOption::Update(bool isFade)

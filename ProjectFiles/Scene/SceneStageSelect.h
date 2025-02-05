@@ -54,14 +54,13 @@ private:
     /// <summary>
     /// ステージフレームの描画処理
     /// </summary>
-    /// <param name="stageNum">ステージ番号</param>
-    void DrawStageFrame(int stageNum) const;
+    void DrawStageFrame() const;
 
     /// <summary>
     /// ランクタイムの描画処理
     /// </summary>
-    /// <param name="stageName">ステージ名</param>
-    void DrawRankTime(const wchar_t* const stageName) const;
+    /// <param name="stageNo">ステージ番号</param>
+    void DrawRankTime(const int stageNo) const;
 
     /// <summary>
     /// ランクタイムの描画処理
@@ -69,10 +68,10 @@ private:
     /// <param name="y">Y座標</param>
     /// <param name="graphX">グラフのX座標</param>
     /// <param name="strX">文字列のX座標</param>
-    /// <param name="stageName">ステージ名</param>
+    /// <param name="stageNo">ステージ番号</param>
     /// <param name="rank">ランクの種類</param>
     /// <param name="rankId">ランクID</param>
-    void DrawRankTime(int y, int graphX, int strX, const wchar_t* const stageName, RankKind rank, int rankId) const;
+    void DrawRankTime(int y, int graphX, int strX, const int stageNo, RankKind rank, int rankId) const;
 
     /// <summary>
     /// PadUIの描画処理

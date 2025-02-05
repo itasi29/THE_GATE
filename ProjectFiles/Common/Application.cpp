@@ -38,6 +38,8 @@ namespace
 }
 
 Application::Application() :
+    m_lightBuffer(nullptr),
+	m_lightBufferH(-1),
     m_isEnd(false),
 #ifdef _DEBUG
     m_isWindows(true),
@@ -75,11 +77,14 @@ bool Application::Init()
     SetGraphMode(Game::WINDOW_W, Game::WINDOW_H, 32);
     SetWindowText(kWindowText);
 
+	// DxLibの初期化
     if (DxLib_Init() == -1)
     {
+        assert(false && "DxLibの初期化に失敗しました。");
         return false;
     }
 
+	// 画面の描画先を裏画面にセット
     SetDrawScreen(DX_SCREEN_BACK);
 
     // ZBufferの使用
@@ -118,12 +123,16 @@ void Application::Run()
 #endif
 
     LONGLONG time;
+	// メインループ
     while (ProcessMessage() != -1) 
     {
+		// 時間計測
         time = GetNowHiPerformanceCount();
 
+		// 画面クリア
         ClearDrawScreen();
 
+		// 入力情報の更新
         input.Update();
 
 #ifdef _DEBUG
@@ -161,27 +170,31 @@ void Application::Run()
             debug.Clear();
             updateTime = GetNowHiPerformanceCount();
 #endif
+			// シーンの更新
             scnMgr.Update();
 #ifdef _DEBUG
             physicsTime = GetNowHiPerformanceCount();
 #endif
+			// 物理更新
             physics.Update();
 #ifdef _DEBUG
             physicsTime = GetNowHiPerformanceCount() - physicsTime;
 #endif
+			// サウンドの更新
             sndMgr.Update();
+			// エフェクトの更新
             effMgr.Update();
 #ifdef _DEBUG
             drawTime = GetNowHiPerformanceCount();
             updateTime = drawTime - updateTime - physicsTime;
         }
 #endif
-
+		// シーンの描画
         scnMgr.Draw();
 
 #ifdef _DEBUG
 #if true
-        debug.Draw();
+//        debug.Draw();
         if (isStep) DrawString(16, 620, L"動作：ステップ中", 0x00ff00);
         else        DrawString(16, 620, L"動作：通常中", 0x00ff00);
         

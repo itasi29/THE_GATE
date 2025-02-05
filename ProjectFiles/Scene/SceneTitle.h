@@ -86,68 +86,45 @@ private:
     /// メニュー(セーブデータ・オプション・終了)の選択
     /// </summary>
     void SelectMenuUpdate();
-
     /// <summary>
     /// ランキングの更新
     /// </summary>
     void RankingUpdate();
-
     /// <summary>
     /// どのセーブデータを使うかの選択
     /// </summary>
     void SelectSaveDataUpdate();
 
     /// <summary>
-    /// そのセーブデータで始める・消すの選択
-    /// </summary>
-    void DecideSaveDataUpdate();
-
-    /// <summary>
     /// メニュー選択時の処理
     /// </summary>
     void OnSelectMenu();
-
     /// <summary>
     /// ランキング選択時の処理
     /// </summary>
     void OnRanking();
-
     /// <summary>
     /// セーブデータ選択時の処理
     /// </summary>
     void OnSelectSaveData();
 
     /// <summary>
-    /// セーブデータ決定時の処理
-    /// </summary>
-    void OnDecideSaveData();
-
-    /// <summary>
     /// メニュー選択時の描画
     /// </summary>
     void DrawSelectMenu() const;
-
     /// <summary>
     /// ランキングの描画
     /// </summary>
     void DrawRanking() const;
-
     /// <summary>
     /// セーブデータ選択時の描画
     /// </summary>
     void DrawSelectSaveData() const;
-
-    /// <summary>
-    /// 続きから・初めから選択時の描画
-    /// </summary>
-    void DrawDecideSaveData() const;
-
     /// <summary>
     /// セーブデータ情報の描画
     /// </summary>
     /// <param name="saveNo">セーブデータ番号</param>
     void DrawSaveInfo(int saveNo) const;
-
     /// <summary>
     /// PadUIの描画
     /// </summary>
@@ -177,7 +154,6 @@ private:
     std::shared_ptr<UIMoveData> m_mainUI;       // メインUI
     std::shared_ptr<UIMoveData> m_saveUI;       // セーブUI
     std::shared_ptr<UIMoveData> m_saveInfoUI;   // セーブ情報UI
-    std::shared_ptr<UIMoveData> m_decideUI;     // 決定UI
     std::shared_ptr<UIMoveData> m_rankingUI;    // ランキングUI
 
     CBuff* m_cBuff; // シェーダー用の定数バッファ
@@ -187,7 +163,6 @@ private:
     int m_cameraRt2; // カメラ描画先RT2
     int m_menuCurrent;      // メニューの選択カーソル
     int m_saveDataNo;       // セーブデータ番号
-    int m_decideCurrent;    // 続きから・初めからの選択カーソル
     int m_rankingCurrent;   // ランキング番号
     int m_stageIndex;       // ステージインデックス
     int m_fadeSaveInfoFrame;    // セーブ情報関係のフェードフレーム
@@ -195,14 +170,21 @@ private:
 	int m_uiCount;              // UIのカウント  
 	int m_cameraFrame;          // カメラのフレーム
     int m_stageChangeFrame;     // ステージ変更フレーム
+	int m_erroeCount;           // エラーカウント
 	float m_stageFade;          // ステージのフェード
 
     // セーブデータ番号変更フェードフラグ
     bool m_isFadeSaveNo; 
     // 現在選択がメニューかどうか
-    bool m_isNowSelectMenu; 
+    bool m_isNowSelectMenu;
     // 現在選択がセーブデータ番号選択かどうか
     bool m_isNowSelectSaveData; 
+	// 新しくデータを作成するかどうか
+    bool m_isNewData;
+    // 選択エラー
+	bool m_isError; 
+	// 選択エラー時の揺れ
+    bool m_isErrorShake;
     // ステージ変更フェードフラグ
     bool m_isStageChangeFade; 
 };

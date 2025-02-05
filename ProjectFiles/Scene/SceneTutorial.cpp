@@ -49,6 +49,8 @@ namespace
 	const wchar_t* const MASTER_PATH = L"Data/Master/TutorialData.csv";
 	// ステージ名
 	const wchar_t* const STAGE_NAME = L"チュートリアル";
+	// ステージ番号
+	constexpr int STAGE_NO = 1;
 
 	/* タイムUI */
 	constexpr float FILE_SIZE_TIME = 0.5f;				// 画像サイズ
@@ -133,11 +135,11 @@ namespace
 	// フレーム描画位置
 	constexpr int DRAW_NOVEL_FRAME_X = 37;				
 	constexpr int DRAW_NOVEL_FRAME_Y = 437;
-	constexpr int DRAW_NOVEL_BUTTON_Y = 680;	// Y描画位置
-	constexpr int DRAW_NOVEL_BUTTON_X = 1240;			// PadUI描画位置
+	constexpr int DRAW_NOVEL_BUTTON_Y = 648;	// Y描画位置
+	constexpr int DRAW_NOVEL_BUTTON_X = 1208;			// PadUI描画位置
 	constexpr float FILE_SIZE_NOVEL_BUTTON = 0.5f;		// PadUI描画サイズ
 	constexpr float SCALING_NOVEEL_BUTTON = 0.0625f;		// PadUI拡大サイズ
-	constexpr float SCALING_SPEED_NOVEL_BUTTON = 0.02f;	// PadUI拡大スピード
+	constexpr float SCALING_SPEED_NOVEL_BUTTON = 0.04f;	// PadUI拡大スピード
 
 	/* 移動先描画矢印関係 */
 	constexpr float FILE_SIZE_DESTINATION_ARROW = 2.0f;				// 画像サイズ
@@ -209,9 +211,9 @@ void SceneTutorial::AsyncInit()
 	for (auto& handle : m_rtTable) handle = MakeScreen(Game::WINDOW_W, Game::WINDOW_H, true);
 
 	// マネージャー生成
-	m_stageMgr = std::make_shared<StageManager>(STAGE_NAME);
+	m_stageMgr = std::make_shared<StageManager>(STAGE_NO);
 	m_cameraMgr = std::make_shared<CameraManager>();
-	m_gateMgr = std::make_shared<GateManager>(m_cameraMgr, STAGE_NAME);
+	m_gateMgr = std::make_shared<GateManager>(m_cameraMgr, STAGE_NO);
 	// プレイヤー生成
 	m_player = std::make_shared<Player>(std::dynamic_pointer_cast<PlayerCamera>(m_cameraMgr->GetCamera(CameraKind::PLAYER)), m_gateMgr);
 	// 初期化(非同期)
@@ -228,7 +230,7 @@ void SceneTutorial::Init()
 	m_stageMgr->AppLights();
 	m_gateMgr->Init(m_player);
 	SoundManager::GetInstance().SetSeCenter(m_player);
-	m_player->Init(m_stageMgr->GetCheckPoint(), m_stageMgr->GetCheckPointDir(), StageDataManager::GetInstance().IsOneHand(STAGE_NAME));
+	m_player->Init(m_stageMgr->GetCheckPoint(), m_stageMgr->GetCheckPointDir(), StageDataManager::GetInstance().IsOneHand(STAGE_NO));
 	m_cBuff->fireRed = COLOR_FIRE_R;
 	m_cBuff->fireGreen = COLOR_FIRE_G;
 	m_cBuff->fireBlue = COLOR_FIRE_B;
@@ -308,13 +310,12 @@ void SceneTutorial::MainUpdate()
 	m_stageMgr->Update();
 	m_player->Update();
 	// 時間更新
-	saveDataMgr.UpdateTime(STAGE_NAME);
 	++m_time;
 	// クリア処理
 	if (m_stageMgr->CheckClear())
 	{
-		saveDataMgr.OnClear(STAGE_NAME, m_time);
-		auto next = std::make_shared<SceneResult>(STAGE_NAME, m_time);
+		saveDataMgr.OnClear(STAGE_NO - 1, m_time);
+		auto next = std::make_shared<SceneResult>(STAGE_NO, m_time);
 		m_scnMgr.Change(next);
 		return;
 	}
@@ -716,7 +717,6 @@ void SceneTutorial::DrawTutorialNovel() const
 
 void SceneTutorial::DrawTutorialDestination() const
 {
-	return;
 	auto& info = m_tutorialInfo.at(m_index);
 	if (!info.isDrawDestination) return;
 

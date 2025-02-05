@@ -2,7 +2,8 @@
 #include "Game.h"
 #include "Object/Gate/Gate.h"
 
-GateCamera::GateCamera()
+GateCamera::GateCamera() :
+	m_baseVertexAngle(0.0f)
 {
 	m_info.isTps = false;
 }

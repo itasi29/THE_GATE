@@ -6,6 +6,7 @@
 
 namespace
 {
+	// IDテーブルの列挙型
 	enum class FileIndex
 	{
 		NAME,

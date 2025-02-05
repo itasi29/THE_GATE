@@ -145,23 +145,24 @@ void Player::AsyncInit()
 	// ファイル読み込み
 	LoadModel(M_PLAYER);
 	auto& fileMgr = FileManager::GetInstance();
-	m_files[M_GUN] = fileMgr.Load(M_GUN);
-	m_files[I_HP_FRAME] = fileMgr.Load(I_HP_FRAME);
-	m_files[I_BASE_HP_BAR] = fileMgr.Load(I_BASE_HP_BAR);
-	m_files[I_NOW_HP_BAR] = fileMgr.Load(I_NOW_HP_BAR);
-	m_files[I_HIT_HP_BAR] = fileMgr.Load(I_HIT_HP_BAR);
-	m_files[I_DAMAGE_FILLTER] = fileMgr.Load(I_DAMAGE_FILLTER);
-	m_files[I_PAD_A] = fileMgr.Load(I_PAD_A);
-	m_files[I_PAD_B] = fileMgr.Load(I_PAD_B);
-	m_files[I_PAD_X] = fileMgr.Load(I_PAD_X);
-	m_files[I_PAD_LT] = fileMgr.Load(I_PAD_LT);
-	m_files[I_PAD_RT] = fileMgr.Load(I_PAD_RT);
-	m_files[I_PAD_RB] = fileMgr.Load(I_PAD_RB);
-	m_files[I_COMMON_FRAME] = fileMgr.Load(I_COMMON_FRAME);
-	m_files[S_LANDING] = fileMgr.Load(S_LANDING);
-	m_files[S_WALK] = fileMgr.Load(S_WALK);
-	m_files[S_SHOT_PLAYER] = fileMgr.Load(S_SHOT_PLAYER);
-	m_files[S_DAMAGE] = fileMgr.Load(S_DAMAGE);
+	m_files[M_GUN]				= fileMgr.Load(M_GUN);
+	m_files[I_HP_FRAME]			= fileMgr.Load(I_HP_FRAME);
+	m_files[I_BASE_HP_BAR]		= fileMgr.Load(I_BASE_HP_BAR);
+	m_files[I_NOW_HP_BAR]		= fileMgr.Load(I_NOW_HP_BAR);
+	m_files[I_HIT_HP_BAR]		= fileMgr.Load(I_HIT_HP_BAR);
+	m_files[I_DAMAGE_FILLTER]	= fileMgr.Load(I_DAMAGE_FILLTER);
+	m_files[I_PAD_A]			= fileMgr.Load(I_PAD_A);
+	m_files[I_PAD_B]			= fileMgr.Load(I_PAD_B);
+	m_files[I_PAD_X]			= fileMgr.Load(I_PAD_X);
+	m_files[I_PAD_LT]			= fileMgr.Load(I_PAD_LT);
+	m_files[I_PAD_RT]			= fileMgr.Load(I_PAD_RT);
+	m_files[I_PAD_RB]			= fileMgr.Load(I_PAD_RB);
+	m_files[I_COMMON_FRAME]		= fileMgr.Load(I_COMMON_FRAME);
+	m_files[S_LANDING]			= fileMgr.Load(S_LANDING);
+	m_files[S_WALK]				= fileMgr.Load(S_WALK);
+	m_files[S_RUN]				= fileMgr.Load(S_RUN);
+	m_files[S_SHOT_PLAYER]		= fileMgr.Load(S_SHOT_PLAYER);
+	m_files[S_DAMAGE]			= fileMgr.Load(S_DAMAGE);
 
 	m_gunVS = fileMgr.GetVS(M_GUN);
 	m_gunPS = fileMgr.GetPS(M_GUN);
@@ -264,6 +265,15 @@ void Player::Update()
 	// 中心のサイズを変更
 	m_centerCol->size = m_rigid.GetVelocity().y * CENTER_COL_SIZE_UP + CENTER_COL_SIZE;
 #ifdef _DEBUG
+	auto& input = Input::GetInstance();
+	if (input.IsTriggerd(KEY_INPUT_K))
+	{
+		OnDamage(m_hp - 1, -m_camera->GetInfo().front);
+	}
+	if (input.IsTriggerd(KEY_INPUT_L))
+	{
+		OnDamage(m_hp, -m_camera->GetInfo().front);
+	}
 	printf("現在プレイヤーがスルーするタグ: %d個\n", (int)m_throughTag.size());
 	for (auto& tag : m_throughTag) printf("　%s\n", Tags::TAG_NAME.at(tag));
 #endif
@@ -782,54 +792,72 @@ void Player::IdleUpdate()
 
 void Player::WalkUpdate()
 {
+	int walkSeH = m_files.at(S_WALK)->GetHandle();
+	auto& sndMgr = SoundManager::GetInstance();
+	// 歩くSEが鳴っていない場合、再度再生
+	if (!sndMgr.IsNowPlay(walkSeH)) sndMgr.PlaySe(walkSeH);
+
+	bool isChange = false;
 	auto& input = Input::GetInstance();
 	// ジャンプに遷移
 	if (input.IsTriggerd(Command::BTN_JUMP))
 	{
 		OnJump();
-		SoundManager::GetInstance().Stop(m_files.at(S_WALK)->GetHandle());
-		return;
+		isChange = true;
 	}
 	// 走りに遷移
 	if (input.IsPress(Command::BTN_RUN))
 	{
 		OnRun();
-		SoundManager::GetInstance().Stop(m_files.at(S_WALK)->GetHandle());
-		return;
+		isChange = true;
 	}
-	// 左スティックが入力されている間は移動
-	if (Move(WALK_SPEED, false)) return;
+	// 状態を遷移していない場合
+	if (!isChange)
+	{
+		// 左スティックが入力されている間は歩き継続
+		if (Move(WALK_SPEED, false)) return;
+		// 入力されていなかったらアイドル状態に遷移
+		OnIdle();
+	}
 
-	// 入力されていなかったらアイドル状態に遷移
-	OnIdle();
-	SoundManager::GetInstance().Stop(m_files.at(S_WALK)->GetHandle());
+	// 歩きのSEを止める
+	sndMgr.Stop(walkSeH);
 }
 
 void Player::RunUpdate()
 {
+	int runSeH = m_files.at(S_RUN)->GetHandle();
+	auto& sndMgr = SoundManager::GetInstance();
+	// 走りのSEが鳴っていない場合、再度再生
+	if (!sndMgr.IsNowPlay(runSeH)) sndMgr.PlaySe(runSeH);
+
+	bool isChange = false;
 	auto& input = Input::GetInstance();
 	// ジャンプに遷移
 	if (input.IsTriggerd(Command::BTN_JUMP))
 	{
 		OnJump();
-		m_camera->SetFov(-1);
-		//		SoundManager::GetInstance().Stop(m_files.at(S_WALK)->GetHandle());
-		return;
+		isChange = true;
 	}
 	// 歩きに遷移
 	if (input.IsReleased(Command::BTN_RUN))
 	{
 		OnWalk();
-		m_camera->SetFov(-1);
-		return;
+		isChange = true;
 	}
-	// 左スティックが入力されている間は移動
-	if (Move(RUN_SPEED, true)) return;
+	// 状態を遷移していない場合
+	if (!isChange)
+	{
+		// 左スティックが入力されている間は走り継続
+		if (Move(RUN_SPEED, true)) return;
+		// 入力されていなかったらアイドル状態に遷移
+		OnIdle();
+	}
 
-	// 入力されていなかったらアイドル状態に遷移
-	OnIdle();
+	// 視野角を戻す
 	m_camera->SetFov(-1);
-	//	SoundManager::GetInstance().Stop(m_files.at(S_WALK)->GetHandle());
+	// 走りのSEを止める
+	SoundManager::GetInstance().Stop(runSeH);
 }
 
 void Player::JumpUpdate()
@@ -964,7 +992,7 @@ void Player::OnIdle()
 
 void Player::OnWalk()
 {
-	SoundManager::GetInstance().PlaySe3D(m_files.at(S_WALK)->GetHandle(), shared_from_this());
+	SoundManager::GetInstance().PlaySe(m_files.at(S_WALK)->GetHandle());
 	// アニメーション・ステート変更
 	m_anim->Change(ANIM_WALK);
 	m_updateFunc = &Player::WalkUpdate;
@@ -973,7 +1001,7 @@ void Player::OnWalk()
 
 void Player::OnRun()
 {
-	//	SoundManager::GetInstance().PlaySe3D(m_files.at(S_WALK)->GetHandle(), shared_from_this());
+	SoundManager::GetInstance().PlaySe(m_files.at(S_RUN)->GetHandle());
 	// カメラのFOVを変更
 	m_camera->SetFov(RUN_FOV_ANGLE);
 	// アニメーション・ステート変更
@@ -1014,7 +1042,7 @@ void Player::OnLanding()
 {
 	if (m_isGround) return;
 
-	SoundManager::GetInstance().PlaySe3D(m_files.at(S_LANDING)->GetHandle(), shared_from_this());
+	SoundManager::GetInstance().PlaySe(m_files.at(S_LANDING)->GetHandle());
 	// 地面についたことに
 	m_isGround = true;
 	// 重量停止状態でないなら速度を0にする
@@ -1030,7 +1058,7 @@ void Player::OnLanding()
 
 void Player::OnHit()
 {
-	SoundManager::GetInstance().PlaySe3D(m_files.at(S_DAMAGE)->GetHandle(), shared_from_this());
+	SoundManager::GetInstance().PlaySe(m_files.at(S_DAMAGE)->GetHandle());
 	// ヒットストップフレームを設定
 	m_hitStopFrame = HIT_STOP_FRAME;
 	// アニメーション・ステート変更
@@ -1079,7 +1107,7 @@ void Player::OnShot()
 	// 弾の生成
 	if (isCreate)
 	{
-		SoundManager::GetInstance().PlaySe3D(m_files.at(S_SHOT_PLAYER)->GetHandle(), shared_from_this());
+		SoundManager::GetInstance().PlaySe(m_files.at(S_SHOT_PLAYER)->GetHandle());
 		// インターバルを初期化
 		m_shotInteval = SHOT_INTERVAL;
 		// 生成
