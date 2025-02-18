@@ -791,7 +791,7 @@ void SceneTitle::DrawRanking() const
 		// 記録がある場合
 		else
 		{
-			const auto& rank = stageDataMgr.GetRank(m_rankingCurrent, timeFrame);
+			const auto& rank = stageDataMgr.GetRank(m_rankingCurrent + 1, timeFrame);
 			const auto& path = RANK_FILE_PATH.at(rank);
 			DrawRotaGraphFast(m_rankingUI->x + DRAW_SUB_RANKING_RANK_X, y, FILE_SIZE_RANKING_RANK, 0.0f, m_files.at(path)->GetHandle(), true);
 			TimeUtility::DrawTime(m_rankingUI->x + DRAW_SUB_RANKING_TIME_X, y, timeFrame, FILE_SIZE_RANKING_INFO, COLOR_RANKING_DATA, true);

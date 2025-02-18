@@ -20,6 +20,7 @@ namespace
 class NumUtility
 {
 private:
+	// シェーダー用の定数バッファ
 	struct CBuff
 	{
 		float red;
@@ -57,7 +58,7 @@ public:
 		// ファイルの読み込み
 		auto& fileMgr = FileManager::GetInstance();
 		m_handle = fileMgr.Load(I_NUMBERS, true)->GetHandle();
-		m_psH = fileMgr.Load(PS_NUM, true)->GetHandle();
+		m_psH = fileMgr.Load(PS_COLOR, true)->GetHandle();
 
 		// 定数バッファの作成
 		m_cBuffH = CreateShaderConstantBuffer(sizeof(CBuff));

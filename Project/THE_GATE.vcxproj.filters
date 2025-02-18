@@ -500,7 +500,7 @@
     <FxCompile Include="Shader\NormalPS.hlsl" />
     <FxCompile Include="Shader\SkinMeshVS.hlsl" />
     <FxCompile Include="Shader\NormalVS.hlsl" />
-    <FxCompile Include="Shader\NumPS.hlsl" />
+    <FxCompile Include="Shader\ColorPS.hlsl" />
     <FxCompile Include="Shader\DissolvePS.hlsl" />
   </ItemGroup>
 </Project>

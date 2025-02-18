@@ -41,10 +41,31 @@ namespace
 	constexpr int DRAW_DECORATIVE_FRAME_Y_2 = 375;
 
 	/* ステージフレーム */
-	constexpr int DRAW_STAGE_INTERVAL = 135;	// 描画間隔
-	// 描画位置
-	constexpr int DRAW_STAGE_X = 160;
-	constexpr int DRAW_STAGE_Y = 240;
+	constexpr int DRAW_STAGE_X = 170;	// 描画位置(x)
+	constexpr int DRAW_STAGE_Y = 240;	// 描画位置(y)
+	constexpr int DRAW_STAGE_INTERVAL = 180;	// 描画間隔
+	constexpr int SRC_SIZE_STAGE_LOGO = 99;	// ステージロゴの切り取りサイズ
+	constexpr int STAGE_LOGO_LINE_NUM = 4;	// ステージロゴの列数
+	constexpr int STAGE_LOGO_ROW_NUM = 4;	// ステージロゴの行数
+	constexpr int DRAW_SUB_STAGE_NEW_X = 44;	// Newの描画位置差分(x)
+	constexpr int DRAW_SUB_STAGE_NEW_Y = -40;	// Newの描画位置差分(y)
+	constexpr int DRAW_SUB_STAGE_NEW_SELECT = 8;	// 選択中の場合の差分
+	// クリア時カラー
+	constexpr float COLOR_CLEAR_LOGO_R = 0.125f; // 赤
+	constexpr float COLOR_CLEAR_LOGO_G = 1.0f;	 // 緑
+	constexpr float COLOR_CLEAR_LOGO_B = 0.125f; // 青
+	// 未クリア時カラー
+	constexpr float COLOR_NOT_CLEAR_LOGO_R = 1.0f;	// 赤
+	constexpr float COLOR_NOT_CLEAR_LOGO_G = 1.0f;	// 緑
+	constexpr float COLOR_NOT_CLEAR_LOGO_B = 1.0f;	// 青
+	// 未開放時のカラー
+	constexpr float COLOR_NOT_RELEASE_LOGO_R = 0.75f;	// 赤
+	constexpr float COLOR_NOT_RELEASE_LOGO_G = 0.75f;	// 緑
+	constexpr float COLOR_NOT_RELEASE_LOGO_B = 0.75f;	// 青
+	/* ロゴの影色 */
+	constexpr float COLOR_LOGO_SHADOW_R = 0.0f;	// 赤
+	constexpr float COLOR_LOGO_SHADOW_G = 0.0f;	// 緑
+	constexpr float COLOR_LOGO_SHADOW_B = 0.0f;	// 青
 
 	/* ランクタイム */
 	// 描画間隔
@@ -64,19 +85,17 @@ namespace
 	constexpr int SHADOW_POS_RANK_TIME = 3;		// 影位置
 
 	/* PadUi描画 */
-	constexpr int DRAW_PAD_X = 1100;		// 基準Y描画位置
-	constexpr int DRAW_PAD_Y = 680;			// 画像描画位置
+	constexpr int DRAW_PAD_X = 1068;		// 基準Y描画位置
+	constexpr int DRAW_PAD_Y = 670;			// 画像描画位置
 	constexpr int DRAW_PAD_Y_INTERVAL = 50;	// 描画間隔
 	constexpr float FILE_SIZE_PAD = 0.3f;	// 画像サイズ
-	constexpr int DRAW_PAD_FRAME_X = 1160;			// フレーム描画位置
-	constexpr float FILE_SIZE_PAD_FRAME = 0.525f;	// フレームサイズ
-	constexpr int DRAW_PAD_STR_X = 1120;	// 文字列描画位置
+	constexpr int DRAW_PAD_STR_X = 1088;	// 文字列描画位置
 	constexpr int FONT_SIZE_PAD = 28;		// フォントサイズ
 	constexpr int PAD_STR_SHADOW_POS = 2;	// 影描画位置
 	constexpr unsigned int COLOR_PAD = 0xffffff;	// 文字カラー
 
 	/* その他 */
-	constexpr int STAGE_LINE_NUM = 4;					// ステージ列数
+	constexpr int STAGE_LINE_NUM = 3;					// ステージ列数
 	constexpr float ADD_SCALE_STAGE_SELECT = 0.1f;		// 選択フレームの追加拡大率
 	constexpr float CYCLE_SCALING_STAGE_SELECT = 3.0f;	// 選択フレームの拡縮サイクル
 	constexpr float WAVE_SPEED = 3.0f;					// 文字ウェーブスピード
@@ -85,6 +104,8 @@ namespace
 
 SceneStageSelect::SceneStageSelect() :
 	SceneBase(SceneKind::STAGE_SELECT),
+	m_cBuff(nullptr),
+	m_cBuffH(-1),
 	m_selectCurrent(0),
 	m_count(0)
 {
@@ -94,6 +115,7 @@ void SceneStageSelect::AsyncInit()
 {
 	// ファイル読み込み
 	auto& fileMgr = FileManager::GetInstance();
+	m_files[PS_COLOR]				= fileMgr.Load(PS_COLOR);
 	m_files[I_SELECT_WINDOW_BACK]	= fileMgr.Load(I_SELECT_WINDOW_BACK);
 	m_files[I_SELECT_WINDOW]		= fileMgr.Load(I_SELECT_WINDOW);
 	m_files[I_RELEASE_FRAME]		= fileMgr.Load(I_RELEASE_FRAME);
@@ -103,11 +125,13 @@ void SceneStageSelect::AsyncInit()
 	m_files[I_DIVIDING_LINE]		= fileMgr.Load(I_DIVIDING_LINE);
 	m_files[I_SELECT_OBI]			= fileMgr.Load(I_SELECT_OBI);
 	m_files[I_COMMON_FRAME]			= fileMgr.Load(I_COMMON_FRAME);
+	m_files[I_STAGE_LOGOS]			= fileMgr.Load(I_STAGE_LOGOS);
 	m_files[I_PAD_A]				= fileMgr.Load(I_PAD_A);
 	m_files[I_PAD_B]				= fileMgr.Load(I_PAD_B);
 	m_files[I_RANK_S]				= fileMgr.Load(I_RANK_S);
 	m_files[I_RANK_A]				= fileMgr.Load(I_RANK_A);
 	m_files[I_RANK_B]				= fileMgr.Load(I_RANK_B);
+	m_files[I_RELEASE_NEW]			= fileMgr.Load(I_RELEASE_NEW);
 	m_files[S_CANCEL]				= fileMgr.Load(S_CANCEL);
 	m_files[S_DECIDE]				= fileMgr.Load(S_DECIDE);
 	m_files[S_CURSOR_MOVE]			= fileMgr.Load(S_CURSOR_MOVE);
@@ -117,11 +141,17 @@ void SceneStageSelect::AsyncInit()
 	{
 		m_files[I_STAGE_IMAGE_0 + i] = fileMgr.Load(I_STAGE_IMAGE_0 + i);
 	}
+	// 定数バッファの作成
+	m_cBuffH = CreateShaderConstantBuffer(sizeof(CBuff));
+	assert(m_cBuffH != -1);
 }
 
 void SceneStageSelect::Init()
 {
 	m_scnMgr.ChangeBgmH(m_files.at(B_STAGE_SELECT)->GetHandle());
+	// 定数バッファの取得
+	m_cBuff = static_cast<CBuff*>(GetBufferShaderConstantBuffer(m_cBuffH));
+	assert(m_cBuff != nullptr);
 }
 
 void SceneStageSelect::Update(bool isFade)
@@ -150,6 +180,10 @@ void SceneStageSelect::Update(bool isFade)
 
 void SceneStageSelect::End()
 {
+	// 定数バッファの解放
+	DeleteShaderConstantBuffer(m_cBuffH);
+	// 新規解放状況のリセット
+	SaveDataManager::GetInstance().ResetNewRelease();
 }
 
 void SceneStageSelect::Draw() const
@@ -179,7 +213,7 @@ void SceneStageSelect::Draw() const
 	// ステージフレーム描画
 	DrawStageFrame();
 
-	DrawRankTime(m_selectCurrent);
+	DrawRankTime(m_selectCurrent + 1);
 	// PadUI描画
 	DrawPadUI();
 }
@@ -404,18 +438,22 @@ void SceneStageSelect::SelectUpdate()
 
 void SceneStageSelect::DrawStageFrame() const
 {
+	const auto& saveDataMgr = SaveDataManager::GetInstance();
 	// ステージ数(タイトル・リザルト分減らす)
-	int stageNum = StageDataManager::GetInstance().GetStageNum() - 2;
 	int id;
-	float scale;
+	float rate = 1.0f;
+	float scale = 1.0f;
+	int stageNum = StageDataManager::GetInstance().GetStageNum() - 2;
 	for (int i = 0; i < stageNum; ++i)
 	{
 		int x = DRAW_STAGE_X + DRAW_STAGE_INTERVAL * (i % STAGE_LINE_NUM);
 		int y = DRAW_STAGE_Y + DRAW_STAGE_INTERVAL * (i / STAGE_LINE_NUM);
 
+		/* フレーム画像の選択 */
 		bool isSelect = i == m_selectCurrent;
+		bool isRelease = saveDataMgr.IsReleaseStage(i);
 		// ステージ解放されている場合
-		if (SaveDataManager::GetInstance().IsReleaseStage(i))
+		if (isRelease)
 		{
 			// 現在選んでいる場合
 			if (isSelect)	id = I_STAGE_SELECT_FRAME;
@@ -429,12 +467,67 @@ void SceneStageSelect::DrawStageFrame() const
 		}
 
 		// 選択中の場合
-		if (isSelect)	scale = 1.0f + std::sin(m_count * Game::DEG_2_RAD * CYCLE_SCALING_STAGE_SELECT) * ADD_SCALE_STAGE_SELECT;
+		if (isSelect)
+		{
+			// 割合の計算
+			rate = std::sin(m_count * CYCLE_SCALING_STAGE_SELECT * Game::DEG_2_RAD);
+			// 拡大率の計算
+			scale += rate * ADD_SCALE_STAGE_SELECT;
+		}
 		// 未選択の場合
-		else			scale = 1.0f;
+		else
+		{
+			rate = 0.0f;
+			scale = 1.0f;
+		}
 
+		// フレームの描画
 		DrawRotaGraphFast(x, y, scale, 0.0f, m_files.at(id)->GetHandle(), true);
+
+		// ステージ内ロゴの描画
+		int srcX = SRC_SIZE_STAGE_LOGO * (i % STAGE_LOGO_LINE_NUM);
+		int srcY = SRC_SIZE_STAGE_LOGO * (i / STAGE_LOGO_ROW_NUM);
+		// 影
+		DrawStageLogo(x + 4, y + 4, srcX, srcY, scale, COLOR_LOGO_SHADOW_R, COLOR_LOGO_SHADOW_G, COLOR_LOGO_SHADOW_B);
+		// クリア・解放状況による色変更描画
+		if (saveDataMgr.IsClear(i))
+		{
+			DrawStageLogo(x, y, srcX, srcY, scale, COLOR_CLEAR_LOGO_R, COLOR_CLEAR_LOGO_G, COLOR_CLEAR_LOGO_B);
+		}
+		else if (isRelease)
+		{
+			DrawStageLogo(x, y, srcX, srcY, scale, COLOR_NOT_CLEAR_LOGO_R, COLOR_NOT_CLEAR_LOGO_G, COLOR_NOT_CLEAR_LOGO_B);
+		}
+		else
+		{
+			DrawStageLogo(x, y, srcX, srcY, scale, COLOR_NOT_RELEASE_LOGO_R, COLOR_NOT_RELEASE_LOGO_G, COLOR_NOT_RELEASE_LOGO_B);
+		}
+
+		// Newの描画
+		const bool isNew = saveDataMgr.IsNewRelease(i);
+		if (isRelease && isNew)
+		{
+			int sub = static_cast<int>(rate * DRAW_SUB_STAGE_NEW_SELECT);
+			x += DRAW_SUB_STAGE_NEW_X + sub;
+			y += DRAW_SUB_STAGE_NEW_Y - sub;
+			
+			DrawRotaGraphFast(x, y, 1.0f, 0.0f, m_files.at(I_RELEASE_NEW)->GetHandle(), true);
+		}
 	}
+}
+
+void SceneStageSelect::DrawStageLogo(int x, int y, int srcX, int srcY, float scale, float r, float g, float b) const
+{
+	// 色設定
+	m_cBuff->red = r;
+	m_cBuff->green = g;
+	m_cBuff->blue = b;
+	UpdateShaderConstantBuffer(m_cBuffH);
+	SetShaderConstantBuffer(m_cBuffH, DX_SHADERTYPE_PIXEL, 4);
+	// 描画
+	int psH = m_files.at(PS_COLOR)->GetHandle();
+	int handle = m_files.at(I_STAGE_LOGOS)->GetHandle();
+	MyEngine::DrawRectRotaGraph(x, y, srcX, srcY, SRC_SIZE_STAGE_LOGO, SRC_SIZE_STAGE_LOGO, scale, 0.0f, psH, handle);
 }
 
 void SceneStageSelect::DrawRankTime(const int stageNo) const
@@ -455,12 +548,10 @@ void SceneStageSelect::DrawPadUI() const
 {
 	int y = DRAW_PAD_Y;
 	// A:決定
-	DrawRotaGraphFast(DRAW_PAD_FRAME_X, y, FILE_SIZE_PAD_FRAME, 0.0f, m_files.at(I_COMMON_FRAME)->GetHandle(), true);
 	DrawRotaGraphFast(DRAW_PAD_X, y, FILE_SIZE_PAD, 0.0f, m_files.at(I_PAD_A)->GetHandle(), true);
 	UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X, y, PAD_STR_SHADOW_POS, PAD_STR_SHADOW_POS, COLOR_PAD, L"決定", FONT_SIZE_PAD);
 	// B:タイトルへ
 	y -= DRAW_PAD_Y_INTERVAL;
-	DrawRotaGraphFast(DRAW_PAD_FRAME_X, y, FILE_SIZE_PAD_FRAME, 0.0f, m_files.at(I_COMMON_FRAME)->GetHandle(), true);
 	DrawRotaGraphFast(DRAW_PAD_X, y, FILE_SIZE_PAD, 0.0f, m_files.at(I_PAD_B)->GetHandle(), true);
 	UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X, y, PAD_STR_SHADOW_POS, PAD_STR_SHADOW_POS, COLOR_PAD, L"タイトルへ", FONT_SIZE_PAD);
 }

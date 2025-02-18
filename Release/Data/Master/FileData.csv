@@ -32,7 +32,7 @@
 0,Data/Model/Torpedo.mv1
 1,Data/Shader/NormalPS.pso
 1,Data/Shader/GatePS.pso
-1,Data/Shader/NumPS.pso
+1,Data/Shader/ColorPS.pso
 1,Data/Shader/DissolvePS.pso
 2,Data/Shader/NormalVS.vso
 2,Data/Shader/SkinMeshVS.vso
@@ -80,6 +80,8 @@
 3,Data/Image/StageSelect/DividingLine.png
 3,Data/Image/StageSelect/TimeBack.png
 3,Data/Image/StageSelect/SelectObi.png
+3,Data/Image/StageSelect/NewRelease.png
+3,Data/Image/StageSelect/StageLogos.png
 3,Data/Image/StageSelect/StageImage0.png
 3,Data/Image/StageSelect/StageImage1.png
 3,Data/Image/StageSelect/StageImage2.png

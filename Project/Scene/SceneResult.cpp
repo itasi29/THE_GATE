@@ -13,6 +13,7 @@
 #include "StageDataManager.h"
 #include "SceneManager.h"
 #include "SceneStageSelect.h"
+#include "SceneMain.h"
 #include "AnimController.h"
 #include "Object/AnimPlayer.h"
 #include "Object/Stage/StageManager.h"
@@ -75,16 +76,15 @@ namespace
 	constexpr float FILE_SIZE_RANKING_SMALL = 0.9f;
 
 	/* PadUI系 */
-	constexpr int DRAW_RETURN_X = 1090;				// 画像X描画位置
-	constexpr int DRAW_RETURN_Y = 680;				// 画像Y描画位置
-	constexpr float FILE_SIZE_RETURN = 0.3f;		// 画像サイズ
-	constexpr int DRAW_RETURN_FRAME_X = 1180;		// フレームY描画位置
-	constexpr float FILE_SIZE_RETURN_FRAME = 0.75f;	// フレームサイズ
-	constexpr int DRAW_RETURN_STR_X = 1110;			// 文字列X描画位置
-	constexpr int RETURN_STR_SHOADOW_POS = 2;		// 影描画位置
-	constexpr int FONT_SIZE_RETURN = 28;			// フォントサイズ
-	constexpr unsigned int COLOR_RETURN = 0xffffff;	// 文字カラー
-	constexpr int DOWN_RETURN_Y = 60;			// Y位置の下げる大きさ
+	constexpr int DRAW_PAD_X = 1040;	// 画像X描画位置
+	constexpr int DRAW_PAD_Y = 688;		// 画像Y描画位置
+	constexpr int DRAW_PAD_STR_X = 1060;	// 文字列X描画位置
+	constexpr int RETURN_STR_SHOADOW_POS = 2;	// 影描画位置
+	constexpr int DRAW_PAD_X_INTERVAL = -212;	// X描画位置の間隔
+	constexpr float FILE_SIZE_PAD = 0.3f;	// 画像サイズ
+	constexpr int FONT_SIZE_RETURN = 28;	// フォントサイズ
+	constexpr unsigned int COLOR_PAD = 0xffffff;	// 文字カラー
+	constexpr int DOWN_PAD_Y = 60;			// Y位置の下げる大きさ
 
 	/* フレーム系 */
 	constexpr int DECIDE_COUNT = 20;	// 決定までのフレーム
@@ -124,7 +124,8 @@ SceneResult::SceneResult(const int stageNo, const int clearTime) :
 	m_isAllMoved(false),
 	m_isRankStamped(false),
 	m_isRankingStamped(false),
-	m_isRankingUpdate(false)
+	m_isRankingUpdate(false),
+	m_isExistNext(false)
 {
 }
 
@@ -140,7 +141,7 @@ void SceneResult::AsyncInit()
 	m_files[I_CLEAR_TIME_FRAME]	= fileMgr.Load(I_CLEAR_TIME_FRAME);
 	m_files[I_RANKING_UPDATE]	= fileMgr.Load(I_RANKING_UPDATE);
 	m_files[I_PAD_A]			= fileMgr.Load(I_PAD_A);
-	m_files[I_COMMON_FRAME]		= fileMgr.Load(I_COMMON_FRAME);
+	m_files[I_PAD_B]			= fileMgr.Load(I_PAD_B);
 	m_files[B_RESULT]			= fileMgr.Load(B_RESULT);
 	m_files[M_PLAYER]			= fileMgr.Load(M_PLAYER);
 	m_psH = fileMgr.GetPS(M_PLAYER);
@@ -158,6 +159,8 @@ void SceneResult::Init()
 	m_isRankingUpdate = RankingDataManager::GetInstance().CheckRankingUpdate(m_stageNo - 1, m_clearTime);
 	// 入っていなければランキング更新のスタンプ既にしていることに
 	if (!m_isRankingUpdate) m_isRankingStamped = true;
+	// 次のステージがあるか
+	m_isExistNext = m_stageNo + 1 < StageDataManager::GetInstance().GetStageNum() - 1;
 
 	// 背景モデル情報を取得
 	m_stageMgr->Init(nullptr, nullptr);
@@ -262,9 +265,9 @@ void SceneResult::RankUpdate()
 		m_count = 0;
 		m_isRankStamped = true;
 		// ランキングの更新がなければPadUIのフェードに遷移
-		if (m_isRankingStamped) m_processFunc = &SceneResult::PadUIFadeUpdate;
+		if (!m_isRankingUpdate)  m_processFunc = &SceneResult::PadUIFadeUpdate;
 		// 更新があればスタンプに遷移
-		else					m_processFunc = &SceneResult::RankingUpdate;
+		else					 m_processFunc = &SceneResult::RankingUpdate;
 	}
 }
 
@@ -314,12 +317,31 @@ void SceneResult::SelectUpdate()
 			m_isRankingStamped = true;
 			m_count = 0;
 		}
-		// 全て完了していればステージ選択シーンに遷移
+		// 全て完了していれば
 		else
 		{
-			auto next = std::make_shared<SceneStageSelect>();
-			m_scnMgr.Change(next);
+			// 次のステージが存在していれば、次のステージへ
+			if (m_isExistNext)
+			{
+				auto next = std::make_shared<SceneMain>(m_stageNo + 1);
+				m_scnMgr.Change(next);
+			}
+			// 存在しなければ、ステージ選択へ
+			else
+			{
+				auto next = std::make_shared<SceneStageSelect>();
+				next->ChangeSelectCurrent(m_stageNo - 1);
+				m_scnMgr.Change(next);
+			}
 		}
+		return;
+	}
+	// キャンセルでステージ選択へ
+	if (input.IsTriggerd(Command::BTN_CANCEL))
+	{
+		auto next = std::make_shared<SceneStageSelect>();
+		next->ChangeSelectCurrent(m_stageNo - 1);
+		m_scnMgr.Change(next);
 	}
 }
 
@@ -414,23 +436,32 @@ void SceneResult::DrawPadUI() const
 	// ランキング更新のスタンプが終わるまでは描画しない
 	if (!m_isRankingStamped) return;
 
-	int y = DRAW_RETURN_Y;
+	int y = DRAW_PAD_Y;
 	const bool isAlpha = m_count < PAD_FADE_FRAME;
 	if (isAlpha)
 	{
 		const float rate = m_count / static_cast<float>(PAD_FADE_FRAME);
 		const int alpha = static_cast<int>(Game::ALPHA_VAL * rate);
-		y += static_cast<int>(DOWN_RETURN_Y * (1.0f - rate));
+		y += static_cast<int>(DOWN_PAD_Y * (1.0f - rate));
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
 	}
 
-	// フレーム
-	DrawRotaGraphFast(DRAW_RETURN_FRAME_X, y, FILE_SIZE_RETURN_FRAME, 0.0f, m_files.at(I_COMMON_FRAME)->GetHandle(), true);
-	// 画像
-	DrawRotaGraphFast(DRAW_RETURN_X, y, FILE_SIZE_RETURN, 0.0f, m_files.at(I_PAD_A)->GetHandle(), true);
-	// 文字列
-	UIUtility::DrawShadowStrLeft(DRAW_RETURN_STR_X, y, RETURN_STR_SHOADOW_POS, RETURN_STR_SHOADOW_POS, COLOR_RETURN, L"ステージ選択へ", FONT_SIZE_RETURN, 0x000000);
-
+	if (m_isExistNext)
+	{
+		// ステージ選択へ
+		DrawRotaGraphFast(DRAW_PAD_X, y, FILE_SIZE_PAD, 0.0f, m_files.at(I_PAD_B)->GetHandle(), true);
+		UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X, y, RETURN_STR_SHOADOW_POS, RETURN_STR_SHOADOW_POS, COLOR_PAD, L"ステージ選択へ", FONT_SIZE_RETURN, 0x000000);
+		// 次のステージへ
+		DrawRotaGraphFast(DRAW_PAD_X + DRAW_PAD_X_INTERVAL, y, FILE_SIZE_PAD, 0.0f, m_files.at(I_PAD_A)->GetHandle(), true);
+		UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X + DRAW_PAD_X_INTERVAL, y, RETURN_STR_SHOADOW_POS, RETURN_STR_SHOADOW_POS, COLOR_PAD, L"次のステージへ", FONT_SIZE_RETURN, 0x000000);
+	}
+	else
+	{
+		// ステージ選択へ
+		DrawRotaGraphFast(DRAW_PAD_X, y, FILE_SIZE_PAD, 0.0f, m_files.at(I_PAD_A)->GetHandle(), true);
+		UIUtility::DrawShadowStrLeft(DRAW_PAD_STR_X, y, RETURN_STR_SHOADOW_POS, RETURN_STR_SHOADOW_POS, COLOR_PAD, L"ステージ選択へ", FONT_SIZE_RETURN, 0x000000);
+	}
+	
 	if (isAlpha) SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 }
 

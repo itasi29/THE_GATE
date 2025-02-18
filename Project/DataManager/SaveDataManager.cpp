@@ -54,6 +54,8 @@ void SaveDataManager::Load()
 		// ファイルを閉じる
 		FileRead_close(handle);
 	}
+	// 新規解放状況の初期化
+	m_isNewRelease.resize(m_dataTable.at(0).isClear.size(), false);
 	SetUseASyncLoadFlag(true);
 }
 
@@ -120,17 +122,21 @@ void SaveDataManager::Initialized(int no)
 
 void SaveDataManager::ChangeBgmRate(int changeSize)
 {
+	// BGMの音量の変更
 	m_bgmVolume = std::min<int>(std::max<int>(m_bgmVolume + changeSize, 0), MAX_BGM_RATE);
+	// 変更した音量を適用
 	SoundManager::GetInstance().ChangePlayBgmVolume();
 }
 
 void SaveDataManager::ChangeSeRate(int changeSize)
 {
+	// SEの音量の変更
 	m_seVolume = std::min<int>(std::max<int>(m_seVolume + changeSize, 0), MAX_SE_RATE);
 }
 
 void SaveDataManager::ChangeCameraSens(int changeSize)
 {
+	// カメラ感度の変更
 	m_dataTable.at(m_useSaveNo).cameraSens = std::min<int>(std::max<int>(m_dataTable.at(m_useSaveNo).cameraSens + changeSize, 0), 100);
 }
 
@@ -140,12 +146,27 @@ void SaveDataManager::OnClear(int stageNo, int clearTime)
 
 	// クリア時間が保存されているプレイ時間を超えている場合は更新
 	if (data.clearTime.at(stageNo) > clearTime) data.clearTime.at(stageNo) = clearTime;
+	// クリアしていない場合
+	if (!data.isClear.at(stageNo))
+	{
+		// 次のステージが存在する場合は新規解放とする
+		if (stageNo + 1 < m_isNewRelease.size())
+		{
+			m_isNewRelease.at(stageNo + 1) = true;
+		}
+	}
 	// クリアしたことに
 	data.isClear.at(stageNo) = true;
 	// データが存在することに
 	data.isExist = true;
 	// トータルタイムの更新
 	data.totalTime += clearTime;
+}
+
+void SaveDataManager::ResetNewRelease()
+{
+	// 全部falseにする
+	for (int i = 0; i < m_isNewRelease.size(); ++i) m_isNewRelease.at(i) = false;
 }
 
 int SaveDataManager::GetSaveDataNum() const

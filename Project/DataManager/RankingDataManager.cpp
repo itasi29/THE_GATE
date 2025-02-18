@@ -6,8 +6,12 @@
 
 namespace
 {
-	constexpr unsigned int FILE_VERSION = 1;
+	// パス
 	const char* const FILE_PATH = "Data/SaveData/RankingData.dat";
+	// スタートタイムを設定（10分）
+	constexpr int START_TIME = 60 * 60 * 10;
+	// スタートタイムの増加値（1分）
+	constexpr int ADD_START_TIME = 60 * 60;
 }
 
 RankingDataManager::RankingDataManager()
@@ -63,9 +67,12 @@ void RankingDataManager::Save() const
 		return;
 	}
 
-	for (auto& time : m_localData)
+	for (auto& list : m_localData)
 	{
-		fwrite(&time, sizeof(int), 1, fp);
+		for (auto& time : list)
+		{
+			fwrite(&time, sizeof(int), 1, fp);
+		}
 	}
 }
 
@@ -91,7 +98,7 @@ void RankingDataManager::Initialize()
 		auto& list = m_localData[i];
 		for (int j = 0; j < RANKING_DATA_NUM; ++j)
 		{
-			list[j] = 3600 * (j + 1);
+			list[j] = START_TIME + ADD_START_TIME * j;
 		}
 	}
 }

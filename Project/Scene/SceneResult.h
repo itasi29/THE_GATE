@@ -162,4 +162,5 @@ private:
     bool m_isRankStamped;    // ランクがスタンプされたかどうか
     bool m_isRankingStamped; // ランキングがスタンプされたかどうか
     bool m_isRankingUpdate;  // ランキングが更新されたかどうか
+	bool m_isExistNext; // 次のステージが存在するか
 };

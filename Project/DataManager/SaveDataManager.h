@@ -82,6 +82,10 @@ public:
     /// <param name="stageNo">ステージ番号</param>
     /// <param name="clearTime">クリアタイム</param>
     void OnClear(int stageNo, int clearTime);
+    /// <summary>
+    /// 新しく解放した情報のリセット
+    /// </summary>
+    void ResetNewRelease();
 
 	/// <summary>
 	/// BGMの割合を取得
@@ -155,6 +159,12 @@ public:
     /// <param name="stageNo">ステージ番号</param>
     /// <returns>true: 解放している/ false: 解放していない</returns>
     bool IsReleaseStage(int stageNo) const;
+	/// <summary>
+	/// 新しくステージを開放したか
+	/// </summary>
+	/// <param name="stageNo">ステージ番号</param>
+	/// <returns>true: 新しく解放した/ false: 新しく開放していない</returns>
+	bool IsNewRelease(int stageNo) const { return m_isNewRelease.at(stageNo); }
 
 private:
     /// <summary>
@@ -168,6 +178,10 @@ private:
     int m_useSaveNo;  
     // セーブデータのテーブル
     SaveDataTable_t m_dataTable; 
+    // 新規開放したか
+    std::vector<bool> m_isNewRelease;
+	// BGMの音量
     int m_bgmVolume;
+	// SEの音量
 	int m_seVolume;
 };

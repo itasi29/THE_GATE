@@ -8,6 +8,16 @@ enum class RankKind;
 /// </summary>
 class SceneStageSelect : public SceneBase
 {
+private:
+	// シェーダー用の定数バッファ
+    struct CBuff
+    {
+        float red;
+        float green;
+        float blue;
+        float padding;
+    };
+
 public:
     /// <summary>
     /// コンストラクタ
@@ -45,6 +55,12 @@ public:
     /// </summary>
     void Draw() const override;
 
+	/// <summary>
+	/// ステージ選択の開始場所を変更
+	/// </summary>
+	/// <param name="selectCurrent">開始番号</param>
+	void ChangeSelectCurrent(int selectCurrent) { m_selectCurrent = selectCurrent; }
+
 private:
     /// <summary>
     /// ステージ選択の更新処理
@@ -55,6 +71,8 @@ private:
     /// ステージフレームの描画処理
     /// </summary>
     void DrawStageFrame() const;
+
+    void DrawStageLogo(int x, int y, int srcX, int srcY, float scale, float r, float g, float b) const;
 
     /// <summary>
     /// ランクタイムの描画処理
@@ -79,6 +97,10 @@ private:
     void DrawPadUI() const;
 
 private:
+    // 定数バッファ
+	CBuff* m_cBuff;
+	// 定数バッファハンドル
+    int m_cBuffH;
     // 現在選択されているステージ
     int m_selectCurrent; 
     // カウント

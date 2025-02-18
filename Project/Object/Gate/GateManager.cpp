@@ -123,6 +123,7 @@ void GateManager::Restart()
 	m_isCreate[GateKind::Orange] = false;
 	m_isCreate[GateKind::Blue] = false;
 	// ゲート弾を削除
+	for (auto& bullet : m_bulletList) bullet->End();
 	m_bulletList.clear();
 	// 固定ゲートの再設置
 	CreateGateOnTerrain();
